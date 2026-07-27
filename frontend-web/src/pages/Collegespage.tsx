@@ -37,6 +37,8 @@ const emptyForm = {
   adminEmail: '',
   password: '',
   confirmPassword: '',
+  subscriptionPlan: 'TRIAL',
+  subscriptionExpiresAt: '',
 }
 
 const EASE_STAMP = [0.16, 1, 0.3, 1] as const
@@ -127,6 +129,10 @@ export function CollegesPage() {
         subdomain: form.subdomain.trim().toLowerCase(),
         adminEmail: form.adminEmail.trim(),
         password: form.password,
+        subscriptionPlan: form.subscriptionPlan.trim(),
+        subscriptionExpiresAt: form.subscriptionExpiresAt
+          ? new Date(form.subscriptionExpiresAt).toISOString()
+          : null,
       })
       setSessionAdminEmails((prev) => ({ ...prev, [result.tenantId]: form.adminEmail.trim() }))
       setForm(emptyForm)
@@ -205,6 +211,35 @@ export function CollegesPage() {
                 </p>
               )}
             </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Subscription Plan">
+                <select
+                  value={form.subscriptionPlan}
+                  onChange={(e) => setForm({ ...form, subscriptionPlan: e.target.value })}
+                  className={inputClass}
+                >
+                  <option value="TRIAL">TRIAL</option>
+                  <option value="BASIC">BASIC</option>
+                  <option value="PRO">PRO</option>
+                  <option value="ENTERPRISE">ENTERPRISE</option>
+                </select>
+              </Field>
+              <Field label="Expires on (optional)">
+                <input
+                  type="date"
+                  value={form.subscriptionExpiresAt}
+                  onChange={(e) => setForm({ ...form, subscriptionExpiresAt: e.target.value })}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+            {form.subscriptionPlan === 'TRIAL' && !form.subscriptionExpiresAt && (
+              <p className="-mt-2 text-xs text-slate-dim">
+                No expiry set — this trial won't auto-expire until you set one from the
+                college's Subscription editor.
+              </p>
+            )}
 
             <h3 className="border-b border-parchment-line pb-2 pt-3 font-display text-base font-medium text-ink">
               First Administrator

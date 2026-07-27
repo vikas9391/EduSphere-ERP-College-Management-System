@@ -6,6 +6,9 @@ export interface TenantRegisterPayload {
   subdomain: string
   adminEmail: string
   password: string
+  // Optional - omit/leave blank to keep the backend's "TRIAL" default with no expiry.
+  subscriptionPlan?: string
+  subscriptionExpiresAt?: string | null // ISO datetime
 }
 
 // Mirrors com.collegeerp.Backend.tenant.dto.TenantRegistrationResponse

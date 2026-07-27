@@ -83,7 +83,9 @@ public class TenantProvisioningService {
                 subdomain,
                 schemaName,
                 request.getAdminEmail(),
-                request.getPassword()
+                request.getPassword(),
+                request.getSubscriptionPlan(),
+                request.getSubscriptionExpiresAt()
         );
 
         log.info("Provisioned new tenant '{}' (schema={}, subdomain={})",
@@ -149,20 +151,28 @@ public class TenantProvisioningService {
     }
 
     private Tenant provisionNewTenant(String collegeName, String subdomain, String schemaName,
-                                       String adminEmail, String password) {
+                                       String adminEmail, String password,
+                                       String subscriptionPlan, LocalDateTime subscriptionExpiresAt) {
 
         schemaMigrator.migrateSchema(schemaName);
         seedAdminUser(schemaName, collegeName, adminEmail, password);
 
-        Tenant tenant = Tenant.builder()
+        Tenant.TenantBuilder builder = Tenant.builder()
                 .name(collegeName)
                 .schemaName(schemaName)
                 .subdomain(subdomain)
                 .isActive(true)
                 .createdAt(LocalDateTime.now())
-                .build();
+                .subscriptionExpiresAt(subscriptionExpiresAt);
 
-        return tenantRepository.save(tenant);
+        // Only override the entity's "TRIAL" default if the caller actually supplied a
+        // plan - an explicit blank field should fall back to trial, not to a literal
+        // empty string being persisted.
+        if (subscriptionPlan != null && !subscriptionPlan.isBlank()) {
+            builder.subscriptionPlan(subscriptionPlan.trim().toUpperCase());
+        }
+
+        return tenantRepository.save(builder.build());
     }
 
     private void seedAdminUser(String schemaName, String collegeName, String adminEmail, String password) {
