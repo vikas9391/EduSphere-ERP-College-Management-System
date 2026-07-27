@@ -82,8 +82,8 @@ public class StudentDashboardService {
                 .studentId(student.getId())
                 .studentName(student.getFirstName() + " " + (student.getLastName() != null ? student.getLastName() : ""))
                 .rollNumber(student.getRollNumber())
-                .department(resolveDepartment(enrollments))
-                .course(resolveCourse(enrollments))
+                .department(resolveDepartment(student, enrollments))
+                .course(resolveCourse(student, enrollments))
                 .semester(resolveSemester(enrollments))
                 .cgpa(studentResultService.getResults(studentId).getCgpa())
                 .attendancePercentage(attendancePercentage(studentId))
@@ -95,12 +95,18 @@ public class StudentDashboardService {
     }
 
     /**
-     * The schema has no direct Student -> Department FK; a student's department is only ever
-     * derivable through their subject enrollments (Subject -> Course -> Department). This takes
-     * the most recently enrolled subject's department as the student's "current" department.
-     * Returns null if the student has no enrollments yet.
+     * A student's department is resolved from their directly-assigned {@code course}
+     * (Student -> Course -> Department) whenever one has been set by an admin - that's the
+     * authoritative "what course/batch is this student in" answer and doesn't depend on
+     * whether the student has been enrolled in any subjects yet. Only falls back to deriving
+     * it from the most recently enrolled subject (Subject -> Course -> Department) for
+     * students who predate the direct link and have no course assigned. Returns null if
+     * neither source has an answer.
      */
-    private String resolveDepartment(List<Enrollment> enrollments) {
+    private String resolveDepartment(Student student, List<Enrollment> enrollments) {
+        if (student.getCourse() != null && student.getCourse().getDepartment() != null) {
+            return student.getCourse().getDepartment().getName();
+        }
         return mostRecentSubject(enrollments)
                 .map(Subject::getCourse)
                 .map(course -> course.getDepartment())
@@ -108,8 +114,11 @@ public class StudentDashboardService {
                 .orElse(null);
     }
 
-    /** Same derivation rationale as {@link #resolveDepartment}, via the course instead. */
-    private String resolveCourse(List<Enrollment> enrollments) {
+    /** Same derivation rationale as {@link #resolveDepartment}, via the course name instead. */
+    private String resolveCourse(Student student, List<Enrollment> enrollments) {
+        if (student.getCourse() != null) {
+            return student.getCourse().getCourseName();
+        }
         return mostRecentSubject(enrollments)
                 .map(Subject::getCourse)
                 .map(course -> course.getCourseName())

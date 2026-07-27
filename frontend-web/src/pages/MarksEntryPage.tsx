@@ -6,20 +6,20 @@ import { Layout } from '@/components/Layout'
 import { Modal } from '@/components/Modal'
 import { Field, inputClass } from '@/components/FormField'
 import { StampGrid } from '@/components/motion'
-import { StatCard, PanelError, STAT_SHADES } from '@/components/PageBits'
+import { StatCard, PanelError, Badge, STAT_SHADES } from '@/components/PageBits'
 import {
   getExamSchedule,
   getMarksByExamSchedule,
+  getEligibleStudents,
   enterMarks,
   updateMarks,
   publishMarks,
   publishMarksForExamSchedule,
   deleteMarks,
-  getStudents,
   type ExamSchedule,
   type Marks,
   type MarksPayload,
-  type Student,
+  type EligibleStudent,
 } from '@/api'
 import { ArrowLeft, Plus, Pencil, Trash2, Loader2, CheckCircle2, ClipboardList, FileCheck2, FileClock, Percent } from 'lucide-react'
 
@@ -43,7 +43,7 @@ export function MarksEntryPage() {
 
   const [schedule, setSchedule] = useState<ExamSchedule | null>(null)
   const [marksList, setMarksList] = useState<Marks[]>([])
-  const [students, setStudents] = useState<Student[]>([])
+  const [eligibleStudents, setEligibleStudents] = useState<EligibleStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
@@ -58,14 +58,14 @@ export function MarksEntryPage() {
     setLoading(true)
     setError(null)
     try {
-      const [sch, m, s] = await Promise.all([
+      const [sch, m, elig] = await Promise.all([
         getExamSchedule(id),
         getMarksByExamSchedule(id),
-        getStudents(),
+        getEligibleStudents(id),
       ])
       setSchedule(sch)
       setMarksList(m)
-      setStudents(s)
+      setEligibleStudents(elig)
     } catch {
       setError('Could not load marks for this schedule.')
     } finally {
@@ -78,8 +78,10 @@ export function MarksEntryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  const enteredStudentIds = new Set(marksList.map((m) => m.studentId))
-  const availableStudents = students.filter((s) => !enteredStudentIds.has(s.id))
+  // Who's still gradable: eligible (class roster if linked, else formal enrollment)
+  // and not already graded. Replaces the old "every student in the system" list.
+  const availableStudents = eligibleStudents.filter((s) => !s.alreadyGraded)
+  const rosterScoped = eligibleStudents.some((s) => s.source === 'CLASS_ROSTER')
 
   const publishedCount = marksList.filter((m) => m.status === 'PUBLISHED').length
   const draftCount = marksList.filter((m) => m.status === 'DRAFT').length
@@ -130,8 +132,12 @@ export function MarksEntryPage() {
       else await enterMarks(payload)
       setModalOpen(false)
       await load()
-    } catch {
-      setFormError('Could not save these marks. They may already be published or entered.')
+    } catch (err) {
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'Could not save these marks. They may already be published or entered.'
+      )
     } finally {
       setSaving(false)
     }
@@ -181,8 +187,13 @@ export function MarksEntryPage() {
           <h1 className="font-display text-2xl font-medium text-ink">
             {schedule ? `${schedule.subjectName} Marks` : 'Marks Entry'}
           </h1>
-          <p className="mt-1 text-sm text-slate-dim">
+          <p className="mt-1 flex items-center gap-2 text-sm text-slate-dim">
             {schedule ? `${schedule.examName} · Max marks ${schedule.maxMarks}` : 'Loading…'}
+            {schedule && (
+              <Badge variant={rosterScoped ? 'success' : 'neutral'}>
+                {rosterScoped ? 'Scoped to class roster' : 'Formal enrollment'}
+              </Badge>
+            )}
           </p>
         </div>
         <div className="flex gap-3">
@@ -295,11 +306,18 @@ export function MarksEntryPage() {
                     <select required value={form.studentId} onChange={(e) => setForm({ ...form, studentId: Number(e.target.value) })} className={inputClass}>
                       <option value="">Select student</option>
                       {availableStudents.map((s) => (
-                        <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.admissionNo})</option>
+                        <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
                       ))}
                     </select>
                   )}
                 </Field>
+                {!editing && availableStudents.length === 0 && (
+                  <p className="mt-1.5 text-xs text-slate-dim">
+                    {rosterScoped
+                      ? 'Every student on the linked class roster already has marks entered.'
+                      : 'Every formally enrolled student already has marks entered.'}
+                  </p>
+                )}
               </div>
               <Field label="Internal marks">
                 <input type="number" min={0} required value={form.internalMarks} onChange={(e) => setForm({ ...form, internalMarks: Number(e.target.value) })} className={inputClass} />

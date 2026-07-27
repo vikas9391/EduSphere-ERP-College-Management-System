@@ -1,5 +1,6 @@
 package com.collegeerp.Backend.schoolclass.entity;
 
+import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.teacher.entity.Teacher;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,6 +47,19 @@ public class ClassSubject {
     @Column(name = "enrollment_mode", nullable = false)
     @Enumerated(EnumType.STRING)
     private EnrollmentMode enrollmentMode;
+
+    /**
+     * Optional link to the formal curriculum {@link Subject}. Null for purely informal
+     * class-subjects (e.g. an ELECTIVE study group with no official backing). When set,
+     * this class's roster ({@code class_enrollments}) becomes an additional source of
+     * truth for marks-entry eligibility against that Subject - see
+     * {@code MarksService#getEligibleStudents}. Deliberately optional rather than
+     * mandatory: see the V17 migration comment for why Classes stay decoupled from the
+     * formal Course/Subject structure by default.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

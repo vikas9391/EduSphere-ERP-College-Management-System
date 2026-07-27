@@ -15,6 +15,8 @@ import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.subject.entity.Subject;
+import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import com.collegeerp.Backend.teacher.entity.Teacher;
 import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import org.slf4j.Logger;
@@ -31,6 +33,11 @@ import java.util.List;
  * the reverse direction (a new roster member picking up existing MANDATORY subjects)
  * lives in {@link SchoolClassService#addStudents}. ELECTIVE subjects are never
  * auto-enrolled - students opt in themselves via {@link #selfEnroll}.
+ * <p>
+ * A class-subject may optionally be linked to a formal curriculum {@link Subject} (see
+ * {@code ClassSubject#subject}). That link doesn't change anything about how this class
+ * behaves - it exists purely so {@code MarksService} can scope marks-entry eligibility to
+ * this class's real roster wherever the link is present.
  */
 @Service
 @Transactional
@@ -43,17 +50,20 @@ public class ClassSubjectService {
     private final ClassEnrollmentRepository classEnrollmentRepository;
     private final TeacherRepository teacherRepository;
     private final StudentRepository studentRepository;
+    private final SubjectRepository subjectRepository;
     private final SchoolClassService schoolClassService;
 
     public ClassSubjectService(ClassSubjectRepository classSubjectRepository,
                                 ClassEnrollmentRepository classEnrollmentRepository,
                                 TeacherRepository teacherRepository,
                                 StudentRepository studentRepository,
+                                SubjectRepository subjectRepository,
                                 SchoolClassService schoolClassService) {
         this.classSubjectRepository = classSubjectRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
         this.teacherRepository = teacherRepository;
         this.studentRepository = studentRepository;
+        this.subjectRepository = subjectRepository;
         this.schoolClassService = schoolClassService;
     }
 
@@ -81,6 +91,12 @@ public class ClassSubjectService {
         Teacher teacher = teacherRepository.findById(request.getTeacherId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", request.getTeacherId()));
 
+        Subject linkedSubject = null;
+        if (request.getSubjectId() != null) {
+            linkedSubject = subjectRepository.findById(request.getSubjectId())
+                    .orElseThrow(() -> ResourceNotFoundException.of("Subject", request.getSubjectId()));
+        }
+
         ClassSubject subject = ClassSubject.builder()
                 .schoolClass(schoolClass)
                 .subjectCode(request.getSubjectCode())
@@ -88,12 +104,14 @@ public class ClassSubjectService {
                 .credits(request.getCredits())
                 .teacher(teacher)
                 .enrollmentMode(request.getEnrollmentMode())
+                .subject(linkedSubject)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         subject = classSubjectRepository.save(subject);
-        log.info("Created class subject id={} code={} classId={} mode={}",
-                subject.getId(), subject.getSubjectCode(), classId, subject.getEnrollmentMode());
+        log.info("Created class subject id={} code={} classId={} mode={} linkedSubjectId={}",
+                subject.getId(), subject.getSubjectCode(), classId, subject.getEnrollmentMode(),
+                linkedSubject != null ? linkedSubject.getId() : null);
 
         if (subject.getEnrollmentMode() == ClassSubject.EnrollmentMode.MANDATORY) {
             for (ClassStudent rosterEntry : schoolClassService.rosterOf(classId)) {
@@ -229,6 +247,8 @@ public class ClassSubjectService {
                 .teacherName(s.getTeacher().getFirstName() + " " + s.getTeacher().getLastName())
                 .enrollmentMode(s.getEnrollmentMode())
                 .enrolledCount(classEnrollmentRepository.findAllByClassSubjectId(s.getId()).size())
+                .linkedSubjectId(s.getSubject() != null ? s.getSubject().getId() : null)
+                .linkedSubjectName(s.getSubject() != null ? s.getSubject().getSubjectName() : null)
                 .build();
     }
 

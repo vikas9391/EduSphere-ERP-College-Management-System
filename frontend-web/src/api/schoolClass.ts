@@ -40,6 +40,14 @@ export interface ClassSubject {
   enrollmentMode: EnrollmentMode
   enrolledCount: number
   enrolledByMe?: boolean | null
+  /**
+   * Null unless this class-subject is linked to a formal curriculum Subject (see
+   * ClassSubject#subject on the backend). When present, marks entered against that
+   * Subject's exams are scoped to this class's roster - see MarksEntryPage /
+   * getEligibleStudents.
+   */
+  linkedSubjectId?: number | null
+  linkedSubjectName?: string | null
 }
 
 export interface ClassSubjectPayload {
@@ -48,6 +56,8 @@ export interface ClassSubjectPayload {
   credits: number
   teacherId: number
   enrollmentMode: EnrollmentMode
+  /** Optional link to a formal curriculum Subject. Omit/null for a purely informal subject. */
+  subjectId?: number | null
 }
 
 export interface ClassEnrollment {

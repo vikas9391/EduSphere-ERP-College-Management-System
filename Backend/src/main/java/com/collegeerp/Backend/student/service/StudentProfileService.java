@@ -87,8 +87,9 @@ public class StudentProfileService {
         log.info("Student id={} changed their password", studentId);
     }
 
+    /** Fetch-joins course so {@link #map} can read courseId/courseName/department without a second query. */
     private Student findStudentOrThrow(Long studentId) {
-        return studentRepository.findById(studentId)
+        return studentRepository.findByIdWithCourse(studentId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", studentId));
     }
 
@@ -104,6 +105,11 @@ public class StudentProfileService {
                 .gender(student.getGender())
                 .dateOfBirth(student.getDateOfBirth())
                 .admissionDate(student.getAdmissionDate())
+                .courseId(student.getCourse() != null ? student.getCourse().getId() : null)
+                .courseName(student.getCourse() != null ? student.getCourse().getCourseName() : null)
+                .department(student.getCourse() != null && student.getCourse().getDepartment() != null
+                        ? student.getCourse().getDepartment().getName()
+                        : null)
                 .address(student.getAddress())
                 .city(student.getCity())
                 .state(student.getState())

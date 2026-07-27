@@ -31,6 +31,14 @@ public class StudentProfileResponse {
 
     private LocalDate admissionDate;
 
+    /** The course/programme this student is admitted into. Both null when unassigned. */
+    private Long courseId;
+
+    private String courseName;
+
+    /** Derived from courseId's course; null when unassigned. */
+    private String department;
+
     private String address;
 
     private String city;

@@ -29,4 +29,11 @@ public class ClassSubjectRequest {
 
     @NotNull(message = "Enrollment mode is required")
     private ClassSubject.EnrollmentMode enrollmentMode;
+
+    /**
+     * Optional link to a formal curriculum Subject. Leave null for an informal
+     * class-subject with no official backing. When provided, this class's roster
+     * becomes an additional eligibility source for marks entry against that Subject.
+     */
+    private Long subjectId;
 }

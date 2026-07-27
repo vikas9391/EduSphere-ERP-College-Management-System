@@ -75,6 +75,10 @@ interface Announcement {
 }
 
 interface DashboardData {
+  /** Null when the student has no course assigned and no enrollments to derive it from yet. */
+  course: string | null
+  department: string | null
+  semester: number | null
   attendancePercentage: number
   subjectsCount: number
   assignmentsCount: number
@@ -351,6 +355,9 @@ export function StudentDashboard() {
       }))
 
       setData({
+        course: summary?.course ?? null,
+        department: summary?.department ?? null,
+        semester: summary?.semester ?? null,
         attendancePercentage: Math.round(attendance?.overallAttendancePercentage ?? summary?.attendancePercentage ?? 0),
         subjectsCount: summary?.totalSubjects ?? 0,
         assignmentsCount: assignments.length,
@@ -411,6 +418,13 @@ export function StudentDashboard() {
           Welcome{profile?.firstName ? `, ${profile.firstName}` : ''}
         </h1>
         <p className="mt-1 text-sm text-slate-dim">Here's what's happening with your studies.</p>
+        {(data.course || data.department || data.semester) && (
+          <p className="mt-1 text-sm text-slate-dim">
+            {[data.course, data.department, data.semester ? `Semester ${data.semester}` : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
 
         <div className="stamp-in absolute -top-1 right-0 hidden sm:block">
           {photoUrl ? (

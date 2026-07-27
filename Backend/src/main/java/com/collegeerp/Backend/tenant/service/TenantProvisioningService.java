@@ -111,7 +111,11 @@ public class TenantProvisioningService {
         return tenant;
     }
 
-    /** Updates subscription plan/status/expiry. Bookkeeping only - does not affect login access. */
+    /**
+     * Updates subscription plan/status/expiry. Enforcement now happens in
+     * {@link SubscriptionExpiryService} - not here - so this method itself stays a plain
+     * field update; it doesn't need to know about login access at all.
+     */
     public Tenant updateSubscription(UUID tenantId, TenantSubscriptionUpdateRequest request) {
         Tenant tenant = getOrThrow(tenantId);
         tenant.setSubscriptionPlan(request.plan().trim());

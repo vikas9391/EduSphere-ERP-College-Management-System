@@ -22,6 +22,13 @@ export interface StudentProfile{
 
     admissionDate:string
 
+    /** The course/programme this student is admitted into. Both null when unassigned. */
+    courseId?:number
+
+    courseName?:string
+
+    department?:string
+
     address:string
 
     city:string

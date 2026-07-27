@@ -130,6 +130,14 @@ export function StudentProfilePage() {
               <input value={student?.rollNumber} disabled className={inputClass} />
             </Field>
 
+            <Field label="Course">
+              <input value={student?.courseName || "Not assigned"} disabled className={inputClass} />
+            </Field>
+
+            <Field label="Department">
+              <input value={student?.department || "Not assigned"} disabled className={inputClass} />
+            </Field>
+
             <Field label="First Name">
               <input value={student?.firstName} disabled className={inputClass} />
             </Field>

@@ -1,5 +1,6 @@
 package com.collegeerp.Backend.marks.controller;
 
+import com.collegeerp.Backend.marks.dto.EligibleStudentResponse;
 import com.collegeerp.Backend.marks.dto.MarksRequest;
 import com.collegeerp.Backend.marks.dto.MarksResponse;
 import com.collegeerp.Backend.marks.service.MarksService;
@@ -34,6 +35,18 @@ public class MarksController {
     @GetMapping("/exam-schedule/{examScheduleId}")
     public List<MarksResponse> getMarksByExamSchedule(@PathVariable Long examScheduleId) {
         return marksService.getMarksByExamSchedule(examScheduleId);
+    }
+
+    /**
+     * Who's eligible to be graded for this exam schedule, and whether they already are.
+     * Scoped to a linked class's roster when one exists, otherwise falls back to formal
+     * Enrollment - see {@code MarksService#getEligibleStudents}. Meant to drive the
+     * marks-entry UI's student list instead of it showing every student in the system.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @GetMapping("/exam-schedule/{examScheduleId}/eligible-students")
+    public List<EligibleStudentResponse> getEligibleStudents(@PathVariable Long examScheduleId) {
+        return marksService.getEligibleStudents(examScheduleId);
     }
 
     @GetMapping("/{id}")

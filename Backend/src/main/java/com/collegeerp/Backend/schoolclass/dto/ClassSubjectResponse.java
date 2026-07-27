@@ -26,4 +26,11 @@ public class ClassSubjectResponse {
      * null for the teacher/admin listing, where it isn't meaningful.
      */
     private Boolean enrolledByMe;
+
+    /**
+     * Null unless this class-subject is linked to a formal curriculum Subject. When
+     * present, this class's roster feeds marks-entry eligibility for that Subject.
+     */
+    private Long linkedSubjectId;
+    private String linkedSubjectName;
 }

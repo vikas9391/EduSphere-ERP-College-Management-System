@@ -16,6 +16,7 @@ import {
   getClassSubjectEnrollments,
   getStudents,
   getTeachers,
+  getSubjects,
   type SchoolClass,
   type ClassStudent,
   type ClassSubject,
@@ -23,17 +24,27 @@ import {
   type ClassEnrollment,
   type Student,
   type Teacher,
+  type Subject,
   type EnrollmentMode,
 } from '@/api'
-import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, ChevronDown, ChevronUp, Link2 } from 'lucide-react'
 import { PanelError, Badge } from '@/components/PageBits'
 
-const emptySubjectRow: { subjectCode: string; subjectName: string; credits: number; teacherId: number | ''; enrollmentMode: EnrollmentMode } = {
+const emptySubjectRow: {
+  subjectCode: string
+  subjectName: string
+  credits: number
+  teacherId: number | ''
+  enrollmentMode: EnrollmentMode
+  /** Optional link to a formal curriculum subject; '' means unlinked/informal. */
+  subjectId: number | ''
+} = {
   subjectCode: '',
   subjectName: '',
   credits: 4,
   teacherId: '',
   enrollmentMode: 'MANDATORY',
+  subjectId: '',
 }
 
 export function ClassDetailPage() {
@@ -45,6 +56,7 @@ export function ClassDetailPage() {
   const [subjects, setSubjects] = useState<ClassSubject[]>([])
   const [allStudents, setAllStudents] = useState<Student[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [formalSubjects, setFormalSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,18 +76,20 @@ export function ClassDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const [c, r, s, students, t] = await Promise.all([
+      const [c, r, s, students, t, formal] = await Promise.all([
         getSchoolClass(classId),
         getRoster(classId),
         getClassSubjects(classId),
         getStudents(),
         getTeachers(),
+        getSubjects(),
       ])
       setSchoolClass(c)
       setRoster(r)
       setSubjects(s)
       setAllStudents(students)
       setTeachers(t)
+      setFormalSubjects(formal)
     } catch {
       setError('Could not load this class.')
     } finally {
@@ -149,6 +163,7 @@ export function ClassDetailPage() {
         credits: row.credits,
         teacherId: Number(row.teacherId),
         enrollmentMode: row.enrollmentMode,
+        subjectId: row.subjectId === '' ? null : Number(row.subjectId),
       }))
       if (payloads.length === 1) {
         await createClassSubject(classId, payloads[0])
@@ -272,6 +287,12 @@ export function ClassDetailPage() {
                     <div>
                       <p className="text-sm font-medium text-ink">{s.subjectName}</p>
                       <p className="text-xs text-slate-dim">{s.subjectCode} · {s.teacherName} · {s.credits} credits</p>
+                      {s.linkedSubjectId != null && (
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-brass">
+                          <Link2 size={11} />
+                          Linked to {s.linkedSubjectName} — marks scoped to this roster
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={s.enrollmentMode === 'MANDATORY' ? 'success' : 'neutral'}>
@@ -356,7 +377,9 @@ export function ClassDetailPage() {
           <form onSubmit={handleCreateSubjects} className="space-y-4">
             <p className="text-xs text-slate-dim">
               Set up one or more subjects for this term. Mandatory subjects auto-enroll the whole roster; elective
-              subjects let students opt in themselves.
+              subjects let students opt in themselves. Optionally link a subject to the official curriculum subject
+              it corresponds to - this scopes marks entry for that subject's exams to this class's roster instead
+              of anyone with a formal enrollment record.
               {schoolClass.maxSubjects != null && ` This class is capped at ${schoolClass.maxSubjects} subject(s).`}
             </p>
             <div className="space-y-4">
@@ -419,6 +442,18 @@ export function ClassDetailPage() {
                       >
                         <option value="MANDATORY">Mandatory - auto-enroll the whole roster</option>
                         <option value="ELECTIVE">Elective - students opt in themselves</option>
+                      </select>
+                    </Field>
+                    <Field label="Official subject (optional)" className="sm:col-span-2">
+                      <select
+                        value={row.subjectId}
+                        onChange={(e) => updateSubjectRow(index, { subjectId: e.target.value === '' ? '' : Number(e.target.value) })}
+                        className={inputClass}
+                      >
+                        <option value="">Not linked - informal subject</option>
+                        {formalSubjects.map((fs) => (
+                          <option key={fs.id} value={fs.id}>{fs.subjectCode} · {fs.subjectName}</option>
+                        ))}
                       </select>
                     </Field>
                   </div>

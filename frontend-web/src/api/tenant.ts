@@ -60,8 +60,9 @@ export interface TenantSubscriptionUpdatePayload {
 }
 
 // Backend route: PATCH /api/tenants/{id}/subscription
-// Bookkeeping only - does not itself block logins. Suspend via updateTenantStatus too
-// if an expired/cancelled subscription should actually lock the college out.
+// Setting expiresAt to a past date now auto-suspends the tenant - enforced on its next
+// login attempt, and swept hourly regardless. Use updateTenantStatus instead if you want
+// it blocked immediately, without waiting on either of those.
 export async function updateTenantSubscription(
   tenantId: string,
   payload: TenantSubscriptionUpdatePayload

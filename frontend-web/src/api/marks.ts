@@ -46,9 +46,36 @@ export interface MarksPayload{
 
 }
 
+/**
+ * One student eligible to be graded for an exam schedule, and where that eligibility
+ * came from. Mirrors com.collegeerp.Backend.marks.dto.EligibleStudentResponse.
+ * `source` is 'CLASS_ROSTER' when a ClassSubject is linked to this exam's Subject (so
+ * eligibility is scoped to that class's real roster), or 'FORMAL_ENROLLMENT' when it
+ * fell back to the plain Enrollment table because no class link exists.
+ */
+export interface EligibleStudent {
+
+  studentId:number
+
+  studentName:string
+
+  source:'CLASS_ROSTER'|'FORMAL_ENROLLMENT'
+
+  alreadyGraded:boolean
+
+}
+
 export async function getMarksByExamSchedule(examScheduleId:number){
 
   const res=await api.get<Marks[]>(`/marks/exam-schedule/${examScheduleId}`)
+
+  return res.data
+
+}
+
+export async function getEligibleStudents(examScheduleId:number){
+
+  const res=await api.get<EligibleStudent[]>(`/marks/exam-schedule/${examScheduleId}/eligible-students`)
 
   return res.data
 

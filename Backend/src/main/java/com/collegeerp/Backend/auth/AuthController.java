@@ -17,6 +17,7 @@ import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import com.collegeerp.Backend.tenant.TenantContext;
 import com.collegeerp.Backend.tenant.entity.Tenant;
 import com.collegeerp.Backend.tenant.repository.TenantRepository;
+import com.collegeerp.Backend.tenant.service.SubscriptionExpiryService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class AuthController {
     private final SuperAdminRepository superAdminRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final SubscriptionExpiryService subscriptionExpiryService;
 
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
@@ -53,7 +55,8 @@ public class AuthController {
             TeacherRepository teacherRepository,
             SuperAdminRepository superAdminRepository,
             JwtService jwtService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            SubscriptionExpiryService subscriptionExpiryService) {
 
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -62,6 +65,7 @@ public class AuthController {
         this.superAdminRepository = superAdminRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+        this.subscriptionExpiryService = subscriptionExpiryService;
     }
 
     @Value("${SUPER_ADMIN_CODE:SUPERADMIN}")
@@ -80,6 +84,10 @@ public class AuthController {
 
         Tenant tenant = tenantRepository.findBySubdomain(request.collegeCode())
                 .orElseThrow(() -> new ResourceNotFoundException("College not found for code: " + request.collegeCode()));
+
+        // Catches a subscription that expired since the last hourly sweep - suspends it
+        // right now so the isActive check immediately below sees the up-to-date state.
+        subscriptionExpiryService.suspendIfExpired(tenant);
 
         if (!tenant.isActive()) {
             throw new AccountDisabledException(

@@ -28,4 +28,11 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             WHERE s.id = :id
             """)
     Optional<ClassSubject> findByIdWithRelations(Long id);
+
+    /**
+     * Every class-subject linked to a given formal curriculum Subject, across every
+     * class it's taught in. Used by {@code MarksService} to scope marks-entry
+     * eligibility to real class rosters wherever such a link exists.
+     */
+    List<ClassSubject> findBySubjectId(Long subjectId);
 }

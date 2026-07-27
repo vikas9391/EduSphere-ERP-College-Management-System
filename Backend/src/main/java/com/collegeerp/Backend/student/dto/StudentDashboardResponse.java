@@ -14,10 +14,11 @@ public class StudentDashboardResponse {
     private String rollNumber;
 
     /**
-     * Derived from the student's most recent enrollment's subject -> course -> department,
-     * since the schema has no direct Student -> Department FK (a student's department/course/
-     * semester are only ever recorded through their subject enrollments). Null if the student
-     * has no enrollments yet.
+     * Resolved from the student's directly-assigned course (Student -> Course -> Department)
+     * when one has been set; falls back to the most recent enrollment's subject -> course ->
+     * department for students with no course assigned yet. Null if neither is available.
+     * Semester still comes only from enrollment, since there's no direct Student -> Semester
+     * field.
      */
     private String department;
     private String course;

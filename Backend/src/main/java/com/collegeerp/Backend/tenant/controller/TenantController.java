@@ -82,9 +82,11 @@ public class TenantController {
     }
 
     /**
-     * Updates a college's subscription plan/status/expiry. Bookkeeping only — an expired
-     * or cancelled subscription does NOT by itself block logins; suspend the college via
-     * {@link #updateStatus} as well if you want that.
+     * Updates a college's subscription plan/status/expiry. Setting {@code expiresAt} to a
+     * past date does more than bookkeeping now: {@link com.collegeerp.Backend.tenant.service.SubscriptionExpiryService}
+     * enforces it — the tenant is auto-suspended the moment anyone under it next tries to
+     * log in (and, failing that, within an hour via its periodic sweep). Suspend via
+     * {@link #updateStatus} directly if you want it blocked immediately regardless.
      */
     @PatchMapping("/{id}/subscription")
     public ApiResponse<TenantSummaryResponse> updateSubscription(

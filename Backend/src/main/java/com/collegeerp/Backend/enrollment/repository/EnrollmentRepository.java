@@ -50,4 +50,18 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            ORDER BY s.subjectCode ASC, e.student.rollNumber ASC
            """)
     List<Enrollment> findBySubjectTeacherIdWithDetails(Long teacherId);
+
+    /**
+     * Every student formally enrolled in a given Subject. Used by
+     * {@code MarksService.getEligibleStudents} as the fallback eligibility source when
+     * no {@code ClassSubject} is linked to that Subject.
+     */
+    @Query("""
+           SELECT e
+           FROM Enrollment e
+           JOIN FETCH e.student
+           WHERE e.subject.id = :subjectId
+           ORDER BY e.student.rollNumber ASC
+           """)
+    List<Enrollment> findBySubjectIdWithStudent(Long subjectId);
 }
