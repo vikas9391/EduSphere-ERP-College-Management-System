@@ -49,18 +49,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = jwtService.extractUsername(token);
                 String role = jwtService.extractClaims(token).get("role", String.class);
                 Long userId = jwtService.extractUserId(token);
+                List<String> permissions = jwtService.extractPermissions(token);
 
                 log.debug("Authenticated request for user '{}' (role={}) on tenant '{}' [{}]",
                         username, role, schema, request.getRequestURI());
 
                 TenantContext.setCurrentTenant(schema);
 
-                var principal = new UserPrincipal(userId, username, role);
+                var principal = new UserPrincipal(userId, username, role, new java.util.HashSet<>(permissions));
+
+                List<org.springframework.security.core.GrantedAuthority> authorities =
+                        new java.util.ArrayList<>();
+                authorities.add(() -> "ROLE_" + role);
+                permissions.forEach(permission -> authorities.add(() -> permission));
 
                 var authToken = new UsernamePasswordAuthenticationToken(
                         principal,
                         null,
-                        List.of(() -> "ROLE_" + role)
+                        authorities
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);

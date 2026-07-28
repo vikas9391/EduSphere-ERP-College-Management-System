@@ -1,6 +1,7 @@
 package com.collegeerp.Backend.security;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * The authenticated principal placed in the Spring Security context by {@link JwtAuthFilter}.
@@ -16,11 +17,17 @@ public class UserPrincipal {
     private final Long id;
     private final String email;
     private final String role;
+    private final Set<String> permissions;
 
     public UserPrincipal(Long id, String email, String role) {
+        this(id, email, role, Set.of());
+    }
+
+    public UserPrincipal(Long id, String email, String role, Set<String> permissions) {
         this.id = id;
         this.email = email;
         this.role = role;
+        this.permissions = permissions == null ? Set.of() : permissions;
     }
 
     public Long getId() {
@@ -33,6 +40,16 @@ public class UserPrincipal {
 
     public String getRole() {
         return role;
+    }
+
+    /**
+     * Fine-grained permissions (see {@link com.collegeerp.Backend.common.Permission})
+     * embedded in the JWT at login time from the user's assigned Role. Empty for
+     * teachers/students/the super admin, who authenticate through separate paths that
+     * don't go through the Role/Permission system.
+     */
+    public Set<String> getPermissions() {
+        return permissions;
     }
 
     @Override

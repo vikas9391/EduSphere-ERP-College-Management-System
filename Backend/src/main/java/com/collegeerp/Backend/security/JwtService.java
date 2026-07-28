@@ -40,6 +40,35 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Same as {@link #generateAccessToken(Long, String, String, String)} but also embeds
+     * the caller's fine-grained permissions (see {@link com.collegeerp.Backend.common.Permission})
+     * as a claim, so {@code @PreAuthorize("hasAuthority(...)")} checks don't need a DB
+     * round-trip on every request. Used for staff/admin logins (the only accounts that
+     * go through the Role/Permission system) - teachers, students, and the super admin
+     * keep using the 4-arg overload above.
+     */
+    public String generateAccessToken(Long id, String username, String schemaName, String role, java.util.Collection<String> permissions) {
+        return Jwts.builder()
+                .subject(username)
+                .claims(Map.of(
+                        "id", id,
+                        "schema", schemaName,
+                        "role", role,
+                        "permissions", permissions
+                ))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    @SuppressWarnings("unchecked")
+    public java.util.List<String> extractPermissions(String token) {
+        java.util.List<String> permissions = extractClaims(token).get("permissions", java.util.List.class);
+        return permissions == null ? java.util.List.of() : permissions;
+    }
+
     public Long extractUserId(String token) {
         Number id = extractClaims(token).get("id", Number.class);
         return id.longValue();

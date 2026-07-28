@@ -24,6 +24,10 @@ export interface LoginResponse {
   email: string
   role: string
   tenantSchema: string
+  /** True for a staff/admin account whose password was set by an admin and hasn't
+   *  been changed yet - the frontend should route to /change-password before the
+   *  dashboard. Always false for teacher/student/super-admin logins. */
+  mustChangePassword: boolean
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {

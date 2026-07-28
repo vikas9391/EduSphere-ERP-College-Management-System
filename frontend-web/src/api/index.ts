@@ -33,3 +33,7 @@ export * from './marks'
 export * from './result'
 
 export * from './schoolClass'
+
+export * from './role'
+
+export * from './user'

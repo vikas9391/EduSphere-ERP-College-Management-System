@@ -18,6 +18,8 @@ import {
   Upload,
   BookMarked,
   UserCircle,
+  ShieldCheck,
+  IdCard,
   Menu,
   X,
 } from 'lucide-react'
@@ -50,6 +52,8 @@ const adminNavItems = [
   { to: '/submissions', label: 'Submissions', icon: Upload },
   { to: '/exams', label: 'Examinations', icon: ClipboardCheck },
   { to: '/results', label: 'Results', icon: Award },
+  { to: '/users', label: 'Staff Accounts', icon: IdCard },
+  { to: '/roles', label: 'Roles', icon: ShieldCheck },
 ]
 
 const teacherNavItems = [
@@ -164,6 +168,12 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="mt-4 border-t border-parchment-line pl-4 pr-5 pt-4">
           <p className="truncate text-sm font-medium text-ink">{user?.email}</p>
           <p className="font-mono text-xs uppercase tracking-wide text-slate">{user?.role}</p>
+          <NavLink
+            to="/change-password"
+            className="mt-3 block text-xs text-slate-dim hover:text-ink"
+          >
+            Change password
+          </NavLink>
           <motion.button
             onClick={logout}
             whileHover={{ borderColor: 'var(--color-brass)' }}

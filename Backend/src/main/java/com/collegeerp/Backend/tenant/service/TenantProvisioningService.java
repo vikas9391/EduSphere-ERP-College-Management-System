@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.collegeerp.Backend.common.Permission;
 import com.collegeerp.Backend.common.Role;
 import com.collegeerp.Backend.common.RoleRepository;
 import com.collegeerp.Backend.common.User;
@@ -181,6 +182,17 @@ public class TenantProvisioningService {
             Role adminRole = new Role();
             adminRole.setName(ADMIN_ROLE);
             adminRole.setDescription("College Administrator");
+            adminRole.setSystemRole(true);
+            // Every permission that exists today - V19's data backfill only covers
+            // ADMIN roles that already existed at migration time, so a brand-new
+            // tenant's ADMIN role needs the same "all permissions" grant applied here
+            // instead, otherwise a college registering after that migration would get
+            // an ADMIN who can't actually do anything through the new hasAuthority(...)
+            // checks.
+            adminRole.setPermissions(
+                    java.util.Arrays.stream(Permission.values())
+                            .map(Enum::name)
+                            .collect(java.util.stream.Collectors.toSet()));
             adminRole = roleRepository.save(adminRole);
 
             User admin = User.builder()
@@ -191,6 +203,10 @@ public class TenantProvisioningService {
                     .role(adminRole)
                     .isActive(true)
                     .isEmailVerified(true)
+                    // The college's own admin chose this password during registration -
+                    // unlike users an admin later creates on someone else's behalf, there's
+                    // no one else who knows it, so there's nothing to force a change away from.
+                    .mustChangePassword(false)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();

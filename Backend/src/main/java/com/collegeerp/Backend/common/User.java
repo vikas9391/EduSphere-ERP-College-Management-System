@@ -35,6 +35,16 @@ public class User {
     @Column(name = "is_email_verified")
     private boolean isEmailVerified = false;
 
+    /**
+     * True whenever an admin sets this account's password for it (initial creation,
+     * or a future "reset password" action) - forces the frontend to route the user to
+     * a change-password screen before the dashboard. Flipped to false by
+     * {@code UserService#changePassword} once the user picks their own password.
+     */
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private boolean mustChangePassword = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

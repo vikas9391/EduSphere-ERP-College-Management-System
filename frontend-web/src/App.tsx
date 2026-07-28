@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 // Auth - loaded eagerly since it's the first thing almost every visitor sees.
 import { LoginPage } from "@/pages/LoginPage";
 import { SuperAdminLoginPage } from "@/pages/SuperAdminLoginPage";
+import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
 
 /**
  * Every other page is route-split via React.lazy(). Previously the whole app
@@ -31,6 +32,8 @@ const CoursesPage = lazy(() => import("@/pages/CoursesPage").then((m) => ({ defa
 const SubjectsPage = lazy(() => import("@/pages/SubjectsPage").then((m) => ({ default: m.SubjectsPage })));
 const TeachersPage = lazy(() => import("@/pages/TeachersPage").then((m) => ({ default: m.TeachersPage })));
 const StudentsPage = lazy(() => import("@/pages/student/StudentsPage").then((m) => ({ default: m.StudentsPage })));
+const RolesPage = lazy(() => import("@/pages/RolesPage").then((m) => ({ default: m.RolesPage })));
+const UsersPage = lazy(() => import("@/pages/UsersPage").then((m) => ({ default: m.UsersPage })));
 
 // Examination, Marks, Result
 const ExamsPage = lazy(() => import("@/pages/ExamsPage").then((m) => ({ default: m.ExamsPage })));
@@ -80,6 +83,18 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+
+          {/* Reachable both as the forced first-login flow (any authenticated staff
+              role) and as a voluntary account-settings page - ChangePasswordPage
+              itself decides which mode based on user.mustChangePassword. */}
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Super Admin — college onboarding. The backend now requires a
               SUPER_ADMIN-authenticated caller for /api/tenants/**, so this route
@@ -162,6 +177,24 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <StudentsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/roles"
+            element={
+              <ProtectedRoute>
+                <RolesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute>
+                <UsersPage />
               </ProtectedRoute>
             }
           />

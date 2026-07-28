@@ -13,6 +13,12 @@ export interface User {
   email: string;
   role: string;
   tenantSchema: string;
+  /** From LoginResponse - only meaningful for staff/admin accounts. */
+  mustChangePassword?: boolean;
+  /** From the JWT's `permissions` claim - only present for staff/admin accounts
+   *  (see com.collegeerp.Backend.common.Permission). Empty for teacher/student/
+   *  super-admin, who don't go through the Role/Permission system. */
+  permissions?: string[];
 }
 
 interface AuthState {
@@ -62,3 +68,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 }));
+
+/** True if the signed-in user's role carries the given permission - always false for
+ *  teacher/student/super-admin, whose `permissions` array is empty. Useful for hiding
+ *  UI (e.g. "Add user") a signed-in staff member's role doesn't grant; the backend's
+ *  own @PreAuthorize checks remain the real enforcement boundary either way. */
+export function hasPermission(permission: string): boolean {
+  return useAuthStore.getState().user?.permissions?.includes(permission) ?? false;
+}

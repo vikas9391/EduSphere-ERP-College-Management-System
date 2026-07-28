@@ -11,9 +11,19 @@ public record LoginResponse(
         long expiresInMillis,
         String email,
         String role,
-        String tenantSchema
+        String tenantSchema,
+        boolean mustChangePassword
 ) {
     public static LoginResponse of(String accessToken, long expiresInMillis, String email, String role, String tenantSchema) {
-        return new LoginResponse(accessToken, "Bearer", expiresInMillis, email, role, tenantSchema);
+        return new LoginResponse(accessToken, "Bearer", expiresInMillis, email, role, tenantSchema, false);
+    }
+
+    /**
+     * Used for staff/admin logins - the only accounts that can carry an admin-issued
+     * password the user hasn't changed yet (see {@code User#mustChangePassword}).
+     */
+    public static LoginResponse ofStaff(String accessToken, long expiresInMillis, String email, String role,
+                                         String tenantSchema, boolean mustChangePassword) {
+        return new LoginResponse(accessToken, "Bearer", expiresInMillis, email, role, tenantSchema, mustChangePassword);
     }
 }

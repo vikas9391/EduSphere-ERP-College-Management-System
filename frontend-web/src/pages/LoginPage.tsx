@@ -84,19 +84,21 @@ export function LoginPage() {
 
       setToken(response.accessToken)
 
-      // LoginResponse doesn't include the numeric user id (only email/role/
-      // tenantSchema) - that's only present in the JWT's own claims, so it's
-      // decoded here purely to fill in `id` for the user store.
-      const claims = decodeJwt<{ id?: number }>(response.accessToken)
+      // LoginResponse doesn't include the numeric user id or permissions (only
+      // email/role/tenantSchema/mustChangePassword) - id and permissions only live in
+      // the JWT's own claims, so they're decoded here purely to fill in the user store.
+      const claims = decodeJwt<{ id?: number; permissions?: string[] }>(response.accessToken)
 
       setUser({
         id: claims?.id ?? 0,
         email: response.email,
         role: response.role,
         tenantSchema: response.tenantSchema,
+        mustChangePassword: response.mustChangePassword,
+        permissions: claims?.permissions ?? [],
       })
 
-      navigate(routeForRole(response.role))
+      navigate(response.mustChangePassword ? '/change-password' : routeForRole(response.role))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
     } finally {

@@ -155,8 +155,10 @@ public class AuthController {
                         throw new AccountDisabledException("This account has been disabled");
                     }
                     String token = jwtService.generateAccessToken(
-                            user.getId(), user.getEmail(), tenant.getSchemaName(), user.getRole().getName());
-                    return LoginResponse.of(token, accessTokenExpiration, user.getEmail(), user.getRole().getName(), tenant.getSchemaName());
+                            user.getId(), user.getEmail(), tenant.getSchemaName(), user.getRole().getName(),
+                            user.getRole().getPermissions());
+                    return LoginResponse.ofStaff(token, accessTokenExpiration, user.getEmail(), user.getRole().getName(),
+                            tenant.getSchemaName(), user.isMustChangePassword());
                 });
     }
 
