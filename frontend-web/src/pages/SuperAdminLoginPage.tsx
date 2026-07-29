@@ -34,6 +34,7 @@ function decodeJwt<T>(token: string): T | null {
 export function SuperAdminLoginPage() {
   const navigate = useNavigate()
   const setToken = useAuthStore((s) => s.setToken)
+  const setRefreshToken = useAuthStore((s) => s.setRefreshToken)
   const setUser = useAuthStore((s) => s.setUser)
 
   const [email, setEmail] = useState('')
@@ -50,6 +51,7 @@ export function SuperAdminLoginPage() {
       const response = await superAdminLogin({ email: email.trim(), password })
 
       setToken(response.accessToken)
+      setRefreshToken(response.refreshToken)
 
       const claims = decodeJwt<{ id?: number }>(response.accessToken)
 

@@ -19,6 +19,9 @@ export interface LoginPayload {
  */
 export interface LoginResponse {
   accessToken: string
+  /** Long-lived (7 day) token used to silently renew accessToken once it expires,
+   *  via POST /auth/refresh - see api/axios.ts's response interceptor. */
+  refreshToken: string
   tokenType: string
   expiresInMillis: number
   email: string
@@ -32,6 +35,17 @@ export interface LoginResponse {
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>('/auth/login', payload)
+  return res.data
+}
+
+/**
+ * Mirrors com.collegeerp.Backend.auth.RefreshTokenRequest / the /api/auth/refresh
+ * response (same LoginResponse shape as login - a fresh access token comes back
+ * alongside a rotated refresh token). Called by the axios response interceptor, not
+ * directly by page components.
+ */
+export async function refreshAccessToken(refreshToken: string): Promise<LoginResponse> {
+  const res = await api.post<LoginResponse>('/auth/refresh', { refreshToken })
   return res.data
 }
 

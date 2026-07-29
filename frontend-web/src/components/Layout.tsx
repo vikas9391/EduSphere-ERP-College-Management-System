@@ -4,56 +4,24 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { PageIn } from '@/components/motion'
+import { staffModules, canAccessModule } from '@/config/staffModules'
 import {
   LayoutDashboard,
-  Building2,
-  BookOpen,
   Layers,
-  GraduationCap,
-  Users,
-  ClipboardCheck,
   Award,
   CalendarCheck,
   ClipboardList,
   Upload,
-  BookMarked,
   UserCircle,
-  ShieldCheck,
-  IdCard,
+  Building2,
+  BookMarked,
+  Users,
   Menu,
   X,
 } from 'lucide-react'
 
 const superAdminNavItems = [
   { to: '/colleges', label: 'Colleges', icon: Building2 },
-]
-
-/**
- * Nav items are role-scoped. Previously every signed-in user - admin, teacher, or
- * student - saw the exact same sidebar (full admin CRUD: Departments/Courses/
- * Subjects/Teachers/Students/Exams/Results), regardless of role. A teacher or student
- * logging in landed on their own dashboard but then had a sidebar pointing at pages
- * meant for administrators. The backend doesn't currently enforce role-based
- * authorization on those admin endpoints (see README_PROGRESS.md), so this is a
- * UX/least-privilege fix on the frontend rather than a security boundary - but it's
- * still the right default: don't hand a teacher a "Delete any student" button they
- * were never meant to see.
- */
-const adminNavItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/departments', label: 'Departments', icon: Building2 },
-  { to: '/courses', label: 'Courses', icon: BookOpen },
-  { to: '/subjects', label: 'Subjects', icon: Layers },
-  { to: '/teachers', label: 'Teachers', icon: GraduationCap },
-  { to: '/students', label: 'Students', icon: Users },
-  { to: '/enrollments', label: 'Enrollments', icon: BookMarked },
-  { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
-  { to: '/assignments', label: 'Assignments', icon: ClipboardList },
-  { to: '/submissions', label: 'Submissions', icon: Upload },
-  { to: '/exams', label: 'Examinations', icon: ClipboardCheck },
-  { to: '/results', label: 'Results', icon: Award },
-  { to: '/users', label: 'Staff Accounts', icon: IdCard },
-  { to: '/roles', label: 'Roles', icon: ShieldCheck },
 ]
 
 const teacherNavItems = [
@@ -74,7 +42,22 @@ const studentNavItems = [
   { to: '/student/assignments', label: 'My Assignments', icon: ClipboardList },
 ]
 
-function navItemsForRole(role: string | undefined) {
+/**
+ * Nav items are role-scoped. Teacher and Student are separate account kinds (their
+ * own tables, their own login path - see AuthController) with fixed nav lists, since
+ * they never go through the Role/Permission system and always get the same fixed set
+ * of pages.
+ * <p>
+ * Every other signed-in account - ADMIN, or any custom Role an admin built (HOD,
+ * Supervisor, Accountant, ...) - shares one dynamic sidebar built from
+ * {@code staffModules}, filtered down to whichever modules that account's Role
+ * actually carries the permissions for. Previously every staff account saw the exact
+ * same full admin CRUD sidebar regardless of role - a "Supervisor" meant to only see
+ * attendance reports got a "Delete any student" link right alongside it. Since ADMIN
+ * is seeded with every permission that exists (see V19 migration), this is a pure
+ * narrowing for everyone else with no change for ADMIN itself.
+ */
+function navItemsForRole(role: string | undefined, permissions: string[]) {
   switch (role) {
     case 'SUPER_ADMIN':
       return superAdminNavItems
@@ -83,15 +66,15 @@ function navItemsForRole(role: string | undefined) {
     case 'STUDENT':
       return studentNavItems
     default:
-      // ADMIN, or an unrecognized role - fall back to the full admin view rather
-      // than hiding navigation entirely.
-      return adminNavItems
+      return staffModules
+        .filter((module) => canAccessModule(module, permissions))
+        .map(({ to, label, icon }) => ({ to, label, icon }))
   }
 }
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuthStore()
-  const navItems = navItemsForRole(user?.role)
+  const navItems = navItemsForRole(user?.role, user?.permissions ?? [])
   const location = useLocation()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 

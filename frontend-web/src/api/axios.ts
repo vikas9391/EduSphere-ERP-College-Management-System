@@ -39,16 +39,90 @@ api.interceptors.response.use(
     }
     return response
   },
-  (error: AxiosError<ApiResponse<unknown> | { message?: string }>) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout()
-    }
-
-    const backendMessage = error.response?.data?.message
-    if (backendMessage) {
-      error.message = backendMessage
-    }
-
-    return Promise.reject(error)
-  }
+  (error: AxiosError<ApiResponse<unknown> | { message?: string }>) => onResponseError(error)
 )
+
+/**
+ * A 401 almost always just means the 15-minute access token expired mid-session -
+ * not that the user's credentials are actually invalid. Previously this logged the
+ * user out immediately and bounced them to /login, which produced a "log in -> works
+ * for a bit -> get bounced to /login again" loop as the token kept expiring. Now a
+ * single 401 triggers one silent POST /auth/refresh using the stored refresh token,
+ * and - if that succeeds - transparently retries the original request with the new
+ * access token, so the user never notices their session renewing.
+ *
+ * `isRefreshing`/`pendingQueue` collapse concurrent 401s (e.g. a page firing several
+ * requests at once) into a single /auth/refresh call: the first 401 starts the
+ * refresh, every other 401 that arrives while it's in flight just waits on the same
+ * promise instead of firing its own redundant refresh request.
+ */
+let isRefreshing = false
+let pendingQueue: Array<(token: string | null) => void> = []
+
+function onRefreshed(newToken: string | null) {
+  pendingQueue.forEach((resolve) => resolve(newToken))
+  pendingQueue = []
+}
+
+async function onResponseError(error: AxiosError<ApiResponse<unknown> | { message?: string }>) {
+  const originalRequest = error.config as (typeof error.config & { _retried?: boolean }) | undefined
+  const requestUrl = originalRequest?.url ?? ''
+
+  const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh')
+
+  if (error.response?.status === 401 && originalRequest && !originalRequest._retried && !isAuthEndpoint) {
+    originalRequest._retried = true
+
+    const { refreshToken } = useAuthStore.getState()
+
+    if (!refreshToken) {
+      useAuthStore.getState().logout()
+      return Promise.reject(attachMessage(error))
+    }
+
+    if (isRefreshing) {
+      // Another request already kicked off the refresh - wait for it instead of
+      // firing a second one, then retry with whatever token it produced.
+      const newToken = await new Promise<string | null>((resolve) => pendingQueue.push(resolve))
+      if (!newToken) return Promise.reject(attachMessage(error))
+      originalRequest.headers = originalRequest.headers ?? {}
+      originalRequest.headers.Authorization = `Bearer ${newToken}`
+      return api(originalRequest)
+    }
+
+    isRefreshing = true
+    try {
+      const res = await api.post<{
+        accessToken: string
+        refreshToken: string
+      }>('/auth/refresh', { refreshToken })
+
+      const { accessToken, refreshToken: newRefreshToken } = res.data
+      useAuthStore.getState().setToken(accessToken)
+      useAuthStore.getState().setRefreshToken(newRefreshToken)
+      onRefreshed(accessToken)
+
+      originalRequest.headers = originalRequest.headers ?? {}
+      originalRequest.headers.Authorization = `Bearer ${accessToken}`
+      return api(originalRequest)
+    } catch {
+      // The refresh token itself is invalid/expired - there's no way to silently
+      // recover, so this is a real logout.
+      onRefreshed(null)
+      useAuthStore.getState().logout()
+      return Promise.reject(attachMessage(error))
+    } finally {
+      isRefreshing = false
+    }
+  }
+
+  return Promise.reject(attachMessage(error))
+}
+
+function attachMessage(error: AxiosError<ApiResponse<unknown> | { message?: string }>) {
+  const backendMessage = error.response?.data?.message
+  if (backendMessage) {
+    error.message = backendMessage
+  }
+  return error
+}

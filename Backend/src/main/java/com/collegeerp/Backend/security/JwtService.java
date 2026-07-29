@@ -22,6 +22,14 @@ public class JwtService {
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
+
+    private static final String TOKEN_TYPE_CLAIM = "typ";
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+    private static final String ACCOUNT_TYPE_CLAIM = "acct";
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
@@ -32,7 +40,8 @@ public class JwtService {
                 .claims(Map.of(
                         "id", id,
                         "schema", schemaName,
-                        "role", role
+                        "role", role,
+                        TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS
                 ))
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
@@ -55,12 +64,52 @@ public class JwtService {
                         "id", id,
                         "schema", schemaName,
                         "role", role,
-                        "permissions", permissions
+                        "permissions", permissions,
+                        TOKEN_TYPE_CLAIM, TOKEN_TYPE_ACCESS
                 ))
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    /**
+     * Issues a long-lived refresh token, deliberately carrying only what's needed to
+     * re-derive a fresh access token later: the account id, its schema, and which
+     * repository it lives in ({@code accountType}: STAFF/TEACHER/STUDENT/SUPER_ADMIN).
+     * No role or permissions are embedded here on purpose - {@code /api/auth/refresh}
+     * re-reads those fresh from the DB every time, so a role edit or permission change
+     * takes effect on the next silent refresh instead of being stuck until the user
+     * fully re-logs-in.
+     */
+    public String generateRefreshToken(Long id, String username, String schemaName, String accountType) {
+        return Jwts.builder()
+                .subject(username)
+                .claims(Map.of(
+                        "id", id,
+                        "schema", schemaName,
+                        ACCOUNT_TYPE_CLAIM, accountType,
+                        TOKEN_TYPE_CLAIM, TOKEN_TYPE_REFRESH
+                ))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /** True only for a token minted by {@link #generateRefreshToken}. Used both to stop
+     *  a refresh token being used directly as an access token, and to stop an access
+     *  token being handed to {@code /api/auth/refresh}. */
+    public boolean isRefreshToken(String token) {
+        return TOKEN_TYPE_REFRESH.equals(extractClaims(token).get(TOKEN_TYPE_CLAIM, String.class));
+    }
+
+    public boolean isAccessToken(String token) {
+        return TOKEN_TYPE_ACCESS.equals(extractClaims(token).get(TOKEN_TYPE_CLAIM, String.class));
+    }
+
+    public String extractAccountType(String token) {
+        return extractClaims(token).get(ACCOUNT_TYPE_CLAIM, String.class);
     }
 
     @SuppressWarnings("unchecked")

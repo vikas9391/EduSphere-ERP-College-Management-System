@@ -2,80 +2,62 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Layout } from '@/components/Layout'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, hasAnyPermission } from '@/store/authStore'
+import { staffModules } from '@/config/staffModules'
 import { StampGrid, StampItem, LedgerRule } from '@/components/motion'
 import { StatCard, PanelHeader, STAT_SHADES } from '@/components/PageBits'
-import {
-  Building2,
-  BookOpen,
-  Layers,
-  GraduationCap,
-  Users,
-  ClipboardCheck,
-  CalendarDays,
-  FileText,
-  BookMarked,
-  BarChart3,
-} from 'lucide-react'
+import { Building2, BookOpen, GraduationCap, Users, BarChart3, type LucideIcon } from 'lucide-react'
 import { getDepartments } from '@/api'
 import { getCourses } from '@/api'
 import { getTeachers } from '@/api'
 import { getStudents } from '@/api'
 
-const modules = [
+interface StatConfig {
+  key: 'departments' | 'courses' | 'teachers' | 'students'
+  label: string
+  icon: LucideIcon
+  accent: string
+  permissions: string[]
+  fetch: () => Promise<{ length: number }>
+}
+
+// Each overview stat is gated on the same permission that unlocks its module page -
+// no point showing (or fetching) a "Teachers" count for a role that can't open the
+// Teachers page at all. Keeps this dashboard honest for a Supervisor-style role that
+// only has a couple of VIEW_* permissions, instead of always hitting every endpoint
+// and either showing a wall of "0"s or a wall of failed-fetch placeholders.
+const statConfigs: StatConfig[] = [
   {
-    to: '/departments',
+    key: 'departments',
     label: 'Departments',
     icon: Building2,
-    desc: 'Manage academic departments',
+    accent: STAT_SHADES[0],
+    permissions: ['VIEW_DEPARTMENT'],
+    fetch: getDepartments,
   },
   {
-    to: '/courses',
+    key: 'courses',
     label: 'Courses',
     icon: BookOpen,
-    desc: 'Manage college courses',
+    accent: STAT_SHADES[2],
+    permissions: ['VIEW_COURSE'],
+    fetch: getCourses,
   },
   {
-    to: '/subjects',
-    label: 'Subjects',
-    icon: Layers,
-    desc: 'Subjects offered in each course',
-  },
-  {
-    to: '/teachers',
+    key: 'teachers',
     label: 'Teachers',
     icon: GraduationCap,
-    desc: 'Faculty management',
+    accent: STAT_SHADES[4],
+    permissions: ['VIEW_TEACHER'],
+    fetch: getTeachers,
   },
   {
-    to: '/students',
+    key: 'students',
     label: 'Students',
     icon: Users,
-    desc: 'Student records',
-  },
-  {
-    to: '/enrollments',
-    label: 'Enrollments',
-    icon: ClipboardCheck,
-    desc: 'Student subject enrollment',
-  },
-  {
-    to: '/attendance',
-    label: 'Attendance',
-    icon: CalendarDays,
-    desc: 'Track daily attendance',
-  },
-  {
-    to: '/assignments',
-    label: 'Assignments',
-    icon: FileText,
-    desc: 'Manage assignments',
-  },
-  {
-    to: '/submissions',
-    label: 'Submissions',
-    icon: BookMarked,
-    desc: 'Assignment submissions',
+    accent: STAT_SHADES[6],
+    permissions: ['VIEW_STUDENT'],
+    fetch: getStudents,
   },
 ]
 
@@ -90,60 +72,70 @@ const panelIn = {
   }),
 }
 
+type StatKey = StatConfig['key']
+
 interface OverviewCounts {
-  departments: number
-  courses: number
-  teachers: number
-  students: number
-  failed: {
-    departments: boolean
-    courses: boolean
-    teachers: boolean
-    students: boolean
-  }
+  values: Partial<Record<StatKey, number>>
+  failed: Partial<Record<StatKey, boolean>>
 }
 
-// The admin module grid. Exported separately so it can also be mounted
-// directly at /admin/dashboard.
+/**
+ * The staff/admin overview - module tile grid plus a quick institution snapshot.
+ * Shared by every staff-side account (ADMIN or any custom Role an admin built), not
+ * just literal ADMIN: both the tiles and the stat cards below are filtered down to
+ * whatever the signed-in account's Role actually carries permissions for, using the
+ * same `staffModules` config that drives the sidebar in Layout.tsx. A "Supervisor"
+ * role with only VIEW_ATTENDANCE_REPORTS + VIEW_TEACHER_PROGRESS sees a small,
+ * relevant dashboard instead of the full admin control panel.
+ * <p>
+ * Exported separately so it can also be mounted directly at /admin/dashboard.
+ */
 export function AdminDashboard() {
   const { user } = useAuthStore()
+  const permissions = user?.permissions ?? []
   const [counts, setCounts] = useState<OverviewCounts | null>(null)
+
+  const visibleModules = staffModules.filter(
+    (module) => module.to !== '/dashboard' && (module.permissions === null || hasAnyPermission(module.permissions)),
+  )
+  const visibleStats = statConfigs.filter((stat) => hasAnyPermission(stat.permissions))
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
-      // Each count is fetched independently via allSettled - if one endpoint
-      // fails, the rest of the overview still renders with real numbers
-      // instead of the whole row falling back to a placeholder.
-      const [deptResult, courseResult, teacherResult, studentResult] = await Promise.allSettled([
-        getDepartments(),
-        getCourses(),
-        getTeachers(),
-        getStudents(),
-      ])
+      if (visibleStats.length === 0) {
+        setCounts({ values: {}, failed: {} })
+        return
+      }
 
+      // Each count is fetched independently via allSettled - if one endpoint fails,
+      // the rest of the overview still renders with real numbers instead of the
+      // whole row falling back to a placeholder.
+      const results = await Promise.allSettled(visibleStats.map((stat) => stat.fetch()))
       if (cancelled) return
 
-      setCounts({
-        departments: deptResult.status === 'fulfilled' ? deptResult.value.length : 0,
-        courses: courseResult.status === 'fulfilled' ? courseResult.value.length : 0,
-        teachers: teacherResult.status === 'fulfilled' ? teacherResult.value.length : 0,
-        students: studentResult.status === 'fulfilled' ? studentResult.value.length : 0,
-        failed: {
-          departments: deptResult.status === 'rejected',
-          courses: courseResult.status === 'rejected',
-          teachers: teacherResult.status === 'rejected',
-          students: studentResult.status === 'rejected',
-        },
+      const values: Partial<Record<StatKey, number>> = {}
+      const failed: Partial<Record<StatKey, boolean>> = {}
+
+      visibleStats.forEach((stat, i) => {
+        const result = results[i]
+        values[stat.key] = result.status === 'fulfilled' ? result.value.length : 0
+        failed[stat.key] = result.status === 'rejected'
       })
+
+      setCounts({ values, failed })
     }
 
     load()
     return () => {
       cancelled = true
     }
-  }, [])
+    // permissions is a stable reference for the lifetime of a session (only changes on
+    // login/refresh), so it's safe as the effect's dependency instead of the derived
+    // visibleStats array, which would otherwise be a new array every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissions])
 
   return (
     <Layout>
@@ -152,58 +144,50 @@ export function AdminDashboard() {
         Signed in as {user?.email} · {user?.role}
       </p>
 
-      <StampGrid className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {modules.map(({ to, label, icon: Icon, desc }) => (
-          <StampItem key={to} to={to} className="block rounded-lg border border-parchment-line bg-white/50 p-5">
-            <Icon size={20} className="text-brass" />
-            <p className="mt-3 font-display text-base font-medium text-ink">{label}</p>
-            <p className="mt-1 text-sm text-slate-dim">{desc}</p>
-          </StampItem>
-        ))}
-      </StampGrid>
-
-      <LedgerRule className="mt-10 w-full" />
-
-      <motion.div className="mt-6" custom={0} variants={panelIn} initial="hidden" animate="show">
-        <PanelHeader icon={BarChart3} title="Institution Overview" />
-
-        <StampGrid className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            icon={Building2}
-            label="Departments"
-            value={counts?.departments ?? 0}
-            accent={STAT_SHADES[0]}
-            failed={counts?.failed.departments}
-          />
-          <StatCard
-            icon={BookOpen}
-            label="Courses"
-            value={counts?.courses ?? 0}
-            accent={STAT_SHADES[2]}
-            failed={counts?.failed.courses}
-          />
-          <StatCard
-            icon={GraduationCap}
-            label="Teachers"
-            value={counts?.teachers ?? 0}
-            accent={STAT_SHADES[4]}
-            failed={counts?.failed.teachers}
-          />
-          <StatCard
-            icon={Users}
-            label="Students"
-            value={counts?.students ?? 0}
-            accent={STAT_SHADES[6]}
-            failed={counts?.failed.students}
-          />
+      {visibleModules.length > 0 ? (
+        <StampGrid className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {visibleModules.map(({ to, label, icon: Icon, desc }) => (
+            <StampItem key={to} to={to} className="block rounded-lg border border-parchment-line bg-white/50 p-5">
+              <Icon size={20} className="text-brass" />
+              <p className="mt-3 font-display text-base font-medium text-ink">{label}</p>
+              <p className="mt-1 text-sm text-slate-dim">{desc}</p>
+            </StampItem>
+          ))}
         </StampGrid>
-      </motion.div>
+      ) : (
+        <p className="mt-8 text-sm text-slate-dim">
+          Your role doesn't have any modules assigned yet - ask an administrator to grant permissions.
+        </p>
+      )}
+
+      {visibleStats.length > 0 && (
+        <>
+          <LedgerRule className="mt-10 w-full" />
+
+          <motion.div className="mt-6" custom={0} variants={panelIn} initial="hidden" animate="show">
+            <PanelHeader icon={BarChart3} title="Institution Overview" />
+
+            <StampGrid className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {visibleStats.map((stat) => (
+                <StatCard
+                  key={stat.key}
+                  icon={stat.icon}
+                  label={stat.label}
+                  value={counts?.values[stat.key] ?? 0}
+                  accent={stat.accent}
+                  failed={counts?.failed[stat.key]}
+                />
+              ))}
+            </StampGrid>
+          </motion.div>
+        </>
+      )}
     </Layout>
   )
 }
 
 // /dashboard — there's no SUPER_ADMIN role in the backend, so this is just
-// the regular admin dashboard. (Previously branched on a SUPER_ADMIN role
+// the regular admin/staff dashboard. (Previously branched on a SUPER_ADMIN role
 // to show a dashboard picker — removed since that role doesn't exist.)
 export function DashboardPage() {
   return <AdminDashboard />

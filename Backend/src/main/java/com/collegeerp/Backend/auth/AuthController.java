@@ -36,6 +36,13 @@ public class AuthController {
     private static final String STUDENT_STATUS_ACTIVE = "ACTIVE";
     private static final String PUBLIC_SCHEMA = "public";
 
+    // Account-type tags embedded in refresh tokens only (see JwtService#generateRefreshToken) -
+    // tells /api/auth/refresh which repository to re-look-up the account in.
+    private static final String ACCOUNT_TYPE_STAFF = "STAFF";
+    private static final String ACCOUNT_TYPE_TEACHER = "TEACHER";
+    private static final String ACCOUNT_TYPE_STUDENT = "STUDENT";
+    private static final String ACCOUNT_TYPE_SUPER_ADMIN = "SUPER_ADMIN";
+
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
@@ -140,9 +147,94 @@ public class AuthController {
         }
 
         String token = jwtService.generateAccessToken(admin.getId(), admin.getEmail(), PUBLIC_SCHEMA, SUPER_ADMIN_ROLE);
+        String refreshToken = jwtService.generateRefreshToken(admin.getId(), admin.getEmail(), PUBLIC_SCHEMA, ACCOUNT_TYPE_SUPER_ADMIN);
         log.info("Successful super admin login for '{}'", admin.getEmail());
 
-        return LoginResponse.of(token, accessTokenExpiration, admin.getEmail(), SUPER_ADMIN_ROLE, PUBLIC_SCHEMA);
+        return LoginResponse.of(token, refreshToken, accessTokenExpiration, admin.getEmail(), SUPER_ADMIN_ROLE, PUBLIC_SCHEMA);
+    }
+
+    /**
+     * Silently renews an access token using a refresh token, without the caller
+     * re-sending credentials. This is what lets a session survive past the 15-minute
+     * access-token lifetime instead of forcing a full re-login every time it expires -
+     * the frontend's axios interceptor calls this once on a 401 and retries the
+     * original request, rather than logging the user out immediately.
+     * <p>
+     * Permissions/role are re-read from the DB here (not copied from the old token), so
+     * a role edit made by an admin takes effect on the user's very next silent refresh
+     * instead of being stuck until they fully log out and back in.
+     */
+    @PostMapping("/refresh")
+    public ApiResponse<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+
+        String refreshToken = request.refreshToken();
+
+        if (!jwtService.isTokenValid(refreshToken) || !jwtService.isRefreshToken(refreshToken)) {
+            throw new InvalidCredentialsException("Invalid or expired refresh token");
+        }
+
+        String schema = jwtService.extractSchema(refreshToken);
+        String accountType = jwtService.extractAccountType(refreshToken);
+        Long id = jwtService.extractUserId(refreshToken);
+
+        TenantContext.setCurrentTenant(schema);
+
+        try {
+            LoginResponse response = switch (accountType) {
+                case ACCOUNT_TYPE_SUPER_ADMIN -> refreshSuperAdmin(id);
+                case ACCOUNT_TYPE_STAFF -> refreshStaffOrAdmin(id, schema);
+                case ACCOUNT_TYPE_TEACHER -> refreshTeacher(id, schema);
+                case ACCOUNT_TYPE_STUDENT -> refreshStudent(id, schema);
+                default -> throw new InvalidCredentialsException("Invalid or expired refresh token");
+            };
+
+            return ApiResponse.success("Token refreshed", response);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    private LoginResponse refreshSuperAdmin(Long id) {
+        SuperAdmin admin = superAdminRepository.findById(id)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
+        if (!admin.isActive()) {
+            throw new AccountDisabledException("This account has been disabled");
+        }
+        String token = jwtService.generateAccessToken(admin.getId(), admin.getEmail(), PUBLIC_SCHEMA, SUPER_ADMIN_ROLE);
+        String newRefreshToken = jwtService.generateRefreshToken(admin.getId(), admin.getEmail(), PUBLIC_SCHEMA, ACCOUNT_TYPE_SUPER_ADMIN);
+        return LoginResponse.of(token, newRefreshToken, accessTokenExpiration, admin.getEmail(), SUPER_ADMIN_ROLE, PUBLIC_SCHEMA);
+    }
+
+    private LoginResponse refreshStaffOrAdmin(Long id, String schema) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
+        if (!user.isActive()) {
+            throw new AccountDisabledException("This account has been disabled");
+        }
+        String token = jwtService.generateAccessToken(
+                user.getId(), user.getEmail(), schema, user.getRole().getName(), user.getRole().getPermissions());
+        String newRefreshToken = jwtService.generateRefreshToken(user.getId(), user.getEmail(), schema, ACCOUNT_TYPE_STAFF);
+        return LoginResponse.ofStaff(token, newRefreshToken, accessTokenExpiration, user.getEmail(), user.getRole().getName(),
+                schema, user.isMustChangePassword());
+    }
+
+    private LoginResponse refreshTeacher(Long id, String schema) {
+        Teacher teacher = teacherRepository.findById(id)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
+        String token = jwtService.generateAccessToken(teacher.getId(), teacher.getEmail(), schema, TEACHER_ROLE);
+        String newRefreshToken = jwtService.generateRefreshToken(teacher.getId(), teacher.getEmail(), schema, ACCOUNT_TYPE_TEACHER);
+        return LoginResponse.of(token, newRefreshToken, accessTokenExpiration, teacher.getEmail(), TEACHER_ROLE, schema);
+    }
+
+    private LoginResponse refreshStudent(Long id, String schema) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
+        if (!STUDENT_STATUS_ACTIVE.equalsIgnoreCase(student.getStatus())) {
+            throw new AccountDisabledException("This student account has been disabled");
+        }
+        String token = jwtService.generateAccessToken(student.getId(), student.getEmail(), schema, STUDENT_ROLE);
+        String newRefreshToken = jwtService.generateRefreshToken(student.getId(), student.getEmail(), schema, ACCOUNT_TYPE_STUDENT);
+        return LoginResponse.of(token, newRefreshToken, accessTokenExpiration, student.getEmail(), STUDENT_ROLE, schema);
     }
 
     private java.util.Optional<LoginResponse> authenticateStaffOrAdmin(LoginRequest request, Tenant tenant) {
@@ -157,7 +249,9 @@ public class AuthController {
                     String token = jwtService.generateAccessToken(
                             user.getId(), user.getEmail(), tenant.getSchemaName(), user.getRole().getName(),
                             user.getRole().getPermissions());
-                    return LoginResponse.ofStaff(token, accessTokenExpiration, user.getEmail(), user.getRole().getName(),
+                    String refreshToken = jwtService.generateRefreshToken(
+                            user.getId(), user.getEmail(), tenant.getSchemaName(), ACCOUNT_TYPE_STAFF);
+                    return LoginResponse.ofStaff(token, refreshToken, accessTokenExpiration, user.getEmail(), user.getRole().getName(),
                             tenant.getSchemaName(), user.isMustChangePassword());
                 });
     }
@@ -177,7 +271,9 @@ public class AuthController {
                     }
                     String token = jwtService.generateAccessToken(
                             teacher.getId(), teacher.getEmail(), tenant.getSchemaName(), TEACHER_ROLE);
-                    return LoginResponse.of(token, accessTokenExpiration, teacher.getEmail(), TEACHER_ROLE, tenant.getSchemaName());
+                    String refreshToken = jwtService.generateRefreshToken(
+                            teacher.getId(), teacher.getEmail(), tenant.getSchemaName(), ACCOUNT_TYPE_TEACHER);
+                    return LoginResponse.of(token, refreshToken, accessTokenExpiration, teacher.getEmail(), TEACHER_ROLE, tenant.getSchemaName());
                 });
     }
 
@@ -192,7 +288,9 @@ public class AuthController {
                     }
                     String token = jwtService.generateAccessToken(
                             student.getId(), student.getEmail(), tenant.getSchemaName(), STUDENT_ROLE);
-                    return LoginResponse.of(token, accessTokenExpiration, student.getEmail(), STUDENT_ROLE, tenant.getSchemaName());
+                    String refreshToken = jwtService.generateRefreshToken(
+                            student.getId(), student.getEmail(), tenant.getSchemaName(), ACCOUNT_TYPE_STUDENT);
+                    return LoginResponse.of(token, refreshToken, accessTokenExpiration, student.getEmail(), STUDENT_ROLE, tenant.getSchemaName());
                 });
     }
 }

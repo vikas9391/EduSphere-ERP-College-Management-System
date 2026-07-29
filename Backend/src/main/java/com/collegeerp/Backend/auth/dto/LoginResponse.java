@@ -7,6 +7,7 @@ package com.collegeerp.Backend.auth.dto;
  */
 public record LoginResponse(
         String accessToken,
+        String refreshToken,
         String tokenType,
         long expiresInMillis,
         String email,
@@ -14,16 +15,16 @@ public record LoginResponse(
         String tenantSchema,
         boolean mustChangePassword
 ) {
-    public static LoginResponse of(String accessToken, long expiresInMillis, String email, String role, String tenantSchema) {
-        return new LoginResponse(accessToken, "Bearer", expiresInMillis, email, role, tenantSchema, false);
+    public static LoginResponse of(String accessToken, String refreshToken, long expiresInMillis, String email, String role, String tenantSchema) {
+        return new LoginResponse(accessToken, refreshToken, "Bearer", expiresInMillis, email, role, tenantSchema, false);
     }
 
     /**
      * Used for staff/admin logins - the only accounts that can carry an admin-issued
      * password the user hasn't changed yet (see {@code User#mustChangePassword}).
      */
-    public static LoginResponse ofStaff(String accessToken, long expiresInMillis, String email, String role,
+    public static LoginResponse ofStaff(String accessToken, String refreshToken, long expiresInMillis, String email, String role,
                                          String tenantSchema, boolean mustChangePassword) {
-        return new LoginResponse(accessToken, "Bearer", expiresInMillis, email, role, tenantSchema, mustChangePassword);
+        return new LoginResponse(accessToken, refreshToken, "Bearer", expiresInMillis, email, role, tenantSchema, mustChangePassword);
     }
 }

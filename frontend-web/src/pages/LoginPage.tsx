@@ -62,6 +62,7 @@ function routeForRole(role: string | undefined) {
 export function LoginPage() {
   const navigate = useNavigate()
   const setToken = useAuthStore((s) => s.setToken)
+  const setRefreshToken = useAuthStore((s) => s.setRefreshToken)
   const setUser = useAuthStore((s) => s.setUser)
 
   const [collegeCode, setCollegeCode] = useState('')
@@ -83,6 +84,7 @@ export function LoginPage() {
       })
 
       setToken(response.accessToken)
+      setRefreshToken(response.refreshToken)
 
       // LoginResponse doesn't include the numeric user id or permissions (only
       // email/role/tenantSchema/mustChangePassword) - id and permissions only live in
