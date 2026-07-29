@@ -2,13 +2,17 @@ package com.collegeerp.Backend.auth;
 
 import com.collegeerp.Backend.auth.dto.LoginResponse;
 import com.collegeerp.Backend.common.SuperAdmin;
+import com.collegeerp.Backend.common.SuperAdminPasswordResetToken;
+import com.collegeerp.Backend.common.SuperAdminPasswordResetTokenRepository;
 import com.collegeerp.Backend.common.SuperAdminRepository;
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.dto.ApiResponse;
 import com.collegeerp.Backend.common.exception.AccountDisabledException;
+import com.collegeerp.Backend.common.exception.BadRequestException;
 import com.collegeerp.Backend.common.exception.InvalidCredentialsException;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
+import com.collegeerp.Backend.common.service.EmailService;
 import com.collegeerp.Backend.security.JwtService;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
@@ -24,6 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -51,9 +58,18 @@ public class AuthController {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionExpiryService subscriptionExpiryService;
+    private final PasswordResetService passwordResetService;
+    private final SuperAdminPasswordResetTokenRepository superAdminPasswordResetTokenRepository;
+    private final EmailService emailService;
 
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
+    @Value("${app.password-reset-token-expiry-minutes}")
+    private long passwordResetTokenExpiryMinutes;
 
     public AuthController(
             TenantRepository tenantRepository,
@@ -63,7 +79,10 @@ public class AuthController {
             SuperAdminRepository superAdminRepository,
             JwtService jwtService,
             PasswordEncoder passwordEncoder,
-            SubscriptionExpiryService subscriptionExpiryService) {
+            SubscriptionExpiryService subscriptionExpiryService,
+            PasswordResetService passwordResetService,
+            SuperAdminPasswordResetTokenRepository superAdminPasswordResetTokenRepository,
+            EmailService emailService) {
 
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -73,6 +92,9 @@ public class AuthController {
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.subscriptionExpiryService = subscriptionExpiryService;
+        this.passwordResetService = passwordResetService;
+        this.superAdminPasswordResetTokenRepository = superAdminPasswordResetTokenRepository;
+        this.emailService = emailService;
     }
 
     @Value("${SUPER_ADMIN_CODE:SUPERADMIN}")
@@ -192,6 +214,107 @@ public class AuthController {
         } finally {
             TenantContext.clear();
         }
+    }
+
+    /**
+     * Kicks off the "forgot password" flow. Always returns the same generic success
+     * message whether or not {@code email} actually matches an account - the caller
+     * must never be able to tell whether a given email is registered from this
+     * response alone (user enumeration). The actual reset link is emailed
+     * out-of-band; see {@link PasswordResetService#requestReset} and
+     * {@link #requestSuperAdminPasswordReset}.
+     */
+    @PostMapping("/forgot-password")
+    public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+
+        if (superAdminCode.equalsIgnoreCase(request.collegeCode().trim())) {
+            requestSuperAdminPasswordReset(request.email());
+        } else {
+            Tenant tenant = tenantRepository.findBySubdomain(request.collegeCode())
+                    .orElseThrow(() -> new ResourceNotFoundException("College not found for code: " + request.collegeCode()));
+
+            TenantContext.setCurrentTenant(tenant.getSchemaName());
+            try {
+                passwordResetService.requestReset(request.collegeCode(), request.email());
+            } finally {
+                TenantContext.clear();
+            }
+        }
+
+        return ApiResponse.success(
+                "If an account exists for that email, a password reset link has been sent.", null);
+    }
+
+    /**
+     * Redeems a token minted by {@link #forgotPassword} and sets a new password.
+     * {@code collegeCode} tells the backend which schema (or the public schema, for
+     * the super admin) to look the token up in - see {@link ResetPasswordRequest}.
+     */
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+
+        if (superAdminCode.equalsIgnoreCase(request.collegeCode().trim())) {
+            resetSuperAdminPassword(request.token(), request.newPassword());
+        } else {
+            Tenant tenant = tenantRepository.findBySubdomain(request.collegeCode())
+                    .orElseThrow(() -> new ResourceNotFoundException("College not found for code: " + request.collegeCode()));
+
+            TenantContext.setCurrentTenant(tenant.getSchemaName());
+            try {
+                passwordResetService.resetPassword(request.token(), request.newPassword());
+            } finally {
+                TenantContext.clear();
+            }
+        }
+
+        return ApiResponse.success("Password reset successful. You can now log in.", null);
+    }
+
+    /** Public-schema equivalent of {@link PasswordResetService#requestReset}, for the super admin. */
+    private void requestSuperAdminPasswordReset(String email) {
+        superAdminRepository.findByEmail(email.trim().toLowerCase()).ifPresent(admin -> {
+            String token = generatePasswordResetToken();
+            superAdminPasswordResetTokenRepository.save(SuperAdminPasswordResetToken.builder()
+                    .token(token)
+                    .email(admin.getEmail())
+                    .expiresAt(LocalDateTime.now().plusMinutes(passwordResetTokenExpiryMinutes))
+                    .used(false)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+
+            String resetLink = frontendUrl + "/reset-password?token=" + token + "&college=" + superAdminCode;
+            try {
+                emailService.sendPasswordResetEmail(admin.getEmail(), resetLink, passwordResetTokenExpiryMinutes);
+            } catch (Exception e) {
+                // Same "log the link instead of failing the request" fallback as
+                // PasswordResetService#requestReset - see EmailService's Javadoc.
+                log.warn("Could not send password reset email to super admin '{}' - reset link: {}",
+                        admin.getEmail(), resetLink, e);
+            }
+        });
+    }
+
+    /** Public-schema equivalent of {@link PasswordResetService#resetPassword}, for the super admin. */
+    private void resetSuperAdminPassword(String token, String newPassword) {
+        SuperAdminPasswordResetToken resetToken = superAdminPasswordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("This password reset link is invalid or has expired"));
+
+        if (resetToken.isUsed() || resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("This password reset link is invalid or has expired");
+        }
+
+        SuperAdmin admin = superAdminRepository.findByEmail(resetToken.getEmail())
+                .orElseThrow(() -> new BadRequestException("This password reset link is invalid or has expired"));
+
+        admin.setPasswordHash(passwordEncoder.encode(newPassword));
+        superAdminRepository.save(admin);
+
+        resetToken.setUsed(true);
+        superAdminPasswordResetTokenRepository.save(resetToken);
+    }
+
+    private String generatePasswordResetToken() {
+        return UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
     }
 
     private LoginResponse refreshSuperAdmin(Long id) {

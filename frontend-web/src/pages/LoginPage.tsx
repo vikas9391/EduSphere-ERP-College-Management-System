@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { login } from '@/api'
 import { useAuthStore } from '@/store/authStore'
@@ -221,9 +221,9 @@ export function LoginPage() {
                 >
                   Password
                 </label>
-                <a href="#" className="text-xs font-medium text-brass hover:text-brass-bright">
+                <Link to="/forgot-password" className="text-xs font-medium text-brass hover:text-brass-bright">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input

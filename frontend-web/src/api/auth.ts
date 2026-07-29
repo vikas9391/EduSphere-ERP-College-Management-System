@@ -66,3 +66,39 @@ export async function superAdminLogin(payload: SuperAdminLoginPayload): Promise<
   const res = await api.post<LoginResponse>('/auth/super-admin/login', payload)
   return res.data
 }
+
+/**
+ * Mirrors com.collegeerp.Backend.auth.ForgotPasswordRequest. collegeCode follows the
+ * same convention as LoginPayload — the reserved super-admin code routes to the
+ * public-schema super admin flow instead of a tenant.
+ */
+export interface ForgotPasswordPayload {
+  collegeCode: string
+  email: string
+}
+
+/**
+ * Backend route: POST /api/auth/forgot-password. Always resolves (the backend
+ * returns the same generic success message whether or not the email matched an
+ * account, to avoid leaking which emails are registered) — the caller should just
+ * show a "check your email" message, not branch on the response.
+ */
+export async function forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
+  await api.post('/auth/forgot-password', payload)
+}
+
+/**
+ * Mirrors com.collegeerp.Backend.auth.ResetPasswordRequest. collegeCode and token
+ * both arrive as query params on the emailed reset link (see
+ * PasswordResetService#requestReset) and are threaded through unchanged.
+ */
+export interface ResetPasswordPayload {
+  collegeCode: string
+  token: string
+  newPassword: string
+}
+
+/** Backend route: POST /api/auth/reset-password. */
+export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
+  await api.post('/auth/reset-password', payload)
+}

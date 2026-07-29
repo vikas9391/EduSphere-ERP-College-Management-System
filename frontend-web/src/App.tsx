@@ -10,6 +10,8 @@ import { Loader2 } from "lucide-react";
 import { LoginPage } from "@/pages/LoginPage";
 import { SuperAdminLoginPage } from "@/pages/SuperAdminLoginPage";
 import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 
 /**
  * Every other page is route-split via React.lazy(). Previously the whole app
@@ -83,6 +85,8 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Reachable both as the forced first-login flow (any authenticated staff
               role) and as a voluntary account-settings page - ChangePasswordPage
