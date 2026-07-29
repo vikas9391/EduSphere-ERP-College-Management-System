@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { PageIn } from '@/components/motion'
-import { staffModules, canAccessModule } from '@/config/staffModules'
+import { navModulesForRole } from '@/config/staffModules'
 import {
   LayoutDashboard,
   Layers,
@@ -50,12 +50,12 @@ const studentNavItems = [
  * <p>
  * Every other signed-in account - ADMIN, or any custom Role an admin built (HOD,
  * Supervisor, Accountant, ...) - shares one dynamic sidebar built from
- * {@code staffModules}, filtered down to whichever modules that account's Role
- * actually carries the permissions for. Previously every staff account saw the exact
- * same full admin CRUD sidebar regardless of role - a "Supervisor" meant to only see
- * attendance reports got a "Delete any student" link right alongside it. Since ADMIN
- * is seeded with every permission that exists (see V19 migration), this is a pure
- * narrowing for everyone else with no change for ADMIN itself.
+ * {@code staffModules} via {@code navModulesForRole}. ADMIN (the head of the
+ * institution) only ever sees its 'administration' modules - Dashboard, Roles, Staff
+ * Accounts - since the operational day-to-day work (Departments, Attendance, Exams,
+ * ...) is meant to be run by whichever staff role was built for it, not the head
+ * account itself. Any other staff role is filtered down to whichever modules that
+ * account's Role actually carries the permissions for, operational tabs included.
  */
 function navItemsForRole(role: string | undefined, permissions: string[]) {
   switch (role) {
@@ -66,9 +66,7 @@ function navItemsForRole(role: string | undefined, permissions: string[]) {
     case 'STUDENT':
       return studentNavItems
     default:
-      return staffModules
-        .filter((module) => canAccessModule(module, permissions))
-        .map(({ to, label, icon }) => ({ to, label, icon }))
+      return navModulesForRole(role, permissions).map(({ to, label, icon }) => ({ to, label, icon }))
   }
 }
 

@@ -113,8 +113,19 @@ public class RoleService {
             throw new ForbiddenException("'" + role.getName() + "' is a built-in role and can't be deleted");
         }
 
-        // Relies on GlobalExceptionHandler#handleDataIntegrityViolation to translate a
-        // FK violation (users still assigned to this role) into a clean 409.
+        // Checked up front so the caller gets a clear, actionable message instead of a
+        // generic "still referenced by other data" 409 bubbling up from
+        // GlobalExceptionHandler#handleDataIntegrityViolation once the FK constraint on
+        // users.role_id trips. That handler is still the safety net for any path that
+        // reaches the DB without going through this check.
+        long assignedUserCount = userRepository.countByRoleId(id);
+        if (assignedUserCount > 0) {
+            throw new DuplicateResourceException(
+                    "'" + role.getName() + "' is still assigned to " + assignedUserCount
+                            + (assignedUserCount == 1 ? " user" : " users")
+                            + " - reassign them to a different role before deleting it");
+        }
+
         roleRepository.delete(role);
         log.info("Deleted role id={}", id);
     }

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Layout } from '@/components/Layout'
 import { useAuthStore, hasAnyPermission } from '@/store/authStore'
-import { staffModules } from '@/config/staffModules'
+import { navModulesForRole } from '@/config/staffModules'
 import { StampGrid, StampItem, LedgerRule } from '@/components/motion'
 import { StatCard, PanelHeader, STAT_SHADES } from '@/components/PageBits'
 import { Building2, BookOpen, GraduationCap, Users, BarChart3, type LucideIcon } from 'lucide-react'
@@ -25,7 +25,10 @@ interface StatConfig {
 // no point showing (or fetching) a "Teachers" count for a role that can't open the
 // Teachers page at all. Keeps this dashboard honest for a Supervisor-style role that
 // only has a couple of VIEW_* permissions, instead of always hitting every endpoint
-// and either showing a wall of "0"s or a wall of failed-fetch placeholders.
+// and either showing a wall of "0"s or a wall of failed-fetch placeholders. ADMIN
+// holds every permission (V19 migration), so this list stays fully populated for it -
+// that's what gives the head account its "overview of everything" even though its
+// module tiles below are narrowed to administration-only.
 const statConfigs: StatConfig[] = [
   {
     key: 'departments',
@@ -81,12 +84,20 @@ interface OverviewCounts {
 
 /**
  * The staff/admin overview - module tile grid plus a quick institution snapshot.
- * Shared by every staff-side account (ADMIN or any custom Role an admin built), not
- * just literal ADMIN: both the tiles and the stat cards below are filtered down to
- * whatever the signed-in account's Role actually carries permissions for, using the
- * same `staffModules` config that drives the sidebar in Layout.tsx. A "Supervisor"
- * role with only VIEW_ATTENDANCE_REPORTS + VIEW_TEACHER_PROGRESS sees a small,
- * relevant dashboard instead of the full admin control panel.
+ * Shared by every staff-side account (ADMIN or any custom Role an admin built).
+ * <p>
+ * The tile grid uses {@code navModulesForRole}, the same source that drives the
+ * sidebar in Layout.tsx: ADMIN only ever sees its 'administration' tiles (Roles,
+ * Staff Accounts) since the operational modules are meant to be run by whichever
+ * staff role was built for that work, not the head account. Any other staff role
+ * still sees whatever its granted permissions unlock, operational tiles included - a
+ * Supervisor role with only VIEW_ATTENDANCE_REPORTS + VIEW_TEACHER_PROGRESS sees a
+ * small, relevant set of tiles instead of the full admin control panel.
+ * <p>
+ * The Institution Overview stat cards below are unaffected by that narrowing - they
+ * stay purely permission-gated, so ADMIN (which holds every permission) still gets a
+ * full read-only snapshot of departments/courses/teachers/students right here without
+ * needing a direct tab into each one.
  * <p>
  * Exported separately so it can also be mounted directly at /admin/dashboard.
  */
@@ -95,9 +106,7 @@ export function AdminDashboard() {
   const permissions = user?.permissions ?? []
   const [counts, setCounts] = useState<OverviewCounts | null>(null)
 
-  const visibleModules = staffModules.filter(
-    (module) => module.to !== '/dashboard' && (module.permissions === null || hasAnyPermission(module.permissions)),
-  )
+  const visibleModules = navModulesForRole(user?.role, permissions).filter((module) => module.to !== '/dashboard')
   const visibleStats = statConfigs.filter((stat) => hasAnyPermission(stat.permissions))
 
   useEffect(() => {
