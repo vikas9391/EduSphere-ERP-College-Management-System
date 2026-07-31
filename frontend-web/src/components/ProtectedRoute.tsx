@@ -18,7 +18,7 @@ function dashboardForRole(userRole: string | undefined) {
   }
 }
 
-/**
+/**   
  * `role` restricts the route to a specific JWT role (e.g. "SUPER_ADMIN"). Signed-in
  * users of any other role are bounced to their own dashboard rather than to /login,
  * since they do have a valid session — they just don't have access to this page.
