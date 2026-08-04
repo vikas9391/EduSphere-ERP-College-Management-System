@@ -131,12 +131,12 @@ export function CoursesPage() {
     <Layout>
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">Courses</h1>
-          <p className="mt-1 text-sm text-slate-dim">Programs offered within each department.</p>
+          <h1 className="font-heading text-2xl font-medium text-text">Courses</h1>
+          <p className="mt-1 text-sm text-muted">Programs offered within each department.</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} /> Add course
         </button>
@@ -148,27 +148,27 @@ export function CoursesPage() {
       </StampGrid>
 
       <div className="relative mb-6">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-dim" />
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by code, name or department..."
-          className="w-full rounded-lg border border-parchment-line bg-white/60 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-slate-dim focus:border-brass focus:outline-none sm:max-w-md"
+          className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none sm:max-w-md"
         />
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : filteredCourses.length === 0 ? (
-        <p className="text-sm text-slate-dim">{search ? 'No courses match your search.' : 'No courses yet.'}</p>
+        <p className="text-sm text-muted">{search ? 'No courses match your search.' : 'No courses yet.'}</p>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-lg border border-parchment-line bg-white/50 sm:block">
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-white/50 sm:block">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">Code</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Department</th>
@@ -178,17 +178,17 @@ export function CoursesPage() {
               </thead>
               <tbody>
                 {filteredCourses.map((c) => (
-                  <tr key={c.id} className="border-b border-parchment-line last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs text-ink">{c.courseCode}</td>
-                    <td className="px-4 py-3 text-ink">{c.courseName}</td>
-                    <td className="px-4 py-3 text-slate-dim">{c.departmentName}</td>
-                    <td className="px-4 py-3 text-slate-dim">{c.duration ? `${c.duration} yrs` : '—'}</td>
+                  <tr key={c.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-numbers text-xs text-text">{c.courseCode}</td>
+                    <td className="px-4 py-3 text-text">{c.courseName}</td>
+                    <td className="px-4 py-3 text-muted">{c.departmentName}</td>
+                    <td className="px-4 py-3 text-muted">{c.duration ? `${c.duration} yrs` : '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-3">
-                        <button onClick={() => openEdit(c)} className="text-slate hover:text-ink">
+                        <button onClick={() => openEdit(c)} className="text-muted hover:text-text">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDelete(c.id)} className="text-slate hover:text-brick">
+                        <button onClick={() => handleDelete(c.id)} className="text-muted hover:text-danger">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -201,23 +201,23 @@ export function CoursesPage() {
 
           <ul className="space-y-3 sm:hidden">
             {filteredCourses.map((c) => (
-              <li key={c.id} className="rounded-lg border border-parchment-line bg-white/60 p-4">
+              <li key={c.id} className="rounded-lg border border-border bg-white/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-display text-sm font-medium text-ink">{c.courseName}</p>
-                    <p className="font-mono text-xs text-slate-dim">{c.courseCode}</p>
+                    <p className="font-heading text-sm font-medium text-text">{c.courseName}</p>
+                    <p className="font-numbers text-xs text-muted">{c.courseCode}</p>
                   </div>
                   <div className="flex shrink-0 gap-3">
-                    <button onClick={() => openEdit(c)} className="text-slate hover:text-ink">
+                    <button onClick={() => openEdit(c)} className="text-muted hover:text-text">
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => handleDelete(c.id)} className="text-slate hover:text-brick">
+                    <button onClick={() => handleDelete(c.id)} className="text-muted hover:text-danger">
                       <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-dim">{c.departmentName}</p>
-                <p className="mt-1 text-xs text-slate-dim">{c.duration ? `${c.duration} yrs` : '—'}</p>
+                <p className="mt-2 text-xs text-muted">{c.departmentName}</p>
+                <p className="mt-1 text-xs text-muted">{c.duration ? `${c.duration} yrs` : '—'}</p>
               </li>
             ))}
           </ul>
@@ -253,12 +253,12 @@ export function CoursesPage() {
             <Field label="Description">
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={inputClass} />
             </Field>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex flex-col-reverse justify-end gap-3 pt-2 sm:flex-row">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
-              <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 Save
               </button>

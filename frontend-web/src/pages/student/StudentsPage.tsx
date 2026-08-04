@@ -172,31 +172,31 @@ export function StudentsPage() {
   return (
     <Layout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-medium text-ink">Students</h1>
-        <p className="mt-1 text-sm text-slate-dim">Enrolled students across the institution.</p>
+        <h1 className="font-heading text-2xl font-medium text-text">Students</h1>
+        <p className="mt-1 text-sm text-muted">Enrolled students across the institution.</p>
       </div>
 
       {/* Statistics cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <p className="text-sm text-slate-dim">Total Students</p>
-          <p className="mt-2 text-3xl font-semibold text-ink">{students.length}</p>
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <p className="text-sm text-muted">Total Students</p>
+          <p className="mt-2 text-3xl font-semibold text-text">{students.length}</p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <p className="text-sm text-slate-dim">Male</p>
-          <p className="mt-2 text-3xl font-semibold text-ink">
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <p className="text-sm text-muted">Male</p>
+          <p className="mt-2 text-3xl font-semibold text-text">
             {students.filter((s) => s.gender === 'Male').length}
           </p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <p className="text-sm text-slate-dim">Female</p>
-          <p className="mt-2 text-3xl font-semibold text-ink">
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <p className="text-sm text-muted">Female</p>
+          <p className="mt-2 text-3xl font-semibold text-text">
             {students.filter((s) => s.gender === 'Female').length}
           </p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <p className="text-sm text-slate-dim">Others</p>
-          <p className="mt-2 text-3xl font-semibold text-ink">
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <p className="text-sm text-muted">Others</p>
+          <p className="mt-2 text-3xl font-semibold text-text">
             {students.filter((s) => s.gender === 'Other').length}
           </p>
         </div>
@@ -205,42 +205,42 @@ export function StudentsPage() {
       {/* Search + Add */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div className="relative w-full max-w-md">
-          <Search size={18} className="absolute left-3 top-3 text-slate-dim" />
+          <Search size={18} className="absolute left-3 top-3 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by admission, roll number, name, email..."
-            className="w-full rounded-md border border-parchment-line bg-white pl-10 pr-4 py-2.5 text-sm focus:border-brass focus:outline-none"
+            className="w-full rounded-md border border-border bg-white pl-10 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none"
           />
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright"
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} /> Add Student
         </button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-brick">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       ) : filteredStudents.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl text-ink">No Students Found</h3>
-          <p className="mt-2 text-slate-dim">Create your first student account to get started.</p>
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl text-text">No Students Found</h3>
+          <p className="mt-2 text-muted">Create your first student account to get started.</p>
           <button
             onClick={openCreate}
-            className="mt-6 rounded-md bg-brass px-5 py-2 text-sm font-medium text-ink hover:bg-brass-bright"
+            className="mt-6 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-secondary"
           >
             Add Student
           </button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-parchment-line bg-white/50">
+        <div className="overflow-hidden rounded-lg border border-border bg-white/50">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Admission</th>
                 <th className="px-4 py-3 font-medium">Roll</th>
                 <th className="px-4 py-3 font-medium">Student</th>
@@ -253,15 +253,15 @@ export function StudentsPage() {
             </thead>
             <tbody>
               {filteredStudents.map((s) => (
-                <tr key={s.id} className="border-b border-parchment-line last:border-0">
-                  <td className="px-4 py-3 font-mono text-xs text-ink">{s.admissionNo}</td>
-                  <td className="px-4 py-3 text-ink">{s.rollNumber}</td>
-                  <td className="px-4 py-3 text-ink">
+                <tr key={s.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 font-numbers text-xs text-text">{s.admissionNo}</td>
+                  <td className="px-4 py-3 text-text">{s.rollNumber}</td>
+                  <td className="px-4 py-3 text-text">
                     {s.firstName} {s.lastName}
                   </td>
-                  <td className="px-4 py-3 text-slate-dim">{s.courseName || '-'}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.phone || '-'}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.gender || '-'}</td>
+                  <td className="px-4 py-3 text-muted">{s.courseName || '-'}</td>
+                  <td className="px-4 py-3 text-muted">{s.phone || '-'}</td>
+                  <td className="px-4 py-3 text-muted">{s.gender || '-'}</td>
                   <td className="px-4 py-3">
                     <span className="rounded bg-green-100 px-2 py-1 text-xs text-green-700">
                       Active
@@ -274,16 +274,16 @@ export function StudentsPage() {
                           setSelectedStudent(s)
                           setViewOpen(true)
                         }}
-                        className="text-slate hover:text-ink"
+                        className="text-muted hover:text-text"
                       >
                         <Eye size={15} />
                       </button>
-                      <button onClick={() => openEdit(s)} className="text-slate hover:text-ink">
+                      <button onClick={() => openEdit(s)} className="text-muted hover:text-text">
                         <Pencil size={15} />
                       </button>
                       <button
                         onClick={() => handleDelete(s.id)}
-                        className="text-slate hover:text-brick"
+                        className="text-muted hover:text-danger"
                       >
                         <Trash2 size={15} />
                       </button>
@@ -302,7 +302,7 @@ export function StudentsPage() {
           <div className="max-h-[75vh] overflow-y-auto pr-2">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Login Information */}
-              <h3 className="border-b pb-2 font-display text-lg">Login Information</h3>
+              <h3 className="border-b pb-2 font-heading text-lg">Login Information</h3>
               <div className="grid grid-cols-3 gap-4">
                 <Field label="Admission No">
                   <input
@@ -334,7 +334,7 @@ export function StudentsPage() {
               </div>
 
               {/* Academic Information */}
-              <h3 className="border-b pt-5 pb-2 font-display text-lg">Academic Information</h3>
+              <h3 className="border-b pt-5 pb-2 font-heading text-lg">Academic Information</h3>
               <div className="grid grid-cols-3 gap-4">
                 <Field label="Course">
                   <select
@@ -355,7 +355,7 @@ export function StudentsPage() {
               </div>
 
               {/* Personal Information */}
-              <h3 className="border-b pt-5 pb-2 font-display text-lg">Personal Information</h3>
+              <h3 className="border-b pt-5 pb-2 font-heading text-lg">Personal Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="First Name">
                   <input
@@ -418,7 +418,7 @@ export function StudentsPage() {
               </div>
 
               {/* Address Information */}
-              <h3 className="border-b pt-5 pb-2 font-display text-lg">Address Information</h3>
+              <h3 className="border-b pt-5 pb-2 font-heading text-lg">Address Information</h3>
               <Field label="Address">
                 <textarea
                   rows={3}
@@ -459,7 +459,7 @@ export function StudentsPage() {
               </div>
 
               {/* Parent Information */}
-              <h3 className="border-b pt-5 pb-2 font-display text-lg">Parent Information</h3>
+              <h3 className="border-b pt-5 pb-2 font-heading text-lg">Parent Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Father Name">
                   <input
@@ -493,7 +493,7 @@ export function StudentsPage() {
               </div>
 
               {/* Other Details */}
-              <h3 className="border-b pt-5 pb-2 font-display text-lg">Other Details</h3>
+              <h3 className="border-b pt-5 pb-2 font-heading text-lg">Other Details</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Blood Group">
                   <select
@@ -550,20 +550,20 @@ export function StudentsPage() {
                 />
               </Field>
 
-              {formError && <p className="text-sm text-brick">{formError}</p>}
+              {formError && <p className="text-sm text-danger">{formError}</p>}
 
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-md border border-parchment-line px-5 py-2 text-sm text-slate-dim hover:text-ink"
+                  className="rounded-md border border-border px-5 py-2 text-sm text-muted hover:text-text"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 rounded-md bg-brass px-5 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
                 >
                   {saving && <Loader2 size={16} className="animate-spin" />}
                   {editing ? 'Update Student' : 'Create Student'}

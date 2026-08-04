@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 
 export const inputClass =
-  'w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2 text-sm text-ink focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass'
+  'w-full rounded-[var(--radius-input)] border border-border bg-white px-3.5 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
 
 export function Field({
   label,
@@ -15,7 +15,7 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim">
+      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
         {label}
       </label>
       {children}

@@ -176,59 +176,59 @@ export function SubmissionsPage() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">Submissions</h1>
-      <p className="mt-1 text-sm text-slate-dim">Review and grade student assignment submissions</p>
+      <h1 className="font-heading text-2xl font-medium text-text">Submissions</h1>
+      <p className="mt-1 text-sm text-muted">Review and grade student assignment submissions</p>
 
       {/* Dashboard cards */}
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <div className="flex items-center gap-2 text-slate-dim">
-            <FileText size={16} className="text-brass" />
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <div className="flex items-center gap-2 text-muted">
+            <FileText size={16} className="text-primary" />
             <p className="text-sm">Total Submissions</p>
           </div>
-          <p className="mt-2 text-3xl font-semibold text-ink">{stats.total}</p>
+          <p className="mt-2 text-3xl font-semibold text-text">{stats.total}</p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <div className="flex items-center gap-2 text-slate-dim">
-            <Clock size={16} className="text-brass" />
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <div className="flex items-center gap-2 text-muted">
+            <Clock size={16} className="text-primary" />
             <p className="text-sm">Pending Grading</p>
           </div>
-          <p className="mt-2 text-3xl font-semibold text-ink">{stats.pending}</p>
+          <p className="mt-2 text-3xl font-semibold text-text">{stats.pending}</p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <div className="flex items-center gap-2 text-slate-dim">
-            <CheckCircle2 size={16} className="text-brass" />
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <div className="flex items-center gap-2 text-muted">
+            <CheckCircle2 size={16} className="text-primary" />
             <p className="text-sm">Graded</p>
           </div>
-          <p className="mt-2 text-3xl font-semibold text-ink">{stats.graded}</p>
+          <p className="mt-2 text-3xl font-semibold text-text">{stats.graded}</p>
         </div>
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-5">
-          <div className="flex items-center gap-2 text-slate-dim">
-            <BarChart3 size={16} className="text-brass" />
+        <div className="rounded-lg border border-border bg-white/60 p-5">
+          <div className="flex items-center gap-2 text-muted">
+            <BarChart3 size={16} className="text-primary" />
             <p className="text-sm">Average Score</p>
           </div>
-          <p className="mt-2 text-3xl font-semibold text-ink">{stats.avg}%</p>
+          <p className="mt-2 text-3xl font-semibold text-text">{stats.avg}%</p>
         </div>
       </div>
 
       {/* Search + filters */}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-dim" />
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by student or assignment..."
-            className="w-full rounded-lg border border-parchment-line bg-white/60 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-slate-dim focus:border-brass focus:outline-none"
+            className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter size={16} className="text-slate-dim" />
+          <Filter size={16} className="text-muted" />
           <select
             value={subjectFilter}
             onChange={(e) => setSubjectFilter(e.target.value)}
-            className="rounded-lg border border-parchment-line bg-white/60 px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none"
+            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           >
             <option value="">All Subjects</option>
             {subjects.map((s) => (
@@ -241,7 +241,7 @@ export function SubmissionsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-parchment-line bg-white/60 px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none"
+            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           >
             <option value="">All Statuses</option>
             {statusOptions.map((s) => (
@@ -258,7 +258,7 @@ export function SubmissionsPage() {
                 setSubjectFilter('')
                 setStatusFilter('')
               }}
-              className="inline-flex items-center gap-1 rounded-lg border border-parchment-line px-3 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-text"
             >
               <X size={14} />
               Clear
@@ -268,18 +268,18 @@ export function SubmissionsPage() {
       </div>
 
       {/* Table */}
-      <div className="mt-6 overflow-hidden rounded-lg border border-parchment-line bg-white/60">
+      <div className="mt-6 overflow-hidden rounded-lg border border-border bg-white/60">
         {loading ? (
-          <div className="p-10 text-center text-sm text-slate-dim">Loading submissions...</div>
+          <div className="p-10 text-center text-sm text-muted">Loading submissions...</div>
         ) : error ? (
           <div className="p-10 text-center text-sm text-red-600">{error}</div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
-            <FileText size={32} className="text-slate-dim/50" />
-            <p className="font-display text-base font-medium text-ink">
+            <FileText size={32} className="text-muted/50" />
+            <p className="font-heading text-base font-medium text-text">
               {hasFilters ? 'No submissions match your filters' : 'No submissions yet'}
             </p>
-            <p className="text-sm text-slate-dim">
+            <p className="text-sm text-muted">
               {hasFilters ? 'Try adjusting your search or filters.' : 'Student submissions will appear here.'}
             </p>
           </div>
@@ -287,7 +287,7 @@ export function SubmissionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-240 text-left text-sm">
               <thead>
-                <tr className="border-b border-parchment-line text-slate-dim">
+                <tr className="border-b border-border text-muted">
                   <th className="px-5 py-3 font-medium">Student</th>
                   <th className="px-5 py-3 font-medium">Assignment</th>
                   <th className="px-5 py-3 font-medium">Submitted On</th>
@@ -302,40 +302,40 @@ export function SubmissionsPage() {
                   const a = assignmentById.get(s.assignmentId)
                   const evaluated = isEvaluated(s.status)
                   return (
-                    <tr key={s.id} className="border-b border-parchment-line last:border-0 hover:bg-white/80">
-                      <td className="px-5 py-3 text-ink">{s.studentName}</td>
-                      <td className="px-5 py-3 text-slate-dim">{s.assignmentTitle}</td>
-                      <td className="px-5 py-3 text-slate-dim">{s.submittedAt.slice(0, 10)}</td>
+                    <tr key={s.id} className="border-b border-border last:border-0 hover:bg-white/80">
+                      <td className="px-5 py-3 text-text">{s.studentName}</td>
+                      <td className="px-5 py-3 text-muted">{s.assignmentTitle}</td>
+                      <td className="px-5 py-3 text-muted">{s.submittedAt.slice(0, 10)}</td>
                       <td className="px-5 py-3">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClasses(s.status)}`}>
                           {s.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-slate-dim">
+                      <td className="px-5 py-3 text-muted">
                         {evaluated ? `${s.marks}/${a?.maxMarks ?? '—'}` : '—'}
                       </td>
-                      <td className="px-5 py-3 text-slate-dim">
+                      <td className="px-5 py-3 text-muted">
                         {evaluated && a ? letterGrade(s.marks, a.maxMarks) : '—'}
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setViewing(s)}
-                            className="rounded-md p-1.5 text-slate-dim hover:bg-parchment-line/50 hover:text-brass"
+                            className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary"
                             aria-label="View submission"
                           >
                             <Eye size={16} />
                           </button>
                           <button
                             onClick={() => handleDownload(s)}
-                            className="rounded-md p-1.5 text-slate-dim hover:bg-parchment-line/50 hover:text-brass"
+                            className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary"
                             aria-label="Download submission"
                           >
                             <Download size={16} />
                           </button>
                           <button
                             onClick={() => openGrade(s)}
-                            className="rounded-md p-1.5 text-slate-dim hover:bg-parchment-line/50 hover:text-brass"
+                            className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary"
                             aria-label="Grade submission"
                           >
                             <GraduationCap size={16} />
@@ -355,7 +355,7 @@ export function SubmissionsPage() {
       {viewing && (
         <Modal onClose={() => setViewing(null)} title={viewing.assignmentTitle}>
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-dim">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
               <span className="inline-flex items-center gap-1">
                 <BookOpen size={14} />
                 {viewing.studentName}
@@ -373,28 +373,28 @@ export function SubmissionsPage() {
               href={viewing.submissionUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-brass hover:underline"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
             >
               <LinkIcon size={14} />
               Open submission link
             </a>
 
             {isEvaluated(viewing.status) ? (
-              <div className="rounded-lg border border-parchment-line p-4">
-                <p className="text-sm font-medium text-ink">
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-sm font-medium text-text">
                   Marks: {viewing.marks}
                   {assignmentById.get(viewing.assignmentId) ? `/${assignmentById.get(viewing.assignmentId)!.maxMarks}` : ''}
                 </p>
-                {viewing.feedback && <p className="mt-1 text-sm text-slate-dim">{viewing.feedback}</p>}
+                {viewing.feedback && <p className="mt-1 text-sm text-muted">{viewing.feedback}</p>}
               </div>
             ) : (
-              <p className="text-sm text-slate-dim">This submission hasn't been graded yet.</p>
+              <p className="text-sm text-muted">This submission hasn't been graded yet.</p>
             )}
 
             <div className="flex justify-end gap-2 pt-1">
               <button
                 onClick={() => setViewing(null)}
-                className="rounded-lg border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text"
               >
                 Close
               </button>
@@ -404,7 +404,7 @@ export function SubmissionsPage() {
                   setViewing(null)
                   openGrade(s)
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass/90"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
               >
                 <GraduationCap size={16} />
                 Grade
@@ -418,8 +418,8 @@ export function SubmissionsPage() {
       {grading && (
         <Modal onClose={closeGrade} title={`Grade: ${grading.assignmentTitle}`}>
           <form onSubmit={handleSaveGrade} className="space-y-4">
-            <p className="text-sm text-slate-dim">
-              Student: <span className="text-ink">{grading.studentName}</span>
+            <p className="text-sm text-muted">
+              Student: <span className="text-text">{grading.studentName}</span>
             </p>
 
             <Field label={`Marks${assignmentById.get(grading.assignmentId) ? ` (out of ${assignmentById.get(grading.assignmentId)!.maxMarks})` : ''}`}>
@@ -448,14 +448,14 @@ export function SubmissionsPage() {
               <button
                 type="button"
                 onClick={closeGrade}
-                className="rounded-lg border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass/90 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
               >
                 <GraduationCap size={16} />
                 {saving ? 'Saving...' : 'Save Grade'}

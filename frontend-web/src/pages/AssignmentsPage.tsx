@@ -194,12 +194,12 @@ export function AssignmentsPage() {
     <Layout>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">Assignments</h1>
-          <p className="mt-1 text-sm text-slate-dim">Create and manage assignments across subjects</p>
+          <h1 className="font-heading text-2xl font-medium text-text">Assignments</h1>
+          <p className="mt-1 text-sm text-muted">Create and manage assignments across subjects</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass/90"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
         >
           <Plus size={16} />
           Create Assignment
@@ -241,21 +241,21 @@ export function AssignmentsPage() {
       {/* Search + filters */}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-dim" />
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title or subject..."
-            className="w-full rounded-lg border border-parchment-line bg-white/60 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-slate-dim focus:border-brass focus:outline-none"
+            className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter size={16} className="text-slate-dim" />
+          <Filter size={16} className="text-muted" />
           <select
             value={subjectFilter}
             onChange={(e) => setSubjectFilter(e.target.value)}
-            className="rounded-lg border border-parchment-line bg-white/60 px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none"
+            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           >
             <option value="">All Subjects</option>
             {subjects.map((s) => (
@@ -268,7 +268,7 @@ export function AssignmentsPage() {
           <select
             value={dueFilter}
             onChange={(e) => setDueFilter(e.target.value as DueFilter)}
-            className="rounded-lg border border-parchment-line bg-white/60 px-3 py-2 text-sm text-ink focus:border-brass focus:outline-none"
+            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           >
             <option value="">All Due Dates</option>
             <option value="upcoming">Upcoming</option>
@@ -282,7 +282,7 @@ export function AssignmentsPage() {
                 setSubjectFilter('')
                 setDueFilter('')
               }}
-              className="inline-flex items-center gap-1 rounded-lg border border-parchment-line px-3 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-text"
             >
               <X size={14} />
               Clear
@@ -292,20 +292,20 @@ export function AssignmentsPage() {
       </div>
 
       {/* Table */}
-      <div className="mt-6 overflow-hidden rounded-lg border border-parchment-line bg-white/60">
+      <div className="mt-6 overflow-hidden rounded-lg border border-border bg-white/60">
         {loading ? (
-          <div className="p-10 text-center text-sm text-slate-dim">Loading assignments...</div>
+          <div className="p-10 text-center text-sm text-muted">Loading assignments...</div>
         ) : error ? (
           <div className="p-10">
             <PanelError message={error} />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
-            <ClipboardList size={32} className="text-slate-dim/50" />
-            <p className="font-display text-base font-medium text-ink">
+            <ClipboardList size={32} className="text-muted/50" />
+            <p className="font-heading text-base font-medium text-text">
               {hasFilters ? 'No assignments match your filters' : 'No assignments yet'}
             </p>
-            <p className="text-sm text-slate-dim">
+            <p className="text-sm text-muted">
               {hasFilters ? 'Try adjusting your search or filters.' : 'Create an assignment to get started.'}
             </p>
           </div>
@@ -313,7 +313,7 @@ export function AssignmentsPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-200 text-left text-sm">
               <thead>
-                <tr className="border-b border-parchment-line text-slate-dim">
+                <tr className="border-b border-border text-muted">
                   <th className="px-5 py-3 font-medium">Title</th>
                   <th className="px-5 py-3 font-medium">Subject</th>
                   <th className="px-5 py-3 font-medium">Teacher</th>
@@ -327,12 +327,12 @@ export function AssignmentsPage() {
                 {filtered.map((a) => {
                   const overdue = daysUntil(a.dueDate) < 0
                   return (
-                    <tr key={a.id} className="border-b border-parchment-line last:border-0 hover:bg-white/80">
-                      <td className="px-5 py-3 text-ink">{a.title}</td>
-                      <td className="px-5 py-3 text-slate-dim">{subjectNameById.get(a.subjectId) || a.subjectName}</td>
-                      <td className="px-5 py-3 text-slate-dim">{a.teacherName}</td>
-                      <td className="px-5 py-3 text-slate-dim">{a.dueDate.slice(0, 10)}</td>
-                      <td className="px-5 py-3 text-slate-dim">{a.maxMarks}</td>
+                    <tr key={a.id} className="border-b border-border last:border-0 hover:bg-white/80">
+                      <td className="px-5 py-3 text-text">{a.title}</td>
+                      <td className="px-5 py-3 text-muted">{subjectNameById.get(a.subjectId) || a.subjectName}</td>
+                      <td className="px-5 py-3 text-muted">{a.teacherName}</td>
+                      <td className="px-5 py-3 text-muted">{a.dueDate.slice(0, 10)}</td>
+                      <td className="px-5 py-3 text-muted">{a.maxMarks}</td>
                       <td className="px-5 py-3">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -346,14 +346,14 @@ export function AssignmentsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openEditModal(a)}
-                            className="rounded-md p-1.5 text-slate-dim hover:bg-parchment-line/50 hover:text-brass"
+                            className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary"
                             aria-label="Edit assignment"
                           >
                             <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(a.id)}
-                            className="rounded-md p-1.5 text-slate-dim hover:bg-red-50 hover:text-red-600"
+                            className="rounded-md p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
                             aria-label="Delete assignment"
                           >
                             <Trash2 size={16} />
@@ -446,14 +446,14 @@ export function AssignmentsPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-lg border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass/90 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
               >
                 <Award size={16} />
                 {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Assignment'}

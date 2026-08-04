@@ -155,23 +155,23 @@ export function ExamSchedulePage() {
 
   return (
     <Layout>
-      <Link to="/exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-dim hover:text-ink">
+      <Link to="/exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
         <ArrowLeft size={14} />
         Back to exams
       </Link>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">
+          <h1 className="font-heading text-2xl font-medium text-text">
             {exam ? exam.examName : 'Exam Schedule'}
           </h1>
-          <p className="mt-1 text-sm text-slate-dim">
+          <p className="mt-1 text-sm text-muted">
             {exam ? `${exam.courseName} · Semester ${exam.semester} · ${exam.academicYear}` : 'Loading…'}
           </p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright"
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} />
           Add Subject Slot
@@ -185,27 +185,27 @@ export function ExamSchedulePage() {
       </StampGrid>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : schedules.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl">No Subjects Scheduled</h3>
-          <p className="mt-2 text-slate-dim">Add subject slots to build the exam timetable.</p>
-          <button onClick={openCreate} className="mt-5 rounded-md bg-brass px-5 py-2">
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl">No Subjects Scheduled</h3>
+          <p className="mt-2 text-muted">Add subject slots to build the exam timetable.</p>
+          <button onClick={openCreate} className="mt-5 rounded-md bg-primary px-5 py-2">
             Add Subject Slot
           </button>
         </div>
       ) : (
         <motion.div
-          className="paper overflow-hidden rounded-lg border border-parchment-line bg-white/50 shadow-[var(--shadow-paper-lift)]"
+          className="leaf-card overflow-hidden rounded-lg border border-border bg-white/50 shadow-[var(--shadow-card-hover)]"
           variants={panelIn}
           initial="hidden"
           animate="show"
         >
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Subject</th>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Time</th>
@@ -217,12 +217,12 @@ export function ExamSchedulePage() {
             </thead>
             <tbody>
               {schedules.map((s) => (
-                <tr key={s.id} className="border-b border-parchment-line last:border-0">
-                  <td className="px-4 py-3 text-ink">{s.subjectName}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.examDate}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.startTime} – {s.endTime}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.room || '—'}</td>
-                  <td className="px-4 py-3 text-slate-dim">{s.invigilatorName || '—'}</td>
+                <tr key={s.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-text">{s.subjectName}</td>
+                  <td className="px-4 py-3 text-muted">{s.examDate}</td>
+                  <td className="px-4 py-3 text-muted">{s.startTime} – {s.endTime}</td>
+                  <td className="px-4 py-3 text-muted">{s.room || '—'}</td>
+                  <td className="px-4 py-3 text-muted">{s.invigilatorName || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="rounded bg-green-100 px-2 py-1 text-xs text-green-700">{s.maxMarks} marks</span>
                   </td>
@@ -231,14 +231,14 @@ export function ExamSchedulePage() {
                       <Link
                         to={`/exam-schedules/${s.id}/marks`}
                         title="Enter marks"
-                        className="rounded p-2 hover:bg-parchment-line/60"
+                        className="rounded p-2 hover:bg-border/60"
                       >
                         <ClipboardList size={16} />
                       </Link>
-                      <button title="Edit" onClick={() => openEdit(s)} className="rounded p-2 hover:bg-brass/10">
+                      <button title="Edit" onClick={() => openEdit(s)} className="rounded p-2 hover:bg-primary/10">
                         <Pencil size={16} />
                       </button>
-                      <button title="Delete" onClick={() => handleDelete(s.id)} className="rounded p-2 hover:bg-brick/10">
+                      <button title="Delete" onClick={() => handleDelete(s.id)} className="rounded p-2 hover:bg-danger/10">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -286,12 +286,12 @@ export function ExamSchedulePage() {
                 <input type="number" min={1} required value={form.maxMarks} onChange={(e) => setForm({ ...form, maxMarks: Number(e.target.value) })} className={inputClass} />
               </Field>
             </div>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {editing ? 'Update Slot' : 'Add Slot'}
               </button>

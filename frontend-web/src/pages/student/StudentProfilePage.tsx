@@ -45,7 +45,7 @@ export function StudentProfilePage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center gap-2 text-sm text-slate-dim">
+        <div className="flex items-center gap-2 text-sm text-muted">
           <Loader2 size={16} className="animate-spin" />
           Loading profile...
         </div>
@@ -101,8 +101,8 @@ export function StudentProfilePage() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">My Profile</h1>
-      <p className="mt-1 text-sm text-slate-dim">Update your personal information.</p>
+      <h1 className="font-heading text-2xl font-medium text-text">My Profile</h1>
+      <p className="mt-1 text-sm text-muted">Update your personal information.</p>
 
       {error && (
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-600">
@@ -119,7 +119,7 @@ export function StudentProfilePage() {
       )}
 
       <form onSubmit={saveProfile} className="mt-6 space-y-8">
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={UserCircle} title="Personal Information" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Admission No">
@@ -178,7 +178,7 @@ export function StudentProfilePage() {
           </div>
         </div>
 
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={MapPin} title="Address Information" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Address" className="sm:col-span-2">
@@ -249,7 +249,7 @@ export function StudentProfilePage() {
           </div>
         </div>
 
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={Users} title="Parent Information" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Father Name">
@@ -289,7 +289,7 @@ export function StudentProfilePage() {
           </div>
         </div>
 
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={Info} title="Other Details" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Blood Group">
@@ -325,7 +325,7 @@ export function StudentProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-brass px-5 py-2 text-sm font-medium text-white hover:bg-brass/90 disabled:opacity-60 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
           >
             {saving && <Loader2 size={16} className="animate-spin" />}
             <Save size={16} />
@@ -334,7 +334,7 @@ export function StudentProfilePage() {
         </div>
       </form>
 
-      <div className="paper mt-8 rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+      <div className="leaf-card mt-8 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
         <PanelHeader icon={Lock} title="Change Password" />
 
         <form onSubmit={savePassword} className="space-y-4">
@@ -386,7 +386,7 @@ export function StudentProfilePage() {
             <button
               type="submit"
               disabled={passwordSaving}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-brass px-5 py-2 text-sm font-medium text-white hover:bg-brass/90 disabled:opacity-60 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
             >
               {passwordSaving && <Loader2 size={16} className="animate-spin" />}
               Update Password

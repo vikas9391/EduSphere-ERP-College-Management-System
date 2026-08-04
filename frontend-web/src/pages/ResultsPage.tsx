@@ -85,12 +85,12 @@ export function ResultsPage() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-medium text-ink">Results</h1>
-        <p className="mt-1 text-sm text-slate-dim">SGPA and CGPA computed from published marks.</p>
+        <h1 className="font-heading text-2xl font-medium text-text">Results</h1>
+        <p className="mt-1 text-sm text-muted">SGPA and CGPA computed from published marks.</p>
       </div>
 
       <motion.div
-        className="paper mb-8 rounded-lg border border-parchment-line bg-white/50 p-5 shadow-[var(--shadow-paper-lift)]"
+        className="leaf-card mb-8 rounded-lg border border-border bg-white/50 p-5 shadow-[var(--shadow-card-hover)]"
         custom={0}
         variants={panelIn}
         initial="hidden"
@@ -121,7 +121,7 @@ export function ResultsPage() {
           <button
             onClick={handleFetchSemester}
             disabled={loading}
-            className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60"
+            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
           >
             {loading && mode === 'semester' ? <Loader2 size={14} className="animate-spin" /> : <Search size={16} />}
             Semester Result
@@ -129,7 +129,7 @@ export function ResultsPage() {
           <button
             onClick={handleFetchOverall}
             disabled={loading}
-            className="flex items-center gap-2 rounded-md border border-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/10 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-medium text-text hover:bg-primary/10 disabled:opacity-60"
           >
             {loading && mode === 'overall' ? <Loader2 size={14} className="animate-spin" /> : <GraduationCap size={16} />}
             Overall Result (CGPA)
@@ -145,7 +145,7 @@ export function ResultsPage() {
 
       {mode === 'semester' && semesterResult && (
         <motion.div
-          className="paper rounded-lg border border-parchment-line bg-white/50 p-5 shadow-[var(--shadow-paper-lift)]"
+          className="leaf-card rounded-lg border border-border bg-white/50 p-5 shadow-[var(--shadow-card-hover)]"
           custom={1}
           variants={panelIn}
           initial="hidden"
@@ -153,13 +153,13 @@ export function ResultsPage() {
         >
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg text-ink">{semesterResult.studentName}</h2>
-              <p className="text-sm text-slate-dim">Semester {semesterResult.semester} · {semesterResult.academicYear}</p>
+              <h2 className="font-heading text-lg text-text">{semesterResult.studentName}</h2>
+              <p className="text-sm text-muted">Semester {semesterResult.semester} · {semesterResult.academicYear}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-dim">SGPA</p>
-              <p className="text-2xl font-semibold text-ink">{semesterResult.sgpa.toFixed(2)}</p>
-              <span className={`rounded px-2 py-0.5 text-xs ${semesterResult.result === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-brick/10 text-brick'}`}>
+              <p className="text-sm text-muted">SGPA</p>
+              <p className="text-2xl font-semibold text-text">{semesterResult.sgpa.toFixed(2)}</p>
+              <span className={`rounded px-2 py-0.5 text-xs ${semesterResult.result === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'}`}>
                 {semesterResult.result}
               </span>
             </div>
@@ -171,7 +171,7 @@ export function ResultsPage() {
       {mode === 'overall' && overallResult && (
         <div className="space-y-6">
           <motion.div
-            className="paper rounded-lg border border-parchment-line bg-white/50 p-5 shadow-[var(--shadow-paper-lift)]"
+            className="leaf-card rounded-lg border border-border bg-white/50 p-5 shadow-[var(--shadow-card-hover)]"
             custom={1}
             variants={panelIn}
             initial="hidden"
@@ -179,13 +179,13 @@ export function ResultsPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-display text-lg text-ink">{overallResult.studentName}</h2>
-                <p className="text-sm text-slate-dim">{overallResult.totalCredits} total credits</p>
+                <h2 className="font-heading text-lg text-text">{overallResult.studentName}</h2>
+                <p className="text-sm text-muted">{overallResult.totalCredits} total credits</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-slate-dim">CGPA</p>
-                <p className="text-2xl font-semibold text-ink">{overallResult.cgpa.toFixed(2)}</p>
-                <span className={`rounded px-2 py-0.5 text-xs ${overallResult.overallResult === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-brick/10 text-brick'}`}>
+                <p className="text-sm text-muted">CGPA</p>
+                <p className="text-2xl font-semibold text-text">{overallResult.cgpa.toFixed(2)}</p>
+                <span className={`rounded px-2 py-0.5 text-xs ${overallResult.overallResult === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'}`}>
                   {overallResult.overallResult}
                 </span>
               </div>
@@ -195,15 +195,15 @@ export function ResultsPage() {
           {overallResult.semesterResults.map((sem, i) => (
             <motion.div
               key={`${sem.semester}-${sem.academicYear}`}
-              className="paper rounded-lg border border-parchment-line bg-white/50 p-5 shadow-[var(--shadow-paper-lift)]"
+              className="leaf-card rounded-lg border border-border bg-white/50 p-5 shadow-[var(--shadow-card-hover)]"
               custom={i + 2}
               variants={panelIn}
               initial="hidden"
               animate="show"
             >
               <div className="mb-4 flex items-center justify-between">
-                <p className="font-medium text-ink">Semester {sem.semester} · {sem.academicYear}</p>
-                <p className="text-sm text-slate-dim">SGPA {sem.sgpa.toFixed(2)} · {sem.result}</p>
+                <p className="font-medium text-text">Semester {sem.semester} · {sem.academicYear}</p>
+                <p className="text-sm text-muted">SGPA {sem.sgpa.toFixed(2)} · {sem.result}</p>
               </div>
               <ResultTable subjects={sem.subjects} />
             </motion.div>
@@ -218,7 +218,7 @@ function ResultTable({ subjects }: { subjects: SemesterResult['subjects'] }) {
   return (
     <table className="w-full text-left text-sm">
       <thead>
-        <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+        <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
           <th className="px-3 py-2 font-medium">Subject</th>
           <th className="px-3 py-2 font-medium">Credits</th>
           <th className="px-3 py-2 font-medium">Marks</th>
@@ -227,15 +227,15 @@ function ResultTable({ subjects }: { subjects: SemesterResult['subjects'] }) {
       </thead>
       <tbody>
         {subjects.map((sub) => (
-          <tr key={sub.subjectId} className="border-b border-parchment-line last:border-0">
-            <td className="px-3 py-2 text-ink">
+          <tr key={sub.subjectId} className="border-b border-border last:border-0">
+            <td className="px-3 py-2 text-text">
               <p className="font-medium">{sub.subjectName}</p>
-              <p className="text-xs text-slate-dim">{sub.subjectCode}</p>
+              <p className="text-xs text-muted">{sub.subjectCode}</p>
             </td>
-            <td className="px-3 py-2 text-slate-dim">{sub.credits}</td>
-            <td className="px-3 py-2 text-slate-dim">{sub.totalMarks} / {sub.maxMarks}</td>
+            <td className="px-3 py-2 text-muted">{sub.credits}</td>
+            <td className="px-3 py-2 text-muted">{sub.totalMarks} / {sub.maxMarks}</td>
             <td className="px-3 py-2">
-              <span className={`rounded px-2 py-1 text-xs ${sub.grade === 'F' ? 'bg-brick/10 text-brick' : 'bg-green-100 text-green-700'}`}>
+              <span className={`rounded px-2 py-1 text-xs ${sub.grade === 'F' ? 'bg-danger/10 text-danger' : 'bg-green-100 text-green-700'}`}>
                 {sub.grade}
               </span>
             </td>

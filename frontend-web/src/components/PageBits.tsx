@@ -1,34 +1,32 @@
 // src/components/PageBits.tsx
 //
 // Small presentational pieces shared across pages so every screen reads as
-// part of the same ledger/parchment system instead of each page inventing
-// its own stat-card or section-header markup. Lifted from the pattern
-// established in StudentDashboard.tsx.
+// part of the same botanical design system instead of each page inventing
+// its own leaf-card or section-header markup.
 import { AlertTriangle } from 'lucide-react'
 import { StampItem, TallyCounter, LedgerRule } from '@/components/motion'
 
 export const COLORS = {
-  brass: '#c9a227',
-  brassBright: '#d8b74a',
-  ink: '#2b2620',
-  brick: '#b5533c',
-  slate: '#6b6558',
-  slateDim: '#8a8578',
+  primary: '#2e7d32',
+  secondary: '#4caf50',
+  text: '#1f2937',
+  danger: '#c1543c',
+  muted: '#6b7280',
   green: '#3f7d55',
-  grid: '#e7ddc9',
+  grid: '#eef2e7',
 }
 
-// One tonal family (shades of brass) so a row of stat cards reads as a
+// One tonal family (shades of green) so a row of stat cards reads as a
 // deliberate, cohesive set rather than a traffic-light mix of hues.
 export const STAT_SHADES = [
-  '#8a6a1c',
-  '#a9812f',
-  '#c9a227',
-  '#b58f26',
-  '#d8b74a',
-  '#c2a04a',
-  '#e2c66e',
-  '#cfa93a',
+  '#1b5e20',
+  '#2e7d32',
+  '#388e3c',
+  '#43a047',
+  '#4caf50',
+  '#66bb6a',
+  '#81c784',
+  '#2e7d32',
 ]
 
 export function StatCard({
@@ -49,25 +47,25 @@ export function StatCard({
   failed?: boolean
 }) {
   return (
-    <StampItem className="stat-card relative rounded-lg border border-parchment-line bg-white px-5 pt-5 pb-7">
+    <StampItem className="relative px-5 pt-5 pb-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-dim">{label}</p>
+        <p className="text-sm text-muted">{label}</p>
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
           style={{
-            backgroundColor: (failed ? COLORS.brick : accent ?? COLORS.brass) + '22',
-            color: failed ? COLORS.brick : accent ?? COLORS.brass,
+            backgroundColor: (failed ? COLORS.danger : accent ?? COLORS.primary) + '1f',
+            color: failed ? COLORS.danger : accent ?? COLORS.primary,
           }}
         >
           {failed ? <AlertTriangle size={18} /> : <Icon size={18} />}
         </span>
       </div>
       {failed ? (
-        <p className="mt-3 text-sm font-medium text-brick">Couldn't load</p>
+        <p className="mt-3 text-sm font-medium text-danger">Couldn't load</p>
       ) : (
-        <p className="mt-3 text-3xl font-semibold text-ink">
+        <p className="mt-3 font-numbers text-3xl font-bold text-text">
           {typeof value === 'number' ? <TallyCounter value={value} /> : value}
-          {suffix && <span className="ml-1 text-lg font-medium text-slate-dim">{suffix}</span>}
+          {suffix && <span className="ml-1 text-lg font-medium text-muted">{suffix}</span>}
         </p>
       )}
     </StampItem>
@@ -89,12 +87,12 @@ export function PanelHeader({
     <div className="mb-4 pb-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Icon size={16} className="text-brass" />
-          <h2 className="font-display text-base font-medium text-ink">{title}</h2>
+          <Icon size={16} className="text-primary" />
+          <h2 className="font-heading text-base font-semibold text-text">{title}</h2>
         </div>
         {action}
       </div>
-      {note && <p className="mt-1 text-xs italic text-slate-dim">{note}</p>}
+      {note && <p className="mt-1 text-xs text-muted">{note}</p>}
       <LedgerRule className="mt-3" />
     </div>
   )
@@ -104,7 +102,7 @@ export function PanelHeader({
  *  a genuine "nothing here yet" empty state. */
 export function PanelError({ message = "Couldn't load this section. Try refreshing the page." }: { message?: string }) {
   return (
-    <div className="flex items-start gap-2 text-sm text-brick">
+    <div className="flex items-start gap-2 text-sm text-danger">
       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
       <p>{message}</p>
     </div>
@@ -118,14 +116,14 @@ export function PanelError({ message = "Couldn't load this section. Try refreshi
 export type BadgeVariant = 'success' | 'warning' | 'danger' | 'neutral'
 
 const BADGE_VARIANT_COLORS: Record<BadgeVariant, string> = {
-  success: COLORS.green,
-  warning: COLORS.brass,
-  danger: COLORS.brick,
-  neutral: COLORS.slate,
+  success: COLORS.primary,
+  warning: COLORS.secondary,
+  danger: COLORS.danger,
+  neutral: COLORS.muted,
 }
 
 /**
- * A small rounded status/category pill, tinted with the same registrar
+ * A small rounded status/category pill, tinted with the same botanical
  * palette as everything else (rather than raw Tailwind semantic colors
  * like bg-green-100/text-green-700).
  *

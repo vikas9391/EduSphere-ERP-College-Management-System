@@ -139,17 +139,17 @@ export function StudentAssignmentsPage() {
     return (
       <StampItem
         key={row.assignment.id}
-        className="cursor-pointer rounded-lg border border-parchment-line bg-white/60 p-4 text-left transition-colors hover:border-brass"
+        className="cursor-pointer rounded-lg border border-border bg-white/60 p-4 text-left transition-colors hover:border-primary"
       >
         <button onClick={() => openDetails(row)} className="w-full text-left">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-display text-sm font-medium text-ink">{row.assignment.title}</p>
+            <p className="font-heading text-sm font-medium text-text">{row.assignment.title}</p>
             <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${bucketMeta[row.bucket].classes}`}>
               {bucketMeta[row.bucket].label}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-dim">{row.assignment.subjectName}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-dim">
+          <p className="mt-1 text-xs text-muted">{row.assignment.subjectName}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <CalendarClock size={12} />
               Due {row.assignment.dueDate.slice(0, 10)}
@@ -173,15 +173,15 @@ export function StudentAssignmentsPage() {
     return (
       <div className="mt-8">
         <div className="flex items-center gap-2">
-          <Icon size={18} className="text-brass" />
-          <h2 className="font-display text-base font-medium text-ink">{title}</h2>
-          <span className="rounded-full bg-parchment-line/50 px-2 py-0.5 text-xs text-slate-dim">
+          <Icon size={18} className="text-primary" />
+          <h2 className="font-heading text-base font-medium text-text">{title}</h2>
+          <span className="rounded-full bg-border/50 px-2 py-0.5 text-xs text-muted">
             {sectionRows.length}
           </span>
         </div>
 
         {sectionRows.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-dim">Nothing here.</p>
+          <p className="mt-3 text-sm text-muted">Nothing here.</p>
         ) : (
           <StampGrid className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sectionRows.map((row) => renderCard(row))}
@@ -193,8 +193,8 @@ export function StudentAssignmentsPage() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">My Assignments</h1>
-      <p className="mt-1 text-sm text-slate-dim">Track and submit your assignments across all subjects</p>
+      <h1 className="font-heading text-2xl font-medium text-text">My Assignments</h1>
+      <p className="mt-1 text-sm text-muted">Track and submit your assignments across all subjects</p>
 
       <StampGrid className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard icon={ClipboardList} label="Total Assignments" value={stats.total} accent={STAT_SHADES[0]} />
@@ -204,14 +204,14 @@ export function StudentAssignmentsPage() {
       </StampGrid>
 
       {loading ? (
-        <div className="mt-10 p-10 text-center text-sm text-slate-dim">Loading your assignments...</div>
+        <div className="mt-10 p-10 text-center text-sm text-muted">Loading your assignments...</div>
       ) : error ? (
         <div className="mt-10 p-10 text-center text-sm text-red-600">{error}</div>
       ) : rows.length === 0 ? (
         <div className="mt-10 flex flex-col items-center justify-center gap-2 p-12 text-center">
-          <BookOpen size={32} className="text-slate-dim/50" />
-          <p className="font-display text-base font-medium text-ink">No assignments yet</p>
-          <p className="text-sm text-slate-dim">Assignments from your subjects will appear here.</p>
+          <BookOpen size={32} className="text-muted/50" />
+          <p className="font-heading text-base font-medium text-text">No assignments yet</p>
+          <p className="text-sm text-muted">Assignments from your subjects will appear here.</p>
         </div>
       ) : (
         <>
@@ -224,7 +224,7 @@ export function StudentAssignmentsPage() {
       {activeRow && (
         <Modal onClose={closeDetails} title={activeRow.assignment.title}>
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-dim">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
               <span className="inline-flex items-center gap-1">
                 <BookOpen size={14} />
                 {activeRow.assignment.subjectName}
@@ -243,32 +243,32 @@ export function StudentAssignmentsPage() {
             </div>
 
             {activeRow.assignment.description && (
-              <p className="whitespace-pre-wrap text-sm text-ink">{activeRow.assignment.description}</p>
+              <p className="whitespace-pre-wrap text-sm text-text">{activeRow.assignment.description}</p>
             )}
 
             {activeRow.submission ? (
-              <div className="rounded-lg border border-parchment-line p-4">
-                <p className="text-sm text-slate-dim">Submitted {activeRow.submission.submittedAt.slice(0, 10)}</p>
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-sm text-muted">Submitted {activeRow.submission.submittedAt.slice(0, 10)}</p>
                 <a
                   href={activeRow.submission.submissionUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-sm text-brass hover:underline"
+                  className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                 >
                   <LinkIcon size={14} />
                   View submission
                 </a>
                 {activeRow.submission.status === 'EVALUATED' ? (
-                  <div className="mt-3 border-t border-parchment-line pt-3">
-                    <p className="text-sm font-medium text-ink">
+                  <div className="mt-3 border-t border-border pt-3">
+                    <p className="text-sm font-medium text-text">
                       Score: {activeRow.submission.marks}/{activeRow.assignment.maxMarks}
                     </p>
                     {activeRow.submission.feedback && (
-                      <p className="mt-1 text-sm text-slate-dim">{activeRow.submission.feedback}</p>
+                      <p className="mt-1 text-sm text-muted">{activeRow.submission.feedback}</p>
                     )}
                   </div>
                 ) : (
-                  <p className="mt-3 border-t border-parchment-line pt-3 text-sm text-slate-dim">
+                  <p className="mt-3 border-t border-border pt-3 text-sm text-muted">
                     Awaiting evaluation.
                   </p>
                 )}
@@ -288,14 +288,14 @@ export function StudentAssignmentsPage() {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="rounded-lg border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:border-brass hover:text-ink"
+                    className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass/90 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
                   >
                     <Upload size={16} />
                     {submitting ? 'Submitting...' : 'Submit Assignment'}

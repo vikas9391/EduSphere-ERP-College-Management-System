@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { superAdminLogin } from '@/api'
 import { useAuthStore } from '@/store/authStore'
-import { SealMark } from '@/components/SealMark'
+import { LeafMark } from '@/components/LeafMark'
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 
 /**
@@ -71,39 +71,39 @@ export function SuperAdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-parchment font-body">
-      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-ink px-14 py-12 text-parchment md:flex">
+    <div className="flex min-h-screen w-full bg-bg font-body">
+      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-primary-dark px-14 py-12 text-bg md:flex">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              'repeating-linear-gradient(0deg, var(--color-brass) 0px, var(--color-brass) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, var(--color-brass) 0px, var(--color-brass) 1px, transparent 1px, transparent 64px)',
+              'repeating-linear-gradient(0deg, var(--color-primary) 0px, var(--color-primary) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, var(--color-primary) 0px, var(--color-primary) 1px, transparent 1px, transparent 64px)',
           }}
         />
 
         <div className="relative">
-          <span className="flex items-center gap-1.5 font-mono text-xs tracking-[0.25em] text-slate uppercase">
-            <ShieldCheck size={13} className="text-brass" />
+          <span className="flex items-center gap-1.5 font-numbers text-xs tracking-[0.25em] text-muted uppercase">
+            <ShieldCheck size={13} className="text-primary" />
             Platform Access
           </span>
-          <h1 className="mt-4 font-display text-4xl font-medium leading-tight tracking-tight">
+          <h1 className="mt-4 font-heading text-4xl font-medium leading-tight tracking-tight">
             College ERP
           </h1>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate">
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
             Super admin console — register and oversee every institution on the platform.
           </p>
         </div>
 
         <div className="relative flex flex-1 items-center justify-center">
-          <SealMark />
+          <LeafMark />
         </div>
 
-        <div className="relative border-t border-ink-line pt-6">
-          <p className="font-mono text-xs leading-relaxed text-slate">
+        <div className="relative border-t border-border pt-6">
+          <p className="font-numbers text-xs leading-relaxed text-muted">
             This account is not scoped to any single college.
             <br />
             Looking for your institution login instead?{' '}
-            <a href="/login" className="text-brass hover:text-brass-bright">
+            <a href="/login" className="text-primary hover:text-secondary">
               Go there
             </a>
             .
@@ -114,15 +114,15 @@ export function SuperAdminLoginPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
           <div className="mb-10 md:hidden">
-            <span className="font-mono text-xs tracking-[0.25em] text-slate uppercase">
+            <span className="font-numbers text-xs tracking-[0.25em] text-muted uppercase">
               Platform Access
             </span>
-            <h1 className="mt-2 font-display text-3xl font-medium text-ink">College ERP</h1>
+            <h1 className="mt-2 font-heading text-3xl font-medium text-text">College ERP</h1>
           </div>
 
           <div className="mb-8">
-            <h2 className="font-display text-2xl font-medium text-ink">Super admin sign in</h2>
-            <p className="mt-1.5 text-sm text-slate-dim">
+            <h2 className="font-heading text-2xl font-medium text-text">Super admin sign in</h2>
+            <p className="mt-1.5 text-sm text-muted">
               Enter your platform operator credentials.
             </p>
           </div>
@@ -131,7 +131,7 @@ export function SuperAdminLoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim"
+                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted"
               >
                 Email
               </label>
@@ -145,14 +145,14 @@ export function SuperAdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@platform.com"
-                className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 text-sm text-ink placeholder:text-slate/50 focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+                className="w-full rounded-md border border-border bg-white/60 px-3.5 py-2.5 text-sm text-text placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim"
+                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted"
               >
                 Password
               </label>
@@ -166,12 +166,12 @@ export function SuperAdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 pr-10 text-sm text-ink placeholder:text-slate/50 focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+                  className="w-full rounded-md border border-border bg-white/60 px-3.5 py-2.5 pr-10 text-sm text-text placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -182,7 +182,7 @@ export function SuperAdminLoginPage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-md border border-brick/30 bg-brick/10 px-3.5 py-2.5 text-sm text-brick"
+                className="rounded-md border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
               >
                 {error}
               </div>
@@ -191,7 +191,7 @@ export function SuperAdminLoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-brass px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-brass-bright disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
               {isSubmitting ? 'Signing in…' : 'Sign in'}

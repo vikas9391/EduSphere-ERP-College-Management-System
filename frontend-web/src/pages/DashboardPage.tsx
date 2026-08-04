@@ -148,23 +148,23 @@ export function AdminDashboard() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">Welcome back</h1>
-      <p className="mt-2 text-sm text-slate-dim">
+      <h1 className="font-heading text-2xl font-medium text-text">Welcome back</h1>
+      <p className="mt-2 text-sm text-muted">
         Signed in as {user?.email} · {user?.role}
       </p>
 
       {visibleModules.length > 0 ? (
         <StampGrid className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {visibleModules.map(({ to, label, icon: Icon, desc }) => (
-            <StampItem key={to} to={to} className="block rounded-lg border border-parchment-line bg-white/50 p-5">
-              <Icon size={20} className="text-brass" />
-              <p className="mt-3 font-display text-base font-medium text-ink">{label}</p>
-              <p className="mt-1 text-sm text-slate-dim">{desc}</p>
+            <StampItem key={to} to={to} className="block rounded-lg border border-border bg-white/50 p-5">
+              <Icon size={20} className="text-primary" />
+              <p className="mt-3 font-heading text-base font-medium text-text">{label}</p>
+              <p className="mt-1 text-sm text-muted">{desc}</p>
             </StampItem>
           ))}
         </StampGrid>
       ) : (
-        <p className="mt-8 text-sm text-slate-dim">
+        <p className="mt-8 text-sm text-muted">
           Your role doesn't have any modules assigned yet - ask an administrator to grant permissions.
         </p>
       )}

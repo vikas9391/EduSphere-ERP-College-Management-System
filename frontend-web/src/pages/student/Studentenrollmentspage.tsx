@@ -53,8 +53,8 @@ export function StudentEnrollmentsPage() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">My Enrollments</h1>
-      <p className="mt-1 text-sm text-slate-dim">
+      <h1 className="font-heading text-2xl font-medium text-text">My Enrollments</h1>
+      <p className="mt-1 text-sm text-muted">
         Subjects you're currently enrolled in
         {user?.email ? ` · ${user.email}` : ''}
       </p>
@@ -68,17 +68,17 @@ export function StudentEnrollmentsPage() {
 
       {/* Search */}
       <div className="relative mt-6">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-dim" />
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by subject, course or teacher..."
-          className="w-full rounded-lg border border-parchment-line bg-white/60 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-slate-dim focus:border-brass focus:outline-none sm:max-w-md"
+          className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none sm:max-w-md"
         />
       </div>
 
       {/* Results */}
-      <div className="paper mt-6 rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+      <div className="leaf-card mt-6 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
         <PanelHeader
           icon={Layers}
           title="Enrolled Subjects"
@@ -86,16 +86,16 @@ export function StudentEnrollmentsPage() {
         />
 
         {loading ? (
-          <p className="py-6 text-center text-sm text-slate-dim">Loading your enrollments...</p>
+          <p className="py-6 text-center text-sm text-muted">Loading your enrollments...</p>
         ) : error ? (
           <PanelError message={error} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-            <Layers size={32} className="text-slate-dim/50" />
-            <p className="font-display text-base font-medium text-ink">
+            <Layers size={32} className="text-muted/50" />
+            <p className="font-heading text-base font-medium text-text">
               {search ? 'No subjects match your search' : 'No enrollments yet'}
             </p>
-            <p className="text-sm text-slate-dim">
+            <p className="text-sm text-muted">
               {search
                 ? 'Try a different search term.'
                 : "You aren't enrolled in any subjects yet. Contact your administrator if this seems wrong."}
@@ -107,7 +107,7 @@ export function StudentEnrollmentsPage() {
             <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-parchment-line text-slate-dim">
+                  <tr className="border-b border-border text-muted">
                     <th className="px-3 py-3 font-medium">Subject</th>
                     <th className="px-3 py-3 font-medium">Course</th>
                     <th className="px-3 py-3 font-medium">Teacher</th>
@@ -116,11 +116,11 @@ export function StudentEnrollmentsPage() {
                 </thead>
                 <tbody>
                   {filtered.map((en) => (
-                    <tr key={en.id} className="border-b border-parchment-line last:border-0 hover:bg-white/80">
-                      <td className="px-3 py-3 text-ink">{en.subjectName}</td>
-                      <td className="px-3 py-3 text-slate-dim">{en.courseName}</td>
-                      <td className="px-3 py-3 text-slate-dim">{en.teacherName}</td>
-                      <td className="px-3 py-3 text-slate-dim">{en.semester}</td>
+                    <tr key={en.id} className="border-b border-border last:border-0 hover:bg-white/80">
+                      <td className="px-3 py-3 text-text">{en.subjectName}</td>
+                      <td className="px-3 py-3 text-muted">{en.courseName}</td>
+                      <td className="px-3 py-3 text-muted">{en.teacherName}</td>
+                      <td className="px-3 py-3 text-muted">{en.semester}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -131,15 +131,15 @@ export function StudentEnrollmentsPage() {
                 horizontal scroll on a narrow screen. */}
             <ul className="space-y-3 sm:hidden">
               {filtered.map((en) => (
-                <li key={en.id} className="rounded-lg border border-parchment-line p-4">
+                <li key={en.id} className="rounded-lg border border-border p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-display text-sm font-medium text-ink">{en.subjectName}</p>
-                    <span className="shrink-0 rounded bg-parchment px-2 py-0.5 font-mono text-xs text-slate">
+                    <p className="font-heading text-sm font-medium text-text">{en.subjectName}</p>
+                    <span className="shrink-0 rounded bg-bg px-2 py-0.5 font-numbers text-xs text-muted">
                       Sem {en.semester}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-dim">{en.courseName}</p>
-                  <p className="mt-2 flex items-center gap-1 text-xs text-slate-dim">
+                  <p className="mt-1 text-xs text-muted">{en.courseName}</p>
+                  <p className="mt-2 flex items-center gap-1 text-xs text-muted">
                     <GraduationCap size={12} />
                     {en.teacherName}
                   </p>

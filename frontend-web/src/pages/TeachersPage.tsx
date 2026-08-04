@@ -129,8 +129,8 @@ export function TeachersPage() {
     <Layout>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">Teachers</h1>
-          <p className="mt-1 text-sm text-slate-dim">Faculty members across all departments.</p>
+          <h1 className="font-heading text-2xl font-medium text-text">Teachers</h1>
+          <p className="mt-1 text-sm text-muted">Faculty members across all departments.</p>
         </div>
       </div>
 
@@ -148,18 +148,18 @@ export function TeachersPage() {
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-dim" />
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search teachers..."
-            className="w-full rounded-md border border-parchment-line bg-white/60 py-2 pl-9 pr-3 text-sm text-ink placeholder:text-slate-dim focus:border-brass focus:outline-none"
+            className="w-full rounded-md border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none"
           />
         </div>
 
         <button
           onClick={openCreate}
-          className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} />
           Add Teacher
@@ -167,23 +167,23 @@ export function TeachersPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : filteredTeachers.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl text-ink">No Teachers Found</h3>
-          <p className="mt-2 text-slate-dim">Add your first faculty member.</p>
-          <button onClick={openCreate} className="mt-5 rounded-md bg-brass px-5 py-2 text-sm font-medium text-white hover:bg-brass-bright">
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl text-text">No Teachers Found</h3>
+          <p className="mt-2 text-muted">Add your first faculty member.</p>
+          <button onClick={openCreate} className="mt-5 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-secondary">
             Add Teacher
           </button>
         </div>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-lg border border-parchment-line bg-white/50 sm:block">
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-white/50 sm:block">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">Teacher</th>
                   <th className="px-4 py-3 font-medium">Employee ID</th>
                   <th className="px-4 py-3 font-medium">Email</th>
@@ -195,28 +195,28 @@ export function TeachersPage() {
               </thead>
               <tbody>
                 {filteredTeachers.map((t) => (
-                  <tr key={t.id} className="border-b border-parchment-line last:border-0">
+                  <tr key={t.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-ink">
+                        <p className="font-medium text-text">
                           {t.firstName} {t.lastName}
                         </p>
-                        <p className="text-xs text-slate-dim">{t.specialization || '—'}</p>
+                        <p className="text-xs text-muted">{t.specialization || '—'}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-ink">{t.employeeId}</td>
-                    <td className="px-4 py-3 text-slate-dim">{t.email}</td>
+                    <td className="px-4 py-3 font-numbers text-xs text-text">{t.employeeId}</td>
+                    <td className="px-4 py-3 text-muted">{t.email}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded px-2 py-1 text-xs ${genderBadge(t.gender)}`}>{t.gender || '—'}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-dim">{t.qualification || '—'}</td>
-                    <td className="px-4 py-3 text-slate-dim">{t.experience ? `${t.experience} Years` : '—'}</td>
+                    <td className="px-4 py-3 text-muted">{t.qualification || '—'}</td>
+                    <td className="px-4 py-3 text-muted">{t.experience ? `${t.experience} Years` : '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-3">
-                        <button onClick={() => openEdit(t)} className="text-slate hover:text-ink">
+                        <button onClick={() => openEdit(t)} className="text-muted hover:text-text">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDelete(t.id)} className="text-slate hover:text-brick">
+                        <button onClick={() => handleDelete(t.id)} className="text-muted hover:text-danger">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -229,26 +229,26 @@ export function TeachersPage() {
 
           <ul className="space-y-3 sm:hidden">
             {filteredTeachers.map((t) => (
-              <li key={t.id} className="rounded-lg border border-parchment-line bg-white/60 p-4">
+              <li key={t.id} className="rounded-lg border border-border bg-white/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-display text-sm font-medium text-ink">{t.firstName} {t.lastName}</p>
-                    <p className="font-mono text-xs text-slate-dim">{t.employeeId}</p>
+                    <p className="font-heading text-sm font-medium text-text">{t.firstName} {t.lastName}</p>
+                    <p className="font-numbers text-xs text-muted">{t.employeeId}</p>
                   </div>
                   <div className="flex shrink-0 gap-3">
-                    <button onClick={() => openEdit(t)} className="text-slate hover:text-ink">
+                    <button onClick={() => openEdit(t)} className="text-muted hover:text-text">
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => handleDelete(t.id)} className="text-slate hover:text-brick">
+                    <button onClick={() => handleDelete(t.id)} className="text-muted hover:text-danger">
                       <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-dim">{t.email}</p>
+                <p className="mt-2 text-xs text-muted">{t.email}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-xs ${genderBadge(t.gender)}`}>{t.gender || '—'}</span>
-                  <span className="text-xs text-slate-dim">{t.qualification || '—'}</span>
-                  {t.experience ? <span className="text-xs text-slate-dim">· {t.experience} yrs exp</span> : null}
+                  <span className="text-xs text-muted">{t.qualification || '—'}</span>
+                  {t.experience ? <span className="text-xs text-muted">· {t.experience} yrs exp</span> : null}
                 </div>
               </li>
             ))}
@@ -331,12 +331,12 @@ export function TeachersPage() {
                 <input type="date" value={form.joiningDate} onChange={(e) => setForm({ ...form, joiningDate: e.target.value })} className={inputClass} />
               </Field>
             </div>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex flex-col-reverse justify-end gap-3 pt-2 sm:flex-row">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
-              <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 Save
               </button>

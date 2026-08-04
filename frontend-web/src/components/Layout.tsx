@@ -18,6 +18,7 @@ import {
   Users,
   Menu,
   X,
+  Leaf,
 } from 'lucide-react'
 
 const superAdminNavItems = [
@@ -83,14 +84,14 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [location.pathname])
 
   return (
-    <div className="flex min-h-screen bg-parchment font-body">
+    <div className="flex min-h-screen bg-bg font-body">
       {/* Mobile menu toggle - only shown below md, where the sidebar is
           hidden off-screen by default. */}
       <button
         onClick={() => setMobileNavOpen((open) => !open)}
         aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={mobileNavOpen}
-        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-md border border-parchment-line bg-white shadow-[var(--shadow-paper)] md:hidden"
+        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-2xl bg-card shadow-[var(--shadow-card)] md:hidden"
       >
         {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
@@ -104,7 +105,7 @@ export function Layout({ children }: { children: ReactNode }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setMobileNavOpen(false)}
-            className="fixed inset-0 z-20 bg-ink/40 md:hidden"
+            className="fixed inset-0 z-20 bg-text/40 md:hidden"
           />
         )}
       </AnimatePresence>
@@ -113,14 +114,19 @@ export function Layout({ children }: { children: ReactNode }) {
           stays put while the main content scrolls underneath it. On mobile
           it's an off-canvas drawer that slides in via translate-x; from md
           up it's always visible at translate-x-0. The content column below
-          carries a matching md:ml-56 to avoid being hidden behind it. */}
+          carries a matching md:ml-64 to avoid being hidden behind it. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-56 flex-col overflow-y-auto bg-parchment py-6 pl-3.5 pr-0 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-y-auto bg-card py-6 pl-3.5 pr-3.5 transition-transform duration-300 ease-in-out md:translate-x-0 ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <span className="mb-8 pl-4 font-display text-lg font-medium text-ink">College ERP</span>
-        <nav className="flex flex-1 flex-col gap-1.5">
+        <span className="mb-8 flex items-center gap-2 pl-3 font-heading text-lg font-semibold text-text">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-light-green text-primary">
+            <Leaf size={16} strokeWidth={2.4} />
+          </span>
+          EduSphere
+        </span>
+        <nav className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, label, icon: Icon }) => {
             const isActive =
               to === location.pathname ||
@@ -134,9 +140,8 @@ export function Layout({ children }: { children: ReactNode }) {
                 to={to}
                 end={to === '/dashboard' || to === '/teacher/dashboard' || to === '/student/dashboard'}
                 data-active={isActive}
-                className="nav-tab flex items-center gap-2.5 border border-parchment-line bg-parchment-dim py-2 pl-4 pr-5 text-sm text-slate-dim data-[active=true]:z-10 data-[active=true]:border-brass/40 data-[active=true]:bg-white data-[active=true]:font-medium data-[active=true]:text-ink"
+                className="nav-pill flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-muted hover:bg-hover data-[active=true]:font-semibold"
               >
-                {isActive && <span className="nav-tab-dot absolute left-2 h-1.5 w-1.5 rounded-full bg-brick" />}
                 <Icon size={16} />
                 {label}
               </NavLink>
@@ -146,29 +151,29 @@ export function Layout({ children }: { children: ReactNode }) {
 
         {/* User info + sign out, pinned to the foot of the sidebar instead of
             an otherwise-empty top bar. */}
-        <div className="mt-4 border-t border-parchment-line pl-4 pr-5 pt-4">
-          <p className="truncate text-sm font-medium text-ink">{user?.email}</p>
-          <p className="font-mono text-xs uppercase tracking-wide text-slate">{user?.role}</p>
+        <div className="mt-4 border-t border-border pl-3.5 pr-3 pt-4">
+          <p className="truncate text-sm font-medium text-text">{user?.email}</p>
+          <p className="font-numbers text-xs uppercase tracking-wide text-muted">{user?.role}</p>
           <NavLink
             to="/change-password"
-            className="mt-3 block text-xs text-slate-dim hover:text-ink"
+            className="mt-3 block text-xs text-muted hover:text-primary"
           >
             Change password
           </NavLink>
           <motion.button
             onClick={logout}
-            whileHover={{ borderColor: 'var(--color-brass)' }}
+            whileHover={{ backgroundColor: 'var(--color-hover)' }}
             whileTap={{ scale: 0.96 }}
-            className="mt-3 w-full rounded-md border border-parchment-line py-1.5 text-sm text-slate-dim hover:text-ink"
+            className="mt-3 w-full rounded-[var(--radius-btn)] border border-border py-1.5 text-sm text-muted hover:text-primary"
           >
             Sign out
           </motion.button>
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col md:ml-56">
+      <div className="flex flex-1 flex-col md:ml-64">
         <main className="flex-1 px-8 pb-10 pt-20 md:pt-10">
-          <div className="page-shell rounded-md border border-parchment-line bg-white/60 p-8">
+          <div className="rounded-[var(--radius-card)] bg-card p-8 shadow-[var(--shadow-card)]">
             <AnimatePresence mode="wait">
               <PageIn key={location.pathname}>{children}</PageIn>
             </AnimatePresence>

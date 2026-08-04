@@ -88,14 +88,14 @@ export function ClassesPage() {
     <Layout>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">Classes</h1>
-          <p className="mt-1 text-sm text-slate-dim">
+          <h1 className="font-heading text-2xl font-medium text-text">Classes</h1>
+          <p className="mt-1 text-sm text-muted">
             Set up a batch/section: name it, build its roster, then add the subjects for the term.
           </p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} />
           Create Class
@@ -109,14 +109,14 @@ export function ClassesPage() {
       </StampGrid>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : classes.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl text-ink">No Classes Yet</h3>
-          <p className="mt-2 text-slate-dim">Create your first class to start building a roster and subjects.</p>
-          <button onClick={openCreate} className="mt-5 rounded-md bg-brass px-5 py-2 text-sm font-medium text-white hover:bg-brass-bright">
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl text-text">No Classes Yet</h3>
+          <p className="mt-2 text-muted">Create your first class to start building a roster and subjects.</p>
+          <button onClick={openCreate} className="mt-5 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-secondary">
             Create Class
           </button>
         </div>
@@ -126,12 +126,12 @@ export function ClassesPage() {
             <div
               key={c.id}
               onClick={() => navigate(`/teacher/classes/${c.id}`)}
-              className="cursor-pointer rounded-lg border border-parchment-line bg-white/60 p-5 transition hover:border-brass hover:shadow-[var(--shadow-paper)]"
+              className="cursor-pointer rounded-lg border border-border bg-white/60 p-5 transition hover:border-primary hover:shadow-[var(--shadow-card)]"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-display text-lg font-medium text-ink">{c.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-dim">{c.academicYear} · Semester {c.semester}</p>
+                  <p className="font-heading text-lg font-medium text-text">{c.name}</p>
+                  <p className="mt-0.5 text-xs text-muted">{c.academicYear} · Semester {c.semester}</p>
                 </div>
                 <button
                   title="Delete"
@@ -139,7 +139,7 @@ export function ClassesPage() {
                     e.stopPropagation()
                     handleDelete(c.id)
                   }}
-                  className="rounded p-1.5 hover:bg-brick/10"
+                  className="rounded p-1.5 hover:bg-danger/10"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -200,15 +200,15 @@ export function ClassesPage() {
                 className={inputClass}
               />
             </Field>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
               >
                 {saving ? 'Saving…' : 'Create Class'}
               </button>

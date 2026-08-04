@@ -152,8 +152,8 @@ export function ExamsPage() {
   return (
     <Layout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-medium text-ink">Examinations</h1>
-        <p className="mt-1 text-sm text-slate-dim">Mid, semester, and practical exams by course.</p>
+        <h1 className="font-heading text-2xl font-medium text-text">Examinations</h1>
+        <p className="mt-1 text-sm text-muted">Mid, semester, and practical exams by course.</p>
       </div>
 
       <StampGrid className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -165,18 +165,18 @@ export function ExamsPage() {
 
       <div className="mb-6 flex items-center justify-between">
         <div className="relative w-full max-w-md">
-          <Search size={18} className="absolute left-3 top-3 text-slate-dim" />
+          <Search size={18} className="absolute left-3 top-3 text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search exams..."
-            className="w-full rounded-md border border-parchment-line bg-white pl-10 pr-4 py-2"
+            className="w-full rounded-md border border-border bg-white pl-10 pr-4 py-2"
           />
         </div>
 
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright"
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} />
           Add Exam
@@ -184,27 +184,27 @@ export function ExamsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : filteredExams.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl">No Exams Found</h3>
-          <p className="mt-2 text-slate-dim">Create your first exam.</p>
-          <button onClick={openCreate} className="mt-5 rounded-md bg-brass px-5 py-2">
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl">No Exams Found</h3>
+          <p className="mt-2 text-muted">Create your first exam.</p>
+          <button onClick={openCreate} className="mt-5 rounded-md bg-primary px-5 py-2">
             Add Exam
           </button>
         </div>
       ) : (
         <motion.div
-          className="paper overflow-hidden rounded-lg border border-parchment-line bg-white/50 shadow-[var(--shadow-paper-lift)]"
+          className="leaf-card overflow-hidden rounded-lg border border-border bg-white/50 shadow-[var(--shadow-card-hover)]"
           variants={panelIn}
           initial="hidden"
           animate="show"
         >
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Exam</th>
                 <th className="px-4 py-3 font-medium">Course</th>
                 <th className="px-4 py-3 font-medium">Semester</th>
@@ -215,17 +215,17 @@ export function ExamsPage() {
             </thead>
             <tbody>
               {filteredExams.map((e) => (
-                <tr key={e.id} className="border-b border-parchment-line last:border-0">
-                  <td className="px-4 py-3 text-ink">
+                <tr key={e.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-text">
                     <div>
                       <p className="font-medium">{e.examName}</p>
                       <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{e.examType}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-dim">{e.courseName}</td>
-                  <td className="px-4 py-3 text-slate-dim">Semester {e.semester}</td>
-                  <td className="px-4 py-3 text-slate-dim">{e.academicYear}</td>
-                  <td className="px-4 py-3 text-slate-dim">
+                  <td className="px-4 py-3 text-muted">{e.courseName}</td>
+                  <td className="px-4 py-3 text-muted">Semester {e.semester}</td>
+                  <td className="px-4 py-3 text-muted">{e.academicYear}</td>
+                  <td className="px-4 py-3 text-muted">
                     {e.startDate} – {e.endDate}
                   </td>
                   <td className="px-4 py-3">
@@ -233,21 +233,21 @@ export function ExamsPage() {
                       <Link
                         to={`/exams/${e.id}/schedule`}
                         title="Manage schedule"
-                        className="rounded p-2 hover:bg-parchment-line/60"
+                        className="rounded p-2 hover:bg-border/60"
                       >
                         <CalendarClock size={16} />
                       </Link>
                       <button
                         title="Edit"
                         onClick={() => openEdit(e)}
-                        className="rounded p-2 hover:bg-brass/10"
+                        className="rounded p-2 hover:bg-primary/10"
                       >
                         <Pencil size={16} />
                       </button>
                       <button
                         title="Delete"
                         onClick={() => handleDelete(e.id)}
-                        className="rounded p-2 hover:bg-brick/10"
+                        className="rounded p-2 hover:bg-danger/10"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -295,12 +295,12 @@ export function ExamsPage() {
                 <input type="date" required value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className={inputClass} />
               </Field>
             </div>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {editing ? 'Update Exam' : 'Create Exam'}
               </button>

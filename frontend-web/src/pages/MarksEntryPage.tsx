@@ -177,17 +177,17 @@ export function MarksEntryPage() {
 
   return (
     <Layout>
-      <Link to={schedule ? `/exams/${schedule.examId}/schedule` : '/exams'} className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-dim hover:text-ink">
+      <Link to={schedule ? `/exams/${schedule.examId}/schedule` : '/exams'} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
         <ArrowLeft size={14} />
         Back to schedule
       </Link>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">
+          <h1 className="font-heading text-2xl font-medium text-text">
             {schedule ? `${schedule.subjectName} Marks` : 'Marks Entry'}
           </h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-slate-dim">
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted">
             {schedule ? `${schedule.examName} · Max marks ${schedule.maxMarks}` : 'Loading…'}
             {schedule && (
               <Badge variant={rosterScoped ? 'success' : 'neutral'}>
@@ -199,7 +199,7 @@ export function MarksEntryPage() {
         <div className="flex gap-3">
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright"
+            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
           >
             <Plus size={16} />
             Add Marks
@@ -207,7 +207,7 @@ export function MarksEntryPage() {
           <button
             onClick={handlePublishAll}
             disabled={publishing || draftCount === 0}
-            className="flex items-center gap-2 rounded-md border border-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/10 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-medium text-text hover:bg-primary/10 disabled:opacity-50"
           >
             {publishing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={16} />}
             Publish All ({draftCount} draft{draftCount === 1 ? '' : 's'})
@@ -223,27 +223,27 @@ export function MarksEntryPage() {
       </StampGrid>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : marksList.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl">No Marks Entered</h3>
-          <p className="mt-2 text-slate-dim">Add marks for students who sat this exam.</p>
-          <button onClick={openCreate} className="mt-5 rounded-md bg-brass px-5 py-2">
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl">No Marks Entered</h3>
+          <p className="mt-2 text-muted">Add marks for students who sat this exam.</p>
+          <button onClick={openCreate} className="mt-5 rounded-md bg-primary px-5 py-2">
             Add Marks
           </button>
         </div>
       ) : (
         <motion.div
-          className="paper overflow-hidden rounded-lg border border-parchment-line bg-white/50 shadow-[var(--shadow-paper-lift)]"
+          className="leaf-card overflow-hidden rounded-lg border border-border bg-white/50 shadow-[var(--shadow-card-hover)]"
           variants={panelIn}
           initial="hidden"
           animate="show"
         >
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-parchment-line text-xs uppercase tracking-wide text-slate-dim">
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Student</th>
                 <th className="px-4 py-3 font-medium">Internal</th>
                 <th className="px-4 py-3 font-medium">External</th>
@@ -255,18 +255,18 @@ export function MarksEntryPage() {
             </thead>
             <tbody>
               {marksList.map((m) => (
-                <tr key={m.id} className="border-b border-parchment-line last:border-0">
-                  <td className="px-4 py-3 text-ink">{m.studentName}</td>
-                  <td className="px-4 py-3 text-slate-dim">{m.internalMarks}</td>
-                  <td className="px-4 py-3 text-slate-dim">{m.externalMarks}</td>
-                  <td className="px-4 py-3 text-slate-dim">{m.totalMarks} / {m.maxMarks}</td>
+                <tr key={m.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-text">{m.studentName}</td>
+                  <td className="px-4 py-3 text-muted">{m.internalMarks}</td>
+                  <td className="px-4 py-3 text-muted">{m.externalMarks}</td>
+                  <td className="px-4 py-3 text-muted">{m.totalMarks} / {m.maxMarks}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded px-2 py-1 text-xs ${m.grade === 'F' ? 'bg-brick/10 text-brick' : 'bg-green-100 text-green-700'}`}>
+                    <span className={`rounded px-2 py-1 text-xs ${m.grade === 'F' ? 'bg-danger/10 text-danger' : 'bg-green-100 text-green-700'}`}>
                       {m.grade}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`rounded px-2 py-1 text-xs ${m.status === 'PUBLISHED' ? 'bg-blue-100 text-blue-700' : 'bg-parchment-dim text-slate-dim'}`}>
+                    <span className={`rounded px-2 py-1 text-xs ${m.status === 'PUBLISHED' ? 'bg-blue-100 text-blue-700' : 'bg-hover text-muted'}`}>
                       {m.status}
                     </span>
                   </td>
@@ -277,10 +277,10 @@ export function MarksEntryPage() {
                           <button title="Publish" onClick={() => handlePublishOne(m.id)} className="rounded p-2 hover:bg-blue-50">
                             <CheckCircle2 size={16} />
                           </button>
-                          <button title="Edit" onClick={() => openEdit(m)} className="rounded p-2 hover:bg-brass/10">
+                          <button title="Edit" onClick={() => openEdit(m)} className="rounded p-2 hover:bg-primary/10">
                             <Pencil size={16} />
                           </button>
-                          <button title="Delete" onClick={() => handleDelete(m.id)} className="rounded p-2 hover:bg-brick/10">
+                          <button title="Delete" onClick={() => handleDelete(m.id)} className="rounded p-2 hover:bg-danger/10">
                             <Trash2 size={16} />
                           </button>
                         </>
@@ -312,7 +312,7 @@ export function MarksEntryPage() {
                   )}
                 </Field>
                 {!editing && availableStudents.length === 0 && (
-                  <p className="mt-1.5 text-xs text-slate-dim">
+                  <p className="mt-1.5 text-xs text-muted">
                     {rosterScoped
                       ? 'Every student on the linked class roster already has marks entered.'
                       : 'Every formally enrolled student already has marks entered.'}
@@ -326,12 +326,12 @@ export function MarksEntryPage() {
                 <input type="number" min={0} required value={form.externalMarks} onChange={(e) => setForm({ ...form, externalMarks: Number(e.target.value) })} className={inputClass} />
               </Field>
             </div>
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {editing ? 'Update Marks' : 'Save Marks'}
               </button>

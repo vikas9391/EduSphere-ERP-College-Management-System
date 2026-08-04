@@ -69,23 +69,23 @@ export function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-parchment px-6 font-body">
+    <div className="flex min-h-screen w-full items-center justify-center bg-bg px-6 font-body">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-sm rounded-lg border border-parchment-line bg-white/70 p-8 shadow-[var(--shadow-paper)]"
+        className="w-full max-w-sm rounded-lg border border-border bg-white/70 p-8 shadow-[var(--shadow-card)]"
       >
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brass/15 text-brass">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <KeyRound size={18} />
           </span>
           <div>
-            <h1 className="font-display text-xl font-medium text-ink">
+            <h1 className="font-heading text-xl font-medium text-text">
               {forced ? 'Choose a new password' : 'Change your password'}
             </h1>
             {forced && (
-              <p className="mt-0.5 text-xs text-slate-dim">
+              <p className="mt-0.5 text-xs text-muted">
                 An administrator created this account. Set a password only you know before continuing.
               </p>
             )}
@@ -94,7 +94,7 @@ export function ChangePasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Current password
             </label>
             <input
@@ -103,12 +103,12 @@ export function ChangePasswordPage() {
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 text-sm text-ink focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+              className="w-full rounded-md border border-border bg-white/60 px-3.5 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               New password
             </label>
             <input
@@ -118,19 +118,19 @@ export function ChangePasswordPage() {
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 text-sm text-ink focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+              className="w-full rounded-md border border-border bg-white/60 px-3.5 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="block text-xs font-medium uppercase tracking-wide text-slate-dim">
+              <label className="block text-xs font-medium uppercase tracking-wide text-muted">
                 Confirm new password
               </label>
               <button
                 type="button"
                 onClick={() => setShowPasswords((v) => !v)}
-                className="flex items-center gap-1 text-xs text-slate hover:text-ink"
+                className="flex items-center gap-1 text-xs text-muted hover:text-text"
               >
                 {showPasswords ? <EyeOff size={13} /> : <Eye size={13} />}
                 {showPasswords ? 'Hide' : 'Show'}
@@ -143,12 +143,12 @@ export function ChangePasswordPage() {
               minLength={8}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 text-sm text-ink focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+              className="w-full rounded-md border border-border bg-white/60 px-3.5 py-2.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {error && (
-            <p role="alert" className="rounded-md border border-brick/30 bg-brick/10 px-3.5 py-2.5 text-sm text-brick">
+            <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
               {error}
             </p>
           )}
@@ -158,7 +158,7 @@ export function ChangePasswordPage() {
               <button
                 type="button"
                 onClick={() => navigate(dashboardForRole(user?.role))}
-                className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink"
+                className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text"
               >
                 Cancel
               </button>
@@ -166,7 +166,7 @@ export function ChangePasswordPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2.5 text-sm font-medium text-ink hover:bg-brass-bright disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
               {isSubmitting ? 'Saving…' : 'Save password'}

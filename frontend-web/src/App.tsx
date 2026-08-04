@@ -70,8 +70,8 @@ const StudentClassesPage = lazy(() => import("@/pages/student/StudentClassesPage
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-parchment">
-      <Loader2 className="animate-spin text-brass" size={28} />
+    <div className="flex min-h-screen w-full items-center justify-center bg-bg">
+      <Loader2 className="animate-spin text-primary" size={28} />
     </div>
   );
 }

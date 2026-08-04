@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { login } from '@/api'
 import { useAuthStore } from '@/store/authStore'
-import { SealMark } from '@/components/SealMark'
+import { LeafMark } from '@/components/LeafMark'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 const formStagger = {
@@ -109,14 +109,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-parchment font-body">
+    <div className="flex min-h-screen w-full bg-bg font-body">
       {/* Left panel — institutional identity */}
-      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-ink px-14 py-12 text-parchment md:flex">
+      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-primary-dark px-14 py-12 text-bg md:flex">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              'repeating-linear-gradient(0deg, var(--color-brass) 0px, var(--color-brass) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, var(--color-brass) 0px, var(--color-brass) 1px, transparent 1px, transparent 64px)',
+              'repeating-linear-gradient(0deg, var(--color-primary) 0px, var(--color-primary) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, var(--color-primary) 0px, var(--color-primary) 1px, transparent 1px, transparent 64px)',
           }}
         />
 
@@ -126,23 +126,23 @@ export function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          <span className="font-mono text-xs tracking-[0.25em] text-slate uppercase">
+          <span className="font-numbers text-xs tracking-[0.25em] text-muted uppercase">
             Registrar Access
           </span>
-          <h1 className="mt-4 font-display text-4xl font-medium leading-tight tracking-tight">
+          <h1 className="mt-4 font-heading text-4xl font-medium leading-tight tracking-tight">
             College ERP
           </h1>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate">
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
             One record of truth for every department, from admissions to the exam hall.
           </p>
         </motion.div>
 
         <div className="relative flex flex-1 items-center justify-center">
-          <SealMark />
+          <LeafMark />
         </div>
 
-        <div className="relative border-t border-ink-line pt-6">
-          <p className="font-mono text-xs leading-relaxed text-slate">
+        <div className="relative border-t border-border pt-6">
+          <p className="font-numbers text-xs leading-relaxed text-muted">
             Accounts are created by your institution's administrator.
             <br />
             There is no self-registration.
@@ -159,15 +159,15 @@ export function LoginPage() {
           animate="show"
         >
           <motion.div variants={formField} className="mb-10 md:hidden">
-            <span className="font-mono text-xs tracking-[0.25em] text-slate uppercase">
+            <span className="font-numbers text-xs tracking-[0.25em] text-muted uppercase">
               Registrar Access
             </span>
-            <h1 className="mt-2 font-display text-3xl font-medium text-ink">College ERP</h1>
+            <h1 className="mt-2 font-heading text-3xl font-medium text-text">College ERP</h1>
           </motion.div>
 
           <motion.div variants={formField} className="mb-8">
-            <h2 className="font-display text-2xl font-medium text-ink">Sign in</h2>
-            <p className="mt-1.5 text-sm text-slate-dim">
+            <h2 className="font-heading text-2xl font-medium text-text">Sign in</h2>
+            <p className="mt-1.5 text-sm text-muted">
               Enter the credentials issued by your institution.
             </p>
           </motion.div>
@@ -176,7 +176,7 @@ export function LoginPage() {
             <motion.div variants={formField}>
               <label
                 htmlFor="collegeCode"
-                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim"
+                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted"
               >
                 Institution code
               </label>
@@ -189,14 +189,14 @@ export function LoginPage() {
                 value={collegeCode}
                 onChange={(e) => setCollegeCode(e.target.value)}
                 placeholder="e.g. STXAVIERS"
-                className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 font-mono text-sm uppercase tracking-widest text-ink placeholder:text-slate/50 placeholder:tracking-normal placeholder:normal-case transition-shadow focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+                className="w-full rounded-[var(--radius-input)] border border-border bg-white px-3.5 py-2.5 font-numbers text-sm uppercase tracking-widest text-text placeholder:text-muted/50 placeholder:tracking-normal placeholder:normal-case transition-shadow focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </motion.div>
 
             <motion.div variants={formField}>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim"
+                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted"
               >
                 Email
               </label>
@@ -209,7 +209,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@institution.edu"
-                className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 text-sm text-ink placeholder:text-slate/50 focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+                className="w-full rounded-[var(--radius-input)] border border-border bg-white px-3.5 py-2.5 text-sm text-text placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </motion.div>
 
@@ -217,11 +217,11 @@ export function LoginPage() {
               <div className="mb-1.5 flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="block text-xs font-medium uppercase tracking-wide text-slate-dim"
+                  className="block text-xs font-medium uppercase tracking-wide text-muted"
                 >
                   Password
                 </label>
-                <Link to="/forgot-password" className="text-xs font-medium text-brass hover:text-brass-bright">
+                <Link to="/forgot-password" className="text-xs font-medium text-primary hover:text-secondary">
                   Forgot password?
                 </Link>
               </div>
@@ -235,12 +235,12 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-md border border-parchment-line bg-white/60 px-3.5 py-2.5 pr-10 text-sm text-ink placeholder:text-slate/50 focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
+                  className="w-full rounded-[var(--radius-input)] border border-border bg-white px-3.5 py-2.5 pr-10 text-sm text-text placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -256,7 +256,7 @@ export function LoginPage() {
                   animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4 }}
-                  className="rounded-md border border-brick/30 bg-brick/10 px-3.5 py-2.5 text-sm text-brick"
+                  className="rounded-md border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
                 >
                   {error}
                 </motion.div>
@@ -267,16 +267,16 @@ export function LoginPage() {
               variants={formField}
               type="submit"
               disabled={isSubmitting}
-              whileHover={isSubmitting ? undefined : { y: -1, boxShadow: 'var(--shadow-brass-glow)' }}
+              whileHover={isSubmitting ? undefined : { y: -1, boxShadow: 'var(--shadow-card-hover)' }}
               whileTap={isSubmitting ? undefined : { scale: 0.98 }}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-brass px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-brass-bright disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </motion.button>
           </form>
 
-          <motion.p variants={formField} className="mt-8 text-center text-xs text-slate">
+          <motion.p variants={formField} className="mt-8 text-center text-xs text-muted">
             Need an account? Contact your college administrator or faculty office.
           </motion.p>
         </motion.div>

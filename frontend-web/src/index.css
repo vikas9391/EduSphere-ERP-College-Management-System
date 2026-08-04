@@ -20,6 +20,32 @@
   --shadow-paper: 0 1px 2px rgba(22, 31, 43, 0.05), 0 10px 24px -12px rgba(22, 31, 43, 0.18);
   --shadow-paper-lift: 0 2px 4px rgba(22, 31, 43, 0.06), 0 20px 36px -14px rgba(22, 31, 43, 0.28);
   --shadow-brass-glow: 0 0 0 1px rgba(169, 129, 47, 0.35), 0 12px 28px -10px rgba(169, 129, 47, 0.35);
+
+  /* --- Botanical theme (2026 refresh) ---------------------------------
+     New design system replacing the parchment/ink/brass "registrar" look.
+     Kept alongside the tokens above during rollout: pages migrate one at a
+     time, so old pages keep reading the old vars until they're touched. */
+  --color-primary: #2e7d32;
+  --color-primary-dark: #256428;
+  --color-secondary: #4caf50;
+  --color-light-green: #e8f5e9;
+  --color-bg: #f8f8f2;
+  --color-card: #ffffff;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+  --color-border: #eef2e7;
+  --color-hover: #f1f8ee;
+  --color-danger: #c1543c;
+
+  --font-heading: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-numbers: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 24px;
+  --radius-btn: 16px;
+  --radius-input: 18px;
+
+  --shadow-card: 0 2px 14px rgba(31, 41, 55, 0.05);
+  --shadow-card-hover: 0 8px 24px rgba(31, 41, 55, 0.08);
 }
 
 @layer base {
@@ -161,10 +187,49 @@
   .nav-tab-dot {
     box-shadow: 0 0 0 2px var(--color-parchment);
   }
+
+  /* --- Botanical theme (2026 refresh) --------------------------------- */
+
+  /* Base card surface for the new theme: soft rounded corners, a faint
+     shadow that deepens on hover instead of the old paper-stack lift. */
+  .leaf-card {
+    background: var(--color-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .leaf-card-interactive:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-4px);
+  }
+
+  /* Divider that grows left-to-right on mount, in the new palette. Same
+     motion idea as .ledger-rule, new color so both can coexist. */
+  .divider-grow {
+    transform-origin: left;
+    animation: draw-rule 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Sidebar nav pill: simple rounded pill instead of the old chevron-notch
+     index-card look. Active item gets the light-green fill + primary text. */
+  .nav-pill {
+    border-radius: 14px;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .nav-pill[data-active="true"] {
+    background: var(--color-light-green);
+    color: var(--color-primary);
+  }
 }
 
 .stamp-in {
   animation: stamp-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) 0.1s both;
+}
+
+.sprout-in {
+  animation: sprout-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
 
 @keyframes draw-seal {
@@ -206,6 +271,20 @@
   }
 }
 
+/* Botanical entrance: a gentle rise + settle, no overshoot/rotation — soft
+   and organic rather than a "stamp landing". Used by PageIn/StampGrid once
+   a page has migrated to the new theme. */
+@keyframes sprout-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -227,5 +306,13 @@
 
   .stamp-in {
     animation: none;
+  }
+
+  .sprout-in {
+    animation: none;
+  }
+
+  .leaf-card-interactive:hover {
+    transform: none;
   }
 }

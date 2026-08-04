@@ -34,7 +34,7 @@ import {
 const statusBadgeClass: Record<TenantSummary['subscriptionStatus'], string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   EXPIRED: 'bg-amber-100 text-amber-700',
-  CANCELLED: 'bg-slate-200 text-slate-dim',
+  CANCELLED: 'bg-slate-200 text-muted',
 }
 
 export function CollegeDetailPage() {
@@ -146,7 +146,7 @@ export function CollegeDetailPage() {
       <div className="mb-6 flex items-center gap-3">
         <Link
           to="/colleges"
-          className="flex items-center gap-1 text-sm text-slate hover:text-ink"
+          className="flex items-center gap-1 text-sm text-muted hover:text-text"
         >
           <ArrowLeft size={15} />
           All Colleges
@@ -154,7 +154,7 @@ export function CollegeDetailPage() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-dim">
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted">
           <Loader2 size={18} className="animate-spin" />
           Loading college…
         </div>
@@ -163,9 +163,9 @@ export function CollegeDetailPage() {
       {!loading && loadError && <PanelError message={loadError} />}
 
       {!loading && deleted && (
-        <div className="rounded-lg border border-parchment-line bg-white/60 p-6">
-          <p className="text-sm text-ink">This college has been permanently deleted.</p>
-          <Link to="/colleges" className="mt-2 inline-block text-sm text-brass hover:text-brass-bright">
+        <div className="rounded-lg border border-border bg-white/60 p-6">
+          <p className="text-sm text-text">This college has been permanently deleted.</p>
+          <Link to="/colleges" className="mt-2 inline-block text-sm text-primary hover:text-secondary">
             Back to All Colleges
           </Link>
         </div>
@@ -176,21 +176,21 @@ export function CollegeDetailPage() {
           <div className="mb-6 flex items-start justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
-                <Building2 size={18} className="text-brass" />
-                <h1 className="font-display text-2xl font-medium text-ink">{details.college.collegeName}</h1>
+                <Building2 size={18} className="text-primary" />
+                <h1 className="font-heading text-2xl font-medium text-text">{details.college.collegeName}</h1>
                 {!details.college.isActive && (
-                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-dim">
+                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted">
                     Suspended
                   </span>
                 )}
               </div>
-              <p className="mt-1 font-mono text-sm text-slate-dim">{details.college.schemaName}</p>
+              <p className="mt-1 font-numbers text-sm text-muted">{details.college.schemaName}</p>
               <div className="mt-2 flex items-center gap-1.5 text-xs">
                 <span className={`rounded px-1.5 py-0.5 font-medium ${statusBadgeClass[details.college.subscriptionStatus]}`}>
                   {details.college.subscriptionPlan} · {details.college.subscriptionStatus}
                 </span>
                 {details.college.subscriptionExpiresAt && (
-                  <span className="text-slate-dim">
+                  <span className="text-muted">
                     exp. {new Date(details.college.subscriptionExpiresAt).toLocaleDateString()}
                   </span>
                 )}
@@ -208,7 +208,7 @@ export function CollegeDetailPage() {
             <StatTile icon={<ClipboardList size={16} />} label="Enrollments" value={details.enrollmentCount} />
           </StampGrid>
 
-          <div className="mt-6 rounded-lg border border-parchment-line bg-white/60 p-6">
+          <div className="mt-6 rounded-lg border border-border bg-white/60 p-6">
             <PanelHeader icon={Settings2} title="Manage College" />
 
             <div className="flex flex-wrap items-center gap-4">
@@ -217,7 +217,7 @@ export function CollegeDetailPage() {
                 onClick={toggleStatus}
                 disabled={statusBusy}
                 className={`flex items-center gap-1.5 text-sm font-medium disabled:opacity-60 ${
-                  details.college.isActive ? 'text-brick hover:text-brick' : 'text-green-700 hover:text-green-800'
+                  details.college.isActive ? 'text-danger hover:text-danger' : 'text-green-700 hover:text-green-800'
                 }`}
               >
                 {statusBusy ? (
@@ -233,7 +233,7 @@ export function CollegeDetailPage() {
               <button
                 type="button"
                 onClick={() => setEditingSubscription((v) => !v)}
-                className="flex items-center gap-1.5 text-sm text-slate hover:text-ink"
+                className="flex items-center gap-1.5 text-sm text-muted hover:text-text"
               >
                 <Pencil size={14} />
                 Edit Subscription
@@ -242,17 +242,17 @@ export function CollegeDetailPage() {
               <button
                 type="button"
                 onClick={() => setConfirmingDelete(true)}
-                className="ml-auto flex items-center gap-1.5 text-sm text-brick hover:text-brick"
+                className="ml-auto flex items-center gap-1.5 text-sm text-danger hover:text-danger"
               >
                 <Trash2 size={14} />
                 Delete
               </button>
             </div>
 
-            {statusError && <p className="mt-2 text-xs text-brick">{statusError}</p>}
+            {statusError && <p className="mt-2 text-xs text-danger">{statusError}</p>}
 
             {editingSubscription && (
-              <form onSubmit={saveSubscription} className="mt-4 max-w-md space-y-3 rounded-md bg-parchment/60 p-4">
+              <form onSubmit={saveSubscription} className="mt-4 max-w-md space-y-3 rounded-md bg-bg/60 p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Plan">
                     <input
@@ -285,19 +285,19 @@ export function CollegeDetailPage() {
                     className={inputClass}
                   />
                 </Field>
-                {subError && <p className="text-xs text-brick">{subError}</p>}
+                {subError && <p className="text-xs text-danger">{subError}</p>}
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setEditingSubscription(false)}
-                    className="rounded-md px-3 py-1.5 text-xs text-slate hover:text-ink"
+                    className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-text"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={subBusy}
-                    className="flex items-center gap-1 rounded-md bg-brass px-3 py-1.5 text-xs font-medium text-ink hover:bg-brass-bright disabled:opacity-60"
+                    className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-secondary disabled:opacity-60"
                   >
                     {subBusy && <Loader2 size={12} className="animate-spin" />}
                     Save
@@ -307,22 +307,22 @@ export function CollegeDetailPage() {
             )}
 
             {confirmingDelete && (
-              <div className="mt-4 max-w-md space-y-2 rounded-md border border-brick/40 bg-brick/5 p-4">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-brick">
+              <div className="mt-4 max-w-md space-y-2 rounded-md border border-danger/40 bg-danger/5 p-4">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-danger">
                   <AlertTriangle size={13} />
                   This permanently deletes "{details.college.collegeName}" and every student, teacher, and
                   record it has. This cannot be undone.
                 </p>
-                <p className="text-xs text-slate-dim">
-                  Type <span className="font-mono text-ink">{details.college.subdomain}</span> to confirm.
+                <p className="text-xs text-muted">
+                  Type <span className="font-numbers text-text">{details.college.subdomain}</span> to confirm.
                 </p>
                 <input
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  className={`${inputClass} font-mono`}
+                  className={`${inputClass} font-numbers`}
                   placeholder={details.college.subdomain}
                 />
-                {deleteError && <p className="text-xs text-brick">{deleteError}</p>}
+                {deleteError && <p className="text-xs text-danger">{deleteError}</p>}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
@@ -331,7 +331,7 @@ export function CollegeDetailPage() {
                       setConfirmText('')
                       setDeleteError(null)
                     }}
-                    className="rounded-md px-3 py-1.5 text-xs text-slate hover:text-ink"
+                    className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-text"
                   >
                     Cancel
                   </button>
@@ -339,7 +339,7 @@ export function CollegeDetailPage() {
                     type="button"
                     disabled={confirmText.trim() !== details.college.subdomain || deleteBusy}
                     onClick={confirmDelete}
-                    className="flex items-center gap-1 rounded-md bg-brick px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                    className="flex items-center gap-1 rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
                   >
                     {deleteBusy && <Loader2 size={12} className="animate-spin" />}
                     Permanently delete
@@ -356,10 +356,10 @@ export function CollegeDetailPage() {
 
 function StatTile({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
-    <div className="paper paper-interactive rounded-md border border-parchment-line/70 bg-white/60 p-3 text-center">
-      <div className="flex items-center justify-center gap-1 text-slate-dim">{icon}</div>
-      <p className="mt-1 font-display text-xl font-medium text-ink">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-slate-dim">{label}</p>
+    <div className="leaf-card leaf-card-interactive rounded-md border border-border/70 bg-white/60 p-3 text-center">
+      <div className="flex items-center justify-center gap-1 text-muted">{icon}</div>
+      <p className="mt-1 font-heading text-xl font-medium text-text">{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
     </div>
   )
 }

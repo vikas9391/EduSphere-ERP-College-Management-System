@@ -103,8 +103,8 @@ export function StudentAttendancePage() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">My Attendance</h1>
-      <p className="mt-1 text-sm text-slate-dim">
+      <h1 className="font-heading text-2xl font-medium text-text">My Attendance</h1>
+      <p className="mt-1 text-sm text-muted">
         Your attendance record across all enrolled subjects
         {user?.email ? ` · ${user.email}` : ''}
       </p>
@@ -118,43 +118,43 @@ export function StudentAttendancePage() {
       </StampGrid>
 
       {/* Subject-wise breakdown */}
-      <div className="paper mt-8 rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+      <div className="leaf-card mt-8 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
         <PanelHeader icon={Layers} title="Subject-wise Attendance" />
 
         {loading ? (
-          <p className="text-center text-sm text-slate-dim">Loading your attendance...</p>
+          <p className="text-center text-sm text-muted">Loading your attendance...</p>
         ) : error ? (
           <PanelError message={error} />
         ) : subjectSummaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-            <Layers size={32} className="text-slate-dim/50" />
-            <p className="font-display text-base font-medium text-ink">No attendance records yet</p>
-            <p className="text-sm text-slate-dim">
+            <Layers size={32} className="text-muted/50" />
+            <p className="font-heading text-base font-medium text-text">No attendance records yet</p>
+            <p className="text-sm text-muted">
               Your subject-wise attendance will appear here once sessions are recorded.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {subjectSummaries.map((s) => (
-              <div key={s.subjectId} className="rounded-lg border border-parchment-line p-4">
+              <div key={s.subjectId} className="rounded-lg border border-border p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-display text-sm font-medium text-ink">{s.subjectName}</p>
-                    <p className="text-xs text-slate-dim">{s.courseName}</p>
+                    <p className="font-heading text-sm font-medium text-text">{s.subjectName}</p>
+                    <p className="text-xs text-muted">{s.courseName}</p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClasses(s.percentage)}`}>
                     {s.percentage}%
                   </span>
                 </div>
 
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-parchment-line/50">
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-border/50">
                   <div
                     className={`h-full rounded-full transition-all ${progressColor(s.percentage)}`}
                     style={{ width: `${s.percentage}%` }}
                   />
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-dim">
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                   <span className="inline-flex items-center gap-1">
                     <UserCheck size={12} className="text-green-600" />
                     {s.present} present

@@ -159,8 +159,8 @@ export function CollegesPage() {
   return (
     <Layout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-medium text-ink">Register a College</h1>
-        <p className="mt-1 text-sm text-slate-dim">
+        <h1 className="font-heading text-2xl font-medium text-text">Register a College</h1>
+        <p className="mt-1 text-sm text-muted">
           Provisions an isolated database schema and creates the college's first administrator account.
         </p>
       </div>
@@ -174,14 +174,14 @@ export function CollegesPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Registration form */}
         <motion.div
-          className="paper rounded-lg border border-parchment-line bg-white/60 p-6 shadow-[var(--shadow-paper-lift)] lg:col-span-3"
+          className="leaf-card rounded-lg border border-border bg-white/60 p-6 shadow-[var(--shadow-card-hover)] lg:col-span-3"
           custom={0}
           variants={panelIn}
           initial="hidden"
           animate="show"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="border-b border-parchment-line pb-2 font-display text-base font-medium text-ink">
+            <h3 className="border-b border-border pb-2 font-heading text-base font-medium text-text">
               College Details
             </h3>
 
@@ -202,12 +202,12 @@ export function CollegesPage() {
                 value={form.subdomain}
                 onChange={(e) => setForm({ ...form, subdomain: e.target.value })}
                 placeholder="e.g. st-xaviers"
-                className={`${inputClass} font-mono`}
+                className={`${inputClass} font-numbers`}
               />
               {form.subdomain && (
-                <p className="mt-1 text-xs text-slate-dim">
+                <p className="mt-1 text-xs text-muted">
                   Schema will be created as{' '}
-                  <span className="font-mono text-ink">{schemaPreview || '—'}</span>
+                  <span className="font-numbers text-text">{schemaPreview || '—'}</span>
                 </p>
               )}
             </Field>
@@ -235,16 +235,16 @@ export function CollegesPage() {
               </Field>
             </div>
             {form.subscriptionPlan === 'TRIAL' && !form.subscriptionExpiresAt && (
-              <p className="-mt-2 text-xs text-slate-dim">
+              <p className="-mt-2 text-xs text-muted">
                 No expiry set — this trial won't auto-expire until you set one from the
                 college's Subscription editor.
               </p>
             )}
 
-            <h3 className="border-b border-parchment-line pb-2 pt-3 font-display text-base font-medium text-ink">
+            <h3 className="border-b border-border pb-2 pt-3 font-heading text-base font-medium text-text">
               First Administrator
             </h3>
-            <p className="text-xs text-slate-dim">
+            <p className="text-xs text-muted">
               This account will be created for the college with the ADMIN role, ready to sign in immediately.
             </p>
 
@@ -272,7 +272,7 @@ export function CollegesPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -290,13 +290,13 @@ export function CollegesPage() {
               </Field>
             </div>
 
-            {error && <p className="text-sm text-brick">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 rounded-md bg-brass px-5 py-2 text-sm font-medium text-ink hover:bg-brass-bright disabled:opacity-60"
+                className="flex items-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
               >
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 Register College
@@ -307,7 +307,7 @@ export function CollegesPage() {
 
         {/* All registered colleges, from the backend */}
         <motion.div
-          className="paper rounded-lg border border-parchment-line bg-white/60 p-6 shadow-[var(--shadow-paper-lift)] lg:col-span-2"
+          className="leaf-card rounded-lg border border-border bg-white/60 p-6 shadow-[var(--shadow-card-hover)] lg:col-span-2"
           custom={1}
           variants={panelIn}
           initial="hidden"
@@ -315,14 +315,14 @@ export function CollegesPage() {
         >
           <div className="mb-1 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Building2 size={16} className="text-brass" />
-              <h3 className="font-display text-base font-medium text-ink">All Colleges</h3>
+              <Building2 size={16} className="text-primary" />
+              <h3 className="font-heading text-base font-medium text-text">All Colleges</h3>
             </div>
             <button
               type="button"
               onClick={loadTenants}
               disabled={loadingTenants}
-              className="flex items-center gap-1 text-xs text-slate hover:text-ink disabled:opacity-60"
+              className="flex items-center gap-1 text-xs text-muted hover:text-text disabled:opacity-60"
               aria-label="Refresh"
             >
               <RefreshCw size={12} className={loadingTenants ? 'animate-spin' : ''} />
@@ -334,14 +334,14 @@ export function CollegesPage() {
           {listError && <PanelError message={listError} />}
 
           {!listError && loadingTenants && tenants.length === 0 && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-dim">
+            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted">
               <Loader2 size={16} className="animate-spin" />
               Loading colleges…
             </div>
           )}
 
           {!listError && !loadingTenants && tenants.length === 0 && (
-            <p className="mt-4 text-sm text-slate-dim">
+            <p className="mt-4 text-sm text-muted">
               No colleges registered yet. Colleges you register will appear here.
             </p>
           )}
@@ -373,7 +373,7 @@ export function CollegesPage() {
 const statusBadgeClass: Record<TenantSummary['subscriptionStatus'], string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   EXPIRED: 'bg-amber-100 text-amber-700',
-  CANCELLED: 'bg-slate-200 text-slate-dim',
+  CANCELLED: 'bg-slate-200 text-muted',
 }
 
 function TenantRow({
@@ -462,32 +462,32 @@ function TenantRow({
   }
 
   return (
-    <li className="rounded-md border border-parchment-line/70 p-3">
+    <li className="rounded-md border border-border/70 p-3">
       <div className="flex items-start justify-between gap-2">
         {/* Navigates to the college's full detail view in this same tab, instead of
             expanding inline here. The whole info block is clickable, not just the name. */}
         <Link to={`/colleges/${entry.tenantId}`} className="block min-w-0 group">
-          <div className="flex items-center gap-1.5 text-left text-sm font-medium text-ink group-hover:text-brass">
+          <div className="flex items-center gap-1.5 text-left text-sm font-medium text-text group-hover:text-primary">
             <CheckCircle2
               size={14}
-              className={`shrink-0 ${entry.isActive ? 'text-green-600' : 'text-slate'}`}
+              className={`shrink-0 ${entry.isActive ? 'text-green-600' : 'text-muted'}`}
             />
             {entry.collegeName}
             {!entry.isActive && (
-              <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-dim">
+              <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted">
                 Suspended
               </span>
             )}
           </div>
-          <p className="mt-1 truncate font-mono text-xs text-slate-dim">{entry.schemaName}</p>
-          {adminEmail && <p className="truncate text-xs text-slate-dim">{adminEmail}</p>}
+          <p className="mt-1 truncate font-numbers text-xs text-muted">{entry.schemaName}</p>
+          {adminEmail && <p className="truncate text-xs text-muted">{adminEmail}</p>}
 
           <div className="mt-1.5 flex items-center gap-1.5 text-xs">
             <span className={`rounded px-1.5 py-0.5 font-medium ${statusBadgeClass[entry.subscriptionStatus]}`}>
               {entry.subscriptionPlan} · {entry.subscriptionStatus}
             </span>
             {entry.subscriptionExpiresAt && (
-              <span className="text-slate-dim">
+              <span className="text-muted">
                 exp. {new Date(entry.subscriptionExpiresAt).toLocaleDateString()}
               </span>
             )}
@@ -498,7 +498,7 @@ function TenantRow({
           <button
             type="button"
             onClick={onCopy}
-            className="flex shrink-0 items-center gap-1 text-xs text-slate hover:text-ink"
+            className="flex shrink-0 items-center gap-1 text-xs text-muted hover:text-text"
           >
             <Copy size={12} />
             {copied ? 'Copied' : 'Copy'}
@@ -507,13 +507,13 @@ function TenantRow({
       </div>
 
       {/* Row actions */}
-      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-parchment-line/70 pt-2">
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border/70 pt-2">
         <button
           type="button"
           onClick={toggleStatus}
           disabled={statusBusy}
           className={`flex items-center gap-1 text-xs font-medium disabled:opacity-60 ${
-            entry.isActive ? 'text-brick hover:text-brick' : 'text-green-700 hover:text-green-800'
+            entry.isActive ? 'text-danger hover:text-danger' : 'text-green-700 hover:text-green-800'
           }`}
         >
           {statusBusy ? (
@@ -529,7 +529,7 @@ function TenantRow({
         <button
           type="button"
           onClick={() => setEditingSubscription((v) => !v)}
-          className="flex items-center gap-1 text-xs text-slate hover:text-ink"
+          className="flex items-center gap-1 text-xs text-muted hover:text-text"
         >
           <Pencil size={12} />
           Subscription
@@ -538,17 +538,17 @@ function TenantRow({
         <button
           type="button"
           onClick={() => setConfirmingDelete(true)}
-          className="ml-auto flex items-center gap-1 text-xs text-brick hover:text-brick"
+          className="ml-auto flex items-center gap-1 text-xs text-danger hover:text-danger"
         >
           <Trash2 size={12} />
           Delete
         </button>
       </div>
 
-      {statusError && <p className="mt-2 text-xs text-brick">{statusError}</p>}
+      {statusError && <p className="mt-2 text-xs text-danger">{statusError}</p>}
 
       {editingSubscription && (
-        <form onSubmit={saveSubscription} className="mt-3 space-y-2 rounded-md bg-parchment/60 p-3">
+        <form onSubmit={saveSubscription} className="mt-3 space-y-2 rounded-md bg-bg/60 p-3">
           <div className="grid grid-cols-2 gap-2">
             <Field label="Plan">
               <input
@@ -581,19 +581,19 @@ function TenantRow({
               className={inputClass}
             />
           </Field>
-          {subError && <p className="text-xs text-brick">{subError}</p>}
+          {subError && <p className="text-xs text-danger">{subError}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"
               onClick={() => setEditingSubscription(false)}
-              className="rounded-md px-3 py-1.5 text-xs text-slate hover:text-ink"
+              className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-text"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={subBusy}
-              className="flex items-center gap-1 rounded-md bg-brass px-3 py-1.5 text-xs font-medium text-ink hover:bg-brass-bright disabled:opacity-60"
+              className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-secondary disabled:opacity-60"
             >
               {subBusy && <Loader2 size={12} className="animate-spin" />}
               Save
@@ -603,22 +603,22 @@ function TenantRow({
       )}
 
       {confirmingDelete && (
-        <div className="mt-3 space-y-2 rounded-md border border-brick/40 bg-brick/5 p-3">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-brick">
+        <div className="mt-3 space-y-2 rounded-md border border-danger/40 bg-danger/5 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-danger">
             <AlertTriangle size={13} />
             This permanently deletes "{entry.collegeName}" and every student, teacher, and
             record it has. This cannot be undone.
           </p>
-          <p className="text-xs text-slate-dim">
-            Type <span className="font-mono text-ink">{entry.subdomain}</span> to confirm.
+          <p className="text-xs text-muted">
+            Type <span className="font-numbers text-text">{entry.subdomain}</span> to confirm.
           </p>
           <input
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            className={`${inputClass} font-mono`}
+            className={`${inputClass} font-numbers`}
             placeholder={entry.subdomain}
           />
-          {deleteError && <p className="text-xs text-brick">{deleteError}</p>}
+          {deleteError && <p className="text-xs text-danger">{deleteError}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -627,7 +627,7 @@ function TenantRow({
                 setConfirmText('')
                 setDeleteError(null)
               }}
-              className="rounded-md px-3 py-1.5 text-xs text-slate hover:text-ink"
+              className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-text"
             >
               Cancel
             </button>
@@ -635,7 +635,7 @@ function TenantRow({
               type="button"
               disabled={confirmText.trim() !== entry.subdomain || deleteBusy}
               onClick={confirmDelete}
-              className="flex items-center gap-1 rounded-md bg-brick px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+              className="flex items-center gap-1 rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
             >
               {deleteBusy && <Loader2 size={12} className="animate-spin" />}
               Permanently delete

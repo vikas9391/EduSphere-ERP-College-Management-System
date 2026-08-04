@@ -205,7 +205,7 @@ export function ClassDetailPage() {
   if (loading) {
     return (
       <Layout>
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       </Layout>
     )
   }
@@ -220,14 +220,14 @@ export function ClassDetailPage() {
 
   return (
     <Layout>
-      <Link to="/teacher/classes" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-dim hover:text-ink">
+      <Link to="/teacher/classes" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
         <ArrowLeft size={15} />
         Back to Classes
       </Link>
 
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-medium text-ink">{schoolClass.name}</h1>
-        <p className="mt-1 text-sm text-slate-dim">
+        <h1 className="font-heading text-2xl font-medium text-text">{schoolClass.name}</h1>
+        <p className="mt-1 text-sm text-muted">
           {schoolClass.academicYear} · Semester {schoolClass.semester}
           {schoolClass.maxSubjects != null ? ` · Capped at ${schoolClass.maxSubjects} subject(s)` : ''}
         </p>
@@ -235,28 +235,28 @@ export function ClassDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Roster */}
-        <section className="rounded-lg border border-parchment-line bg-white/50 p-5">
+        <section className="rounded-lg border border-border bg-white/50 p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg text-ink">Roster ({roster.length})</h2>
+            <h2 className="font-heading text-lg text-text">Roster ({roster.length})</h2>
             <button
               onClick={openAddStudents}
-              className="flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-xs font-medium text-white hover:bg-brass-bright"
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-secondary"
             >
               <Plus size={14} />
               Add Students
             </button>
           </div>
           {roster.length === 0 ? (
-            <p className="text-sm text-slate-dim">No students on the roster yet.</p>
+            <p className="text-sm text-muted">No students on the roster yet.</p>
           ) : (
             <ul className="space-y-2">
               {roster.map((s) => (
-                <li key={s.studentId} className="flex items-center justify-between rounded-md border border-parchment-line bg-white/60 px-3 py-2">
+                <li key={s.studentId} className="flex items-center justify-between rounded-md border border-border bg-white/60 px-3 py-2">
                   <div>
-                    <p className="text-sm font-medium text-ink">{s.studentName}</p>
-                    <p className="text-xs text-slate-dim">{s.admissionNo}</p>
+                    <p className="text-sm font-medium text-text">{s.studentName}</p>
+                    <p className="text-xs text-muted">{s.admissionNo}</p>
                   </div>
-                  <button title="Remove" onClick={() => handleRemoveStudent(s.studentId)} className="rounded p-1.5 hover:bg-brick/10">
+                  <button title="Remove" onClick={() => handleRemoveStudent(s.studentId)} className="rounded p-1.5 hover:bg-danger/10">
                     <Trash2 size={14} />
                   </button>
                 </li>
@@ -266,29 +266,29 @@ export function ClassDetailPage() {
         </section>
 
         {/* Subjects */}
-        <section className="rounded-lg border border-parchment-line bg-white/50 p-5">
+        <section className="rounded-lg border border-border bg-white/50 p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg text-ink">Subjects ({subjects.length})</h2>
+            <h2 className="font-heading text-lg text-text">Subjects ({subjects.length})</h2>
             <button
               onClick={openAddSubjects}
-              className="flex items-center gap-1.5 rounded-md bg-brass px-3 py-1.5 text-xs font-medium text-white hover:bg-brass-bright"
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-secondary"
             >
               <Plus size={14} />
               Add Subjects
             </button>
           </div>
           {subjects.length === 0 ? (
-            <p className="text-sm text-slate-dim">No subjects yet - add all of this term's subjects at once.</p>
+            <p className="text-sm text-muted">No subjects yet - add all of this term's subjects at once.</p>
           ) : (
             <ul className="space-y-2">
               {subjects.map((s) => (
-                <li key={s.id} className="rounded-md border border-parchment-line bg-white/60 px-3 py-2">
+                <li key={s.id} className="rounded-md border border-border bg-white/60 px-3 py-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-ink">{s.subjectName}</p>
-                      <p className="text-xs text-slate-dim">{s.subjectCode} · {s.teacherName} · {s.credits} credits</p>
+                      <p className="text-sm font-medium text-text">{s.subjectName}</p>
+                      <p className="text-xs text-muted">{s.subjectCode} · {s.teacherName} · {s.credits} credits</p>
                       {s.linkedSubjectId != null && (
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-brass">
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-primary">
                           <Link2 size={11} />
                           Linked to {s.linkedSubjectName} — marks scoped to this roster
                         </p>
@@ -298,27 +298,27 @@ export function ClassDetailPage() {
                       <Badge variant={s.enrollmentMode === 'MANDATORY' ? 'success' : 'neutral'}>
                         {s.enrollmentMode === 'MANDATORY' ? 'Mandatory' : 'Elective'}
                       </Badge>
-                      <button title="Enrollments" onClick={() => toggleEnrollments(s.id)} className="rounded p-1.5 hover:bg-brass/10">
+                      <button title="Enrollments" onClick={() => toggleEnrollments(s.id)} className="rounded p-1.5 hover:bg-primary/10">
                         {expandedSubjectId === s.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
-                      <button title="Delete" onClick={() => handleDeleteSubject(s.id)} className="rounded p-1.5 hover:bg-brick/10">
+                      <button title="Delete" onClick={() => handleDeleteSubject(s.id)} className="rounded p-1.5 hover:bg-danger/10">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
                   {expandedSubjectId === s.id && (
-                    <div className="mt-3 border-t border-parchment-line pt-2">
-                      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-dim">
+                    <div className="mt-3 border-t border-border pt-2">
+                      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
                         Enrolled ({s.enrolledCount})
                       </p>
                       {enrollments.length === 0 ? (
-                        <p className="text-xs text-slate-dim">No one enrolled yet.</p>
+                        <p className="text-xs text-muted">No one enrolled yet.</p>
                       ) : (
                         <ul className="space-y-1">
                           {enrollments.map((e) => (
-                            <li key={e.id} className="flex items-center justify-between text-xs text-slate-dim">
+                            <li key={e.id} className="flex items-center justify-between text-xs text-muted">
                               <span>{e.studentName}</span>
-                              <span className="text-slate-dim/70">{e.source === 'AUTO' ? 'auto-enrolled' : 'self-enrolled'}</span>
+                              <span className="text-muted/70">{e.source === 'AUTO' ? 'auto-enrolled' : 'self-enrolled'}</span>
                             </li>
                           ))}
                         </ul>
@@ -336,11 +336,11 @@ export function ClassDetailPage() {
         <Modal title="Add Students" onClose={() => setAddStudentsOpen(false)}>
           <form onSubmit={handleAddStudents} className="space-y-4">
             {studentsNotOnRoster.length === 0 ? (
-              <p className="text-sm text-slate-dim">Every student is already on this class's roster.</p>
+              <p className="text-sm text-muted">Every student is already on this class's roster.</p>
             ) : (
-              <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-md border border-parchment-line p-2">
+              <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-md border border-border p-2">
                 {studentsNotOnRoster.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-brass/5">
+                  <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-primary/5">
                     <input
                       type="checkbox"
                       checked={selectedStudentIds.includes(s.id)}
@@ -350,20 +350,20 @@ export function ClassDetailPage() {
                         )
                       }
                     />
-                    <span className="text-ink">{s.firstName} {s.lastName ?? ''}</span>
-                    <span className="text-xs text-slate-dim">({s.admissionNo})</span>
+                    <span className="text-text">{s.firstName} {s.lastName ?? ''}</span>
+                    <span className="text-xs text-muted">({s.admissionNo})</span>
                   </label>
                 ))}
               </div>
             )}
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setAddStudentsOpen(false)} className="rounded-md px-4 py-2 text-sm text-slate-dim hover:text-ink">
+              <button type="button" onClick={() => setAddStudentsOpen(false)} className="rounded-md px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={rosterSaving || selectedStudentIds.length === 0}
-                className="rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
               >
                 {rosterSaving ? 'Adding…' : `Add ${selectedStudentIds.length || ''} Student${selectedStudentIds.length === 1 ? '' : 's'}`}
               </button>
@@ -375,7 +375,7 @@ export function ClassDetailPage() {
       {subjectModalOpen && (
         <Modal title="Add Subjects" onClose={() => setSubjectModalOpen(false)}>
           <form onSubmit={handleCreateSubjects} className="space-y-4">
-            <p className="text-xs text-slate-dim">
+            <p className="text-xs text-muted">
               Set up one or more subjects for this term. Mandatory subjects auto-enroll the whole roster; elective
               subjects let students opt in themselves. Optionally link a subject to the official curriculum subject
               it corresponds to - this scopes marks entry for that subject's exams to this class's roster instead
@@ -384,11 +384,11 @@ export function ClassDetailPage() {
             </p>
             <div className="space-y-4">
               {subjectRows.map((row, index) => (
-                <div key={index} className="rounded-md border border-parchment-line p-3">
+                <div key={index} className="rounded-md border border-border p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-dim">Subject {index + 1}</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Subject {index + 1}</p>
                     {subjectRows.length > 1 && (
-                      <button type="button" onClick={() => removeSubjectRow(index)} className="rounded p-1 hover:bg-brick/10">
+                      <button type="button" onClick={() => removeSubjectRow(index)} className="rounded p-1 hover:bg-danger/10">
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -463,20 +463,20 @@ export function ClassDetailPage() {
             <button
               type="button"
               onClick={addSubjectRow}
-              className="flex items-center gap-1.5 text-sm text-brass hover:text-brass-bright"
+              className="flex items-center gap-1.5 text-sm text-primary hover:text-secondary"
             >
               <Plus size={14} />
               Add another subject
             </button>
-            {subjectError && <p className="text-sm text-brick">{subjectError}</p>}
-            <div className="flex justify-end gap-3 border-t border-parchment-line pt-4">
-              <button type="button" onClick={() => setSubjectModalOpen(false)} className="rounded-md px-4 py-2 text-sm text-slate-dim hover:text-ink">
+            {subjectError && <p className="text-sm text-danger">{subjectError}</p>}
+            <div className="flex justify-end gap-3 border-t border-border pt-4">
+              <button type="button" onClick={() => setSubjectModalOpen(false)} className="rounded-md px-4 py-2 text-sm text-muted hover:text-text">
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={subjectSaving}
-                className="rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
               >
                 {subjectSaving ? 'Saving…' : `Create ${subjectRows.length > 1 ? subjectRows.length + ' Subjects' : 'Subject'}`}
               </button>

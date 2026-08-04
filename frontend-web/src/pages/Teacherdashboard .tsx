@@ -80,10 +80,10 @@ export function TeacherDashboard() {
 
   return (
     <Layout>
-      <h1 className="font-display text-2xl font-medium text-ink">
+      <h1 className="font-heading text-2xl font-medium text-text">
         Welcome back{user?.email ? `, ${user.email.split('@')[0]}` : ''}
       </h1>
-      <p className="mt-1 text-sm text-slate-dim">Here's what's happening in your classes today</p>
+      <p className="mt-1 text-sm text-muted">Here's what's happening in your classes today</p>
 
       {error && <PanelError message={error} />}
 
@@ -102,14 +102,14 @@ export function TeacherDashboard() {
 
       {/* Charts */}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={ClipboardList} title="Assignments by Subject" note="How your assignments are distributed" />
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={assignmentsPerSubject}>
                 <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.slateDim }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: COLORS.slateDim }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{
                     background: '#fffdf7',
@@ -119,26 +119,26 @@ export function TeacherDashboard() {
                   }}
                   cursor={{ fill: COLORS.grid, opacity: 0.4 }}
                 />
-                <Bar dataKey="count" fill={COLORS.brass} radius={[4, 4, 0, 0]} animationDuration={700} />
+                <Bar dataKey="count" fill={COLORS.primary} radius={[4, 4, 0, 0]} animationDuration={700} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={CalendarDays} title="Attendance Trend" note="Average attendance rate, last 7 days" />
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={attendanceTrend}>
                 <defs>
                   <linearGradient id="attendanceFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={COLORS.brass} stopOpacity={0.4} />
-                    <stop offset="100%" stopColor={COLORS.brass} stopOpacity={0} />
+                    <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: COLORS.slateDim }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: COLORS.slateDim }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
                 <Tooltip
                   formatter={(value) => [`${Number(value ?? 0)}%`, 'Attendance']}
                   contentStyle={{
@@ -149,7 +149,7 @@ export function TeacherDashboard() {
                   }}
                   cursor={{ fill: COLORS.grid, opacity: 0.4 }}
                 />
-                <Area type="monotone" dataKey="rate" stroke={COLORS.brass} strokeWidth={2} fill="url(#attendanceFill)" animationDuration={700} />
+                <Area type="monotone" dataKey="rate" stroke={COLORS.primary} strokeWidth={2} fill="url(#attendanceFill)" animationDuration={700} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -159,7 +159,7 @@ export function TeacherDashboard() {
       {/* Schedule / Recent Assignments / Announcements */}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Today's Schedule */}
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader
             icon={CalendarDays}
             title="Today's Schedule"
@@ -168,23 +168,23 @@ export function TeacherDashboard() {
 
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-slate-dim">Loading...</p>
+              <p className="text-sm text-muted">Loading...</p>
             ) : todaysSchedule.length === 0 ? (
-              <p className="text-sm text-slate-dim">No classes scheduled for today.</p>
+              <p className="text-sm text-muted">No classes scheduled for today.</p>
             ) : (
               todaysSchedule.map((entry) => (
                 <div
                   key={entry.subjectId}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-parchment-line/70 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 px-3 py-2"
                 >
                   <div>
-                    <p className="text-sm font-medium text-ink">{entry.subjectName}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-dim">
+                    <p className="text-sm font-medium text-text">{entry.subjectName}</p>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
                       <MapPin size={11} />
                       {entry.room}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-parchment-line/50 px-2.5 py-1 text-xs text-slate-dim">
+                  <span className="shrink-0 rounded-full bg-border/50 px-2.5 py-1 text-xs text-muted">
                     {entry.startTime} – {entry.endTime}
                   </span>
                 </div>
@@ -194,22 +194,22 @@ export function TeacherDashboard() {
         </div>
 
         {/* Recent Assignments */}
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader icon={ClipboardList} title="Recent Assignments" />
 
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-slate-dim">Loading...</p>
+              <p className="text-sm text-muted">Loading...</p>
             ) : recentAssignments.length === 0 ? (
-              <p className="text-sm text-slate-dim">You haven't created any assignments yet.</p>
+              <p className="text-sm text-muted">You haven't created any assignments yet.</p>
             ) : (
               recentAssignments.map((a) => (
-                <div key={a.assignmentId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-parchment-line/70 px-3 py-2">
+                <div key={a.assignmentId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{a.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-dim">{a.subjectName}</p>
+                    <p className="truncate text-sm font-medium text-text">{a.title}</p>
+                    <p className="mt-0.5 text-xs text-muted">{a.subjectName}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3 text-xs text-slate-dim">
+                  <div className="flex shrink-0 items-center gap-3 text-xs text-muted">
                     <span className="inline-flex items-center gap-1">
                       <Award size={11} />
                       {a.maxMarks}
@@ -223,7 +223,7 @@ export function TeacherDashboard() {
         </div>
 
         {/* Announcements */}
-        <div className="paper rounded-lg border border-parchment-line bg-white/60 p-5 shadow-[var(--shadow-paper-lift)]">
+        <div className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
           <PanelHeader
             icon={Megaphone}
             title="Announcements"
@@ -232,13 +232,13 @@ export function TeacherDashboard() {
 
           <div className="space-y-3">
             {announcements.map((n) => (
-              <div key={n.id} className="group rounded-md border border-parchment-line/70 px-3 py-2">
+              <div key={n.id} className="group rounded-md border border-border/70 px-3 py-2">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-ink">{n.title}</p>
-                  <ChevronRight size={14} className="mt-0.5 shrink-0 text-slate-dim opacity-0 transition-opacity group-hover:opacity-100" />
+                  <p className="text-sm font-medium text-text">{n.title}</p>
+                  <ChevronRight size={14} className="mt-0.5 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
-                <p className="mt-1 text-xs text-slate-dim">{n.body}</p>
-                <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-dim/70">{n.createdAt.slice(0, 10)}</p>
+                <p className="mt-1 text-xs text-muted">{n.body}</p>
+                <p className="mt-2 text-[11px] uppercase tracking-wide text-muted/70">{n.createdAt.slice(0, 10)}</p>
               </div>
             ))}
           </div>

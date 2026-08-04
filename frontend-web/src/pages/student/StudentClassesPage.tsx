@@ -82,29 +82,29 @@ export function StudentClassesPage() {
   return (
     <Layout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-medium text-ink">My Classes</h1>
-        <p className="mt-1 text-sm text-slate-dim">
+        <h1 className="font-heading text-2xl font-medium text-text">My Classes</h1>
+        <p className="mt-1 text-sm text-muted">
           Classes your teachers have added you to. Mandatory subjects are automatic - elective ones you choose yourself.
         </p>
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : classes.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-parchment-line bg-white/60 p-10 text-center">
-          <h3 className="font-display text-xl text-ink">No Classes Yet</h3>
-          <p className="mt-2 text-slate-dim">You haven't been added to a class by a teacher yet.</p>
+        <div className="rounded-lg border border-dashed border-border bg-white/60 p-10 text-center">
+          <h3 className="font-heading text-xl text-text">No Classes Yet</h3>
+          <p className="mt-2 text-muted">You haven't been added to a class by a teacher yet.</p>
         </div>
       ) : (
         <ul className="space-y-3">
           {classes.map((c) => (
-            <li key={c.id} className="rounded-lg border border-parchment-line bg-white/60 p-5">
+            <li key={c.id} className="rounded-lg border border-border bg-white/60 p-5">
               <button onClick={() => toggleClass(c.id)} className="flex w-full items-center justify-between text-left">
                 <div>
-                  <p className="font-display text-lg font-medium text-ink">{c.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-dim">
+                  <p className="font-heading text-lg font-medium text-text">{c.name}</p>
+                  <p className="mt-0.5 text-xs text-muted">
                     {c.academicYear} · Semester {c.semester} · {c.subjectCount} subject{c.subjectCount === 1 ? '' : 's'}
                   </p>
                 </div>
@@ -112,18 +112,18 @@ export function StudentClassesPage() {
               </button>
 
               {expandedClassId === c.id && (
-                <div className="mt-4 border-t border-parchment-line pt-4">
+                <div className="mt-4 border-t border-border pt-4">
                   {subjectsLoading ? (
-                    <p className="text-sm text-slate-dim">Loading subjects…</p>
+                    <p className="text-sm text-muted">Loading subjects…</p>
                   ) : subjects.length === 0 ? (
-                    <p className="text-sm text-slate-dim">No subjects have been added to this class yet.</p>
+                    <p className="text-sm text-muted">No subjects have been added to this class yet.</p>
                   ) : (
                     <ul className="space-y-2">
                       {subjects.map((s) => (
-                        <li key={s.id} className="flex items-center justify-between rounded-md border border-parchment-line bg-white/60 px-3 py-2">
+                        <li key={s.id} className="flex items-center justify-between rounded-md border border-border bg-white/60 px-3 py-2">
                           <div>
-                            <p className="text-sm font-medium text-ink">{s.subjectName}</p>
-                            <p className="text-xs text-slate-dim">{s.subjectCode} · {s.teacherName} · {s.credits} credits</p>
+                            <p className="text-sm font-medium text-text">{s.subjectName}</p>
+                            <p className="text-xs text-muted">{s.subjectCode} · {s.teacherName} · {s.credits} credits</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant={s.enrollmentMode === 'MANDATORY' ? 'success' : 'neutral'}>
@@ -134,7 +134,7 @@ export function StudentClassesPage() {
                                 <button
                                   disabled={busySubjectId === s.id}
                                   onClick={() => handleDrop(s.id)}
-                                  className="rounded-md border border-parchment-line px-3 py-1 text-xs text-slate-dim hover:text-brick disabled:opacity-60"
+                                  className="rounded-md border border-border px-3 py-1 text-xs text-muted hover:text-danger disabled:opacity-60"
                                 >
                                   Drop
                                 </button>
@@ -142,7 +142,7 @@ export function StudentClassesPage() {
                                 <button
                                   disabled={busySubjectId === s.id}
                                   onClick={() => handleEnroll(s.id)}
-                                  className="rounded-md bg-brass px-3 py-1 text-xs font-medium text-white hover:bg-brass-bright disabled:opacity-60"
+                                  className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-secondary disabled:opacity-60"
                                 >
                                   Enroll
                                 </button>

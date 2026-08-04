@@ -104,42 +104,42 @@ export function RolesPage() {
     <Layout>
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-ink">Roles</h1>
-          <p className="mt-1 text-sm text-slate-dim">
+          <h1 className="font-heading text-2xl font-medium text-text">Roles</h1>
+          <p className="mt-1 text-sm text-muted">
             Build custom staff roles from a fixed set of permissions.
           </p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
         >
           <Plus size={16} /> Add role
         </button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-dim">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : error ? (
         <PanelError message={error} />
       ) : roles.length === 0 ? (
-        <p className="text-sm text-slate-dim">No roles yet.</p>
+        <p className="text-sm text-muted">No roles yet.</p>
       ) : (
         <ul className="space-y-3">
           {roles.map((role) => (
-            <li key={role.id} className="rounded-lg border border-parchment-line bg-white/60 p-4">
+            <li key={role.id} className="rounded-lg border border-border bg-white/60 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <ShieldCheck size={15} className="text-brass" />
-                    <p className="font-display text-sm font-medium text-ink">{role.name}</p>
+                    <ShieldCheck size={15} className="text-primary" />
+                    <p className="font-heading text-sm font-medium text-text">{role.name}</p>
                     {role.isSystemRole && (
-                      <span className="flex items-center gap-1 rounded-full border border-parchment-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-slate-dim">
+                      <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 font-numbers text-[10px] uppercase tracking-wide text-muted">
                         <Lock size={10} /> Built-in
                       </span>
                     )}
                   </div>
-                  {role.description && <p className="mt-1 text-xs text-slate-dim">{role.description}</p>}
-                  <p className="mt-2 text-xs text-slate-dim">
+                  {role.description && <p className="mt-1 text-xs text-muted">{role.description}</p>}
+                  <p className="mt-2 text-xs text-muted">
                     {role.permissions.length === 0
                       ? 'No permissions granted'
                       : `${role.permissions.length} permission${role.permissions.length === 1 ? '' : 's'} granted`}
@@ -147,10 +147,10 @@ export function RolesPage() {
                 </div>
                 {!role.isSystemRole && (
                   <div className="flex shrink-0 gap-3">
-                    <button onClick={() => openEdit(role)} className="text-slate hover:text-ink">
+                    <button onClick={() => openEdit(role)} className="text-muted hover:text-text">
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => handleDelete(role)} className="text-slate hover:text-brick">
+                    <button onClick={() => handleDelete(role)} className="text-muted hover:text-danger">
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -183,23 +183,23 @@ export function RolesPage() {
             </Field>
 
             <div>
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-dim">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
                 Permissions
               </span>
-              <div className="max-h-72 space-y-4 overflow-y-auto rounded-md border border-parchment-line bg-parchment-dim/40 p-3">
+              <div className="max-h-72 space-y-4 overflow-y-auto rounded-md border border-border bg-hover/40 p-3">
                 {[...grouped.entries()].map(([category, perms]) => (
                   <div key={category}>
-                    <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-slate-dim">
+                    <p className="mb-1.5 font-numbers text-[10px] uppercase tracking-wide text-muted">
                       {category}
                     </p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       {perms.map((p) => (
-                        <label key={p.name} className="flex items-center gap-2 text-sm text-ink">
+                        <label key={p.name} className="flex items-center gap-2 text-sm text-text">
                           <input
                             type="checkbox"
                             checked={form.permissions.includes(p.name)}
                             onChange={() => togglePermission(p.name)}
-                            className="rounded border-parchment-line text-brass focus:ring-brass"
+                            className="rounded border-border text-primary focus:ring-primary"
                           />
                           {p.name}
                         </label>
@@ -210,20 +210,20 @@ export function RolesPage() {
               </div>
             </div>
 
-            {formError && <p className="text-sm text-brick">{formError}</p>}
+            {formError && <p className="text-sm text-danger">{formError}</p>}
 
             <div className="flex flex-col-reverse justify-end gap-3 pt-2 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-md border border-parchment-line px-4 py-2 text-sm text-slate-dim hover:text-ink"
+                className="rounded-md border border-border px-4 py-2 text-sm text-muted hover:text-text"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center justify-center gap-2 rounded-md bg-brass px-4 py-2 text-sm font-medium text-white hover:bg-brass-bright disabled:opacity-60"
+                className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
               >
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 Save
