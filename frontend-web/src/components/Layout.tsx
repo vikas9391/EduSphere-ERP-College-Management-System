@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { PageIn } from '@/components/motion'
+import { LeafDivider } from '@/components/LeafDivider'
 import { navModulesForRole } from '@/config/staffModules'
 import {
   LayoutDashboard,
@@ -18,7 +19,7 @@ import {
   Users,
   Menu,
   X,
-  Leaf,
+  Sprout,
 } from 'lucide-react'
 
 const superAdminNavItems = [
@@ -112,19 +113,30 @@ export function Layout({ children }: { children: ReactNode }) {
 
       {/* Sidebar is fixed to the viewport (not a normal flex child) so it
           stays put while the main content scrolls underneath it. On mobile
-          it's an off-canvas drawer that slides in via translate-x; from md
-          up it's always visible at translate-x-0. The content column below
-          carries a matching md:ml-64 to avoid being hidden behind it. */}
+          it's a full-bleed off-canvas drawer that slides in via translate-x;
+          from md up it becomes a floating rounded card inset from the
+          viewport edge (matching the botanical theme), always visible at
+          translate-x-0. The content column below carries a matching
+          md:ml-[304px] to clear both the card and the vine seam next to it. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-y-auto bg-card py-6 pl-3.5 pr-3.5 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-y-auto py-6 pl-3.5 pr-3.5 transition-transform duration-300 ease-in-out md:inset-y-4 md:left-4 md:h-[calc(100vh-2rem)] md:rounded-[var(--radius-card)] md:shadow-[var(--shadow-card)] md:translate-x-0 ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{
+          backgroundImage:
+            'linear-gradient(to top, var(--color-light-green) 0%, var(--color-card) 65%)',
+        }}
       >
-        <span className="mb-8 flex items-center gap-2 pl-3 font-heading text-lg font-semibold text-text">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-light-green text-primary">
-            <Leaf size={16} strokeWidth={2.4} />
+        <span className="mb-8 flex items-center gap-2.5 pl-3 font-heading text-lg font-semibold text-text">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary">
+            <Sprout size={18} strokeWidth={2.2} className="text-white" />
           </span>
-          EduSphere
+          <span className="leading-tight">
+            <span className="block">EduSphere</span>
+            <span className="block font-body text-[11px] font-normal text-muted">
+              Smart Campus, Smarter Future
+            </span>
+          </span>
         </span>
         <nav className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, label, icon: Icon }) => {
@@ -171,7 +183,17 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col md:ml-64">
+      {/* Decorative vine seam. Sits ABOVE the sidebar (z-40 > sidebar's
+          z-30) so the leaves that bleed left actually spill over the
+          sidebar's edge instead of being hidden behind its background -
+          pointer-events-none the whole way down means clicks still land on
+          the sidebar underneath. Desktop only (there's no room for it once
+          the sidebar goes off-canvas). */}
+      <div className="fixed inset-y-4 left-[256px] z-40 hidden md:block">
+        <LeafDivider />
+      </div>
+
+      <div className="flex flex-1 flex-col md:ml-[304px]">
         <main className="flex-1 px-8 pb-10 pt-20 md:pt-10">
           <div className="rounded-[var(--radius-card)] bg-card p-8 shadow-[var(--shadow-card)]">
             <AnimatePresence mode="wait">

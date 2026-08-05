@@ -140,14 +140,19 @@ public class RoleService {
 
     private Set<String> validatePermissions(Set<String> requested) {
         if (requested == null) {
-            return Set.of();
+            return new java.util.HashSet<>();
         }
         Set<String> valid = java.util.Arrays.stream(Permission.values()).map(Enum::name).collect(Collectors.toSet());
         Set<String> unknown = requested.stream().filter(p -> !valid.contains(p)).collect(Collectors.toSet());
         if (!unknown.isEmpty()) {
             throw new BadRequestException("Unknown permission(s): " + unknown);
         }
-        return Set.copyOf(requested);
+        // Must be a mutable collection: this gets assigned straight onto the Role
+        // entity's @ElementCollection field, and Hibernate mutates that collection
+        // in place (clear() + re-populate) during merge/flush. An immutable Set here
+        // (e.g. from Set.of()/Set.copyOf()) throws UnsupportedOperationException the
+        // moment Hibernate tries to clear it on update.
+        return new java.util.HashSet<>(requested);
     }
 
     /**

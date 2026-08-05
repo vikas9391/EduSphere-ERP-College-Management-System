@@ -22,7 +22,7 @@ public class StudentController {
         this.studentService = studentService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CREATE_STUDENT')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<StudentResponse> createStudent(@Valid @RequestBody StudentRequest request) {
@@ -40,7 +40,7 @@ public class StudentController {
         return ApiResponse.success(studentService.getStudent(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('EDIT_STUDENT')")
     @PutMapping("/{id}")
     public ApiResponse<StudentResponse> updateStudent(
             @PathVariable Long id,
@@ -48,7 +48,7 @@ public class StudentController {
         return ApiResponse.success("Student updated", studentService.updateStudent(id, request));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('DELETE_STUDENT')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteStudent(@PathVariable Long id) {
