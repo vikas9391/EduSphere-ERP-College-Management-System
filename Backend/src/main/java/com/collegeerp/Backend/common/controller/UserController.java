@@ -45,9 +45,10 @@ public class UserController {
     }
 
     /**
-     * Generalized user creation - replaces the old teacher-only account creation flow.
-     * Any role can be assigned (HOD, Supervisor, Accountant, Librarian, or a custom
-     * role), subject to {@code UserService}'s privilege-escalation guard.
+     * Generalized user creation - covers Admin-created accounts for any role,
+     * including Teacher now that it's just a role on this same table (HOD,
+     * Supervisor, Accountant, Librarian, or a custom role too), subject to
+     * {@code UserService}'s privilege-escalation guard.
      */
     @PreAuthorize("hasAuthority('CREATE_USER')")
     @PostMapping
@@ -71,9 +72,11 @@ public class UserController {
     }
 
     /**
-     * Self-service password change - works for any authenticated staff/admin role,
-     * including someone still flagged {@code mustChangePassword}. No permission gate
-     * beyond being logged in: everyone is always allowed to change their own password.
+     * Self-service password change - works for any authenticated staff/admin/teacher
+     * role, including someone still flagged {@code mustChangePassword}. No permission
+     * gate beyond being logged in: everyone is always allowed to change their own
+     * password. {@code principal.getId()} is always a {@code users.id} now - Teacher
+     * needs no special resolution here anymore.
      */
     @PutMapping("/me/password")
     public ApiResponse<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request, Authentication authentication) {

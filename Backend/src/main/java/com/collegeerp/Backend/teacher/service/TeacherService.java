@@ -1,12 +1,14 @@
 package com.collegeerp.Backend.teacher.service;
 
+import com.collegeerp.Backend.common.Role;
+import com.collegeerp.Backend.common.RoleRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.exception.BadRequestException;
 import com.collegeerp.Backend.common.exception.DuplicateResourceException;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.teacher.dto.TeacherRequest;
 import com.collegeerp.Backend.teacher.dto.TeacherResponse;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -18,17 +20,30 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
+/**
+ * Teacher CRUD. There is no separate "teachers" table anymore - a teacher is just a
+ * {@link User} row whose role is the built-in "TEACHER" system role (seeded in V22 /
+ * TenantProvisioningService), with a handful of teacher-only profile columns
+ * (employeeId, qualification, specialization, experience, joiningDate, gender, phone)
+ * that stay null for every other role. Every FK that used to point at teachers.id
+ * (subjects, classes, assignments, exam schedules) now points straight at users.id -
+ * so the {@code id} on {@link TeacherResponse} is a {@code users.id}.
+ */
 @Service
 @Transactional
 public class TeacherService {
 
     private static final Logger log = LoggerFactory.getLogger(TeacherService.class);
+    private static final String TEACHER_ROLE = "TEACHER";
 
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public TeacherService(TeacherRepository teacherRepository, PasswordEncoder passwordEncoder) {
-        this.teacherRepository = teacherRepository;
+    public TeacherService(UserRepository userRepository, RoleRepository roleRepository,
+                           PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -38,20 +53,27 @@ public class TeacherService {
             throw new BadRequestException("Password is required to create a teacher");
         }
 
-        if (teacherRepository.existsByEmployeeId(request.getEmployeeId())) {
+        String email = request.getEmail().trim().toLowerCase();
+
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException("Email '" + email + "' is already in use");
+        }
+        if (userRepository.existsByEmployeeId(request.getEmployeeId())) {
             throw new DuplicateResourceException("Employee ID '" + request.getEmployeeId() + "' is already in use");
         }
 
-        if (teacherRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email '" + request.getEmail() + "' is already in use");
-        }
-
-        Teacher teacher = Teacher.builder()
-                .employeeId(request.getEmployeeId())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .email(request.getEmail())
+        User user = User.builder()
+                .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .firstName(request.getFirstName().trim())
+                .lastName(StringUtils.hasText(request.getLastName()) ? request.getLastName().trim() : "-")
+                .role(findTeacherRole())
+                .isActive(true)
+                .isEmailVerified(false)
+                // Same convention as UserService#createUser - an admin picked this
+                // password, so force a change before the teacher can use the account.
+                .mustChangePassword(true)
+                .employeeId(request.getEmployeeId())
                 .phone(request.getPhone())
                 .gender(request.getGender())
                 .qualification(request.getQualification())
@@ -59,17 +81,17 @@ public class TeacherService {
                 .experience(request.getExperience())
                 .joiningDate(request.getJoiningDate())
                 .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
+        user = userRepository.save(user);
 
-        teacher = teacherRepository.save(teacher);
-        log.info("Created teacher id={} employeeId={}", teacher.getId(), teacher.getEmployeeId());
-
-        return mapToResponse(teacher);
+        log.info("Created teacher (userId={}, employeeId={})", user.getId(), user.getEmployeeId());
+        return mapToResponse(user);
     }
 
     @Transactional(readOnly = true)
     public Page<TeacherResponse> getAllTeachers(Pageable pageable) {
-        return teacherRepository.findAll(pageable).map(this::mapToResponse);
+        return userRepository.findAllByRole_Name(TEACHER_ROLE, pageable).map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
@@ -79,58 +101,77 @@ public class TeacherService {
 
     public TeacherResponse updateTeacher(Long id, TeacherRequest request) {
 
-        Teacher teacher = findTeacherOrThrow(id);
+        User user = findTeacherOrThrow(id);
+        String email = request.getEmail().trim().toLowerCase();
 
-        if (!teacher.getEmail().equalsIgnoreCase(request.getEmail())
-                && teacherRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email '" + request.getEmail() + "' is already in use");
+        boolean emailChanged = !user.getEmail().equalsIgnoreCase(email);
+        if (emailChanged && userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException("Email '" + email + "' is already in use");
         }
 
-        teacher.setFirstName(request.getFirstName());
-        teacher.setLastName(request.getLastName());
-        teacher.setEmail(request.getEmail());
+        boolean employeeIdChanged = !request.getEmployeeId().equals(user.getEmployeeId());
+        if (employeeIdChanged && userRepository.existsByEmployeeId(request.getEmployeeId())) {
+            throw new DuplicateResourceException("Employee ID '" + request.getEmployeeId() + "' is already in use");
+        }
 
+        user.setEmail(email);
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(StringUtils.hasText(request.getLastName()) ? request.getLastName().trim() : "-");
+        user.setEmployeeId(request.getEmployeeId());
+        user.setPhone(request.getPhone());
+        user.setGender(request.getGender());
+        user.setQualification(request.getQualification());
+        user.setSpecialization(request.getSpecialization());
+        user.setExperience(request.getExperience());
+        user.setJoiningDate(request.getJoiningDate());
         if (StringUtils.hasText(request.getPassword())) {
-            teacher.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            user.setMustChangePassword(true);
         }
+        user.setUpdatedAt(LocalDateTime.now());
+        user = userRepository.save(user);
 
-        teacher.setPhone(request.getPhone());
-        teacher.setGender(request.getGender());
-        teacher.setQualification(request.getQualification());
-        teacher.setSpecialization(request.getSpecialization());
-        teacher.setExperience(request.getExperience());
-        teacher.setJoiningDate(request.getJoiningDate());
-
-        teacher = teacherRepository.save(teacher);
-        log.info("Updated teacher id={}", teacher.getId());
-
-        return mapToResponse(teacher);
+        log.info("Updated teacher (userId={})", user.getId());
+        return mapToResponse(user);
     }
 
     public void deleteTeacher(Long id) {
-        Teacher teacher = findTeacherOrThrow(id);
-        teacherRepository.delete(teacher);
-        log.info("Deleted teacher id={}", id);
+        User user = findTeacherOrThrow(id);
+        userRepository.delete(user);
+        log.info("Deleted teacher (userId={})", id);
     }
 
-    private Teacher findTeacherOrThrow(Long id) {
-        return teacherRepository.findById(id)
+    private Role findTeacherRole() {
+        return roleRepository.findByName(TEACHER_ROLE)
+                .orElseThrow(() -> new BadRequestException(
+                        "The built-in 'TEACHER' role is missing for this tenant - contact support"));
+    }
+
+    private User findTeacherOrThrow(Long id) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", id));
+        if (!TEACHER_ROLE.equals(user.getRole().getName())) {
+            throw ResourceNotFoundException.of("Teacher", id);
+        }
+        return user;
     }
 
-    private TeacherResponse mapToResponse(Teacher teacher) {
+    private TeacherResponse mapToResponse(User user) {
         return TeacherResponse.builder()
-                .id(teacher.getId())
-                .employeeId(teacher.getEmployeeId())
-                .firstName(teacher.getFirstName())
-                .lastName(teacher.getLastName())
-                .email(teacher.getEmail())
-                .phone(teacher.getPhone())
-                .gender(teacher.getGender())
-                .qualification(teacher.getQualification())
-                .specialization(teacher.getSpecialization())
-                .experience(teacher.getExperience())
-                .joiningDate(teacher.getJoiningDate())
+                .id(user.getId())
+                .employeeId(user.getEmployeeId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .gender(user.getGender())
+                .qualification(user.getQualification())
+                .specialization(user.getSpecialization())
+                .experience(user.getExperience())
+                .joiningDate(user.getJoiningDate())
+                .roleName(user.getRole().getName())
+                .isActive(user.isActive())
+                .mustChangePassword(user.isMustChangePassword())
                 .build();
     }
 }

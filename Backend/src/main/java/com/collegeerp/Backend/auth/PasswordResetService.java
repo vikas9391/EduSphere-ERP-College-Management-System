@@ -8,8 +8,6 @@ import com.collegeerp.Backend.common.exception.BadRequestException;
 import com.collegeerp.Backend.common.service.EmailService;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +18,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Handles "forgot password" for tenant-scoped accounts: staff/admin ({@link User}),
- * {@link Teacher}, and {@link Student}. Every method here must be called with
+ * Handles "forgot password" for tenant-scoped accounts: staff/admin/teacher (all
+ * {@link User} rows - teacher credentials moved onto the shared users/roles table, see
+ * {@code TeacherService}) and {@link Student}. Every method here must be called with
  * {@link com.collegeerp.Backend.tenant.TenantContext} already set to the right
  * schema - see {@code AuthController#forgotPassword}/{@code #resetPassword}, which
  * set/clear it the same way {@code AuthController#login} does.
@@ -37,12 +36,10 @@ public class PasswordResetService {
     private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
 
     private static final String ACCOUNT_TYPE_STAFF = "STAFF";
-    private static final String ACCOUNT_TYPE_TEACHER = "TEACHER";
     private static final String ACCOUNT_TYPE_STUDENT = "STUDENT";
 
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
-    private final TeacherRepository teacherRepository;
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
@@ -56,13 +53,11 @@ public class PasswordResetService {
     public PasswordResetService(
             PasswordResetTokenRepository tokenRepository,
             UserRepository userRepository,
-            TeacherRepository teacherRepository,
             StudentRepository studentRepository,
             PasswordEncoder passwordEncoder,
             EmailService emailService) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
-        this.teacherRepository = teacherRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
@@ -125,12 +120,6 @@ public class PasswordResetService {
                 user.setMustChangePassword(false);
                 userRepository.save(user);
             }
-            case ACCOUNT_TYPE_TEACHER -> {
-                Teacher teacher = teacherRepository.findByEmail(resetToken.getEmail())
-                        .orElseThrow(() -> new BadRequestException("This password reset link is invalid or has expired"));
-                teacher.setPasswordHash(encoded);
-                teacherRepository.save(teacher);
-            }
             case ACCOUNT_TYPE_STUDENT -> {
                 Student student = studentRepository.findByEmail(resetToken.getEmail())
                         .orElseThrow(() -> new BadRequestException("This password reset link is invalid or has expired"));
@@ -144,10 +133,12 @@ public class PasswordResetService {
         tokenRepository.save(resetToken);
     }
 
-    /** Same lookup order AuthController#login tries accounts in: staff/admin, then teacher, then student. */
+    /**
+     * Same lookup order AuthController#login tries accounts in: staff/admin/teacher
+     * (all live in "users" now), then student.
+     */
     private String resolveAccountType(String email) {
         if (userRepository.findByEmail(email).isPresent()) return ACCOUNT_TYPE_STAFF;
-        if (teacherRepository.findByEmail(email).isPresent()) return ACCOUNT_TYPE_TEACHER;
         if (studentRepository.findByEmail(email).isPresent()) return ACCOUNT_TYPE_STUDENT;
         return null;
     }

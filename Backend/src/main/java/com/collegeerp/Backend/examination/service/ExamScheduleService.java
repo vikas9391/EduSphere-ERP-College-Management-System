@@ -8,8 +8,8 @@ import com.collegeerp.Backend.examination.repository.ExamRepository;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,16 +21,16 @@ public class ExamScheduleService {
     private final ExamScheduleRepository examScheduleRepository;
     private final ExamRepository examRepository;
     private final SubjectRepository subjectRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
 
     public ExamScheduleService(ExamScheduleRepository examScheduleRepository,
                                 ExamRepository examRepository,
                                 SubjectRepository subjectRepository,
-                                TeacherRepository teacherRepository) {
+                                UserRepository userRepository) {
         this.examScheduleRepository = examScheduleRepository;
         this.examRepository = examRepository;
         this.subjectRepository = subjectRepository;
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
     }
 
     public ExamScheduleResponse createSchedule(ExamScheduleRequest request) {
@@ -45,9 +45,9 @@ public class ExamScheduleService {
             throw new RuntimeException("This subject is already scheduled for this exam");
         }
 
-        Teacher invigilator = null;
+        User invigilator = null;
         if (request.getInvigilatorId() != null) {
-            invigilator = teacherRepository.findById(request.getInvigilatorId())
+            invigilator = userRepository.findById(request.getInvigilatorId())
                     .orElseThrow(() -> new RuntimeException("Invigilator not found"));
         }
 
@@ -94,9 +94,9 @@ public class ExamScheduleService {
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
 
-        Teacher invigilator = null;
+        User invigilator = null;
         if (request.getInvigilatorId() != null) {
-            invigilator = teacherRepository.findById(request.getInvigilatorId())
+            invigilator = userRepository.findById(request.getInvigilatorId())
                     .orElseThrow(() -> new RuntimeException("Invigilator not found"));
         }
 

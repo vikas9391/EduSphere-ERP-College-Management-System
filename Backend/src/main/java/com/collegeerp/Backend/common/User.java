@@ -50,4 +50,24 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // --- Teacher-only profile fields below. Null for every non-teacher role - kept
+    // here rather than a separate table now that Teacher has been folded into User;
+    // TeacherService is the only thing that ever sets these. ---
+
+    @Column(name = "employee_id", unique = true)
+    private String employeeId;
+
+    private String phone;
+
+    private String gender;
+
+    private String qualification;
+
+    private String specialization;
+
+    private Integer experience;
+
+    @Column(name = "joining_date")
+    private java.time.LocalDate joiningDate;
 }

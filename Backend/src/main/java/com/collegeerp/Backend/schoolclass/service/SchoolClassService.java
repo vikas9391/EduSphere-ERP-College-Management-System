@@ -17,8 +17,8 @@ import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.schoolclass.repository.SchoolClassRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,27 +45,27 @@ public class SchoolClassService {
     private final ClassStudentRepository classStudentRepository;
     private final ClassSubjectRepository classSubjectRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
     private final StudentRepository studentRepository;
 
     public SchoolClassService(SchoolClassRepository schoolClassRepository,
                                ClassStudentRepository classStudentRepository,
                                ClassSubjectRepository classSubjectRepository,
                                ClassEnrollmentRepository classEnrollmentRepository,
-                               TeacherRepository teacherRepository,
+                               UserRepository userRepository,
                                StudentRepository studentRepository) {
         this.schoolClassRepository = schoolClassRepository;
         this.classStudentRepository = classStudentRepository;
         this.classSubjectRepository = classSubjectRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
         this.studentRepository = studentRepository;
     }
 
     public SchoolClassResponse createClass(Long teacherId, String role, SchoolClassRequest request) {
         requireTeacher(role);
 
-        Teacher teacher = teacherRepository.findById(teacherId)
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
 
         SchoolClass schoolClass = SchoolClass.builder()

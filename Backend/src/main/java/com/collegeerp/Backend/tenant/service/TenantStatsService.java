@@ -11,7 +11,6 @@ import com.collegeerp.Backend.department.repository.DepartmentRepository;
 import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.student.repository.StudentRepository;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import com.collegeerp.Backend.tenant.TenantContext;
 import com.collegeerp.Backend.tenant.dto.TenantDetailsResponse;
 import com.collegeerp.Backend.tenant.dto.TenantSummaryResponse;
@@ -29,9 +28,10 @@ import com.collegeerp.Backend.tenant.repository.TenantRepository;
 @Service
 public class TenantStatsService {
 
+    private static final String TEACHER_ROLE = "TEACHER";
+
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
-    private final TeacherRepository teacherRepository;
     private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
     private final CourseRepository courseRepository;
@@ -41,7 +41,6 @@ public class TenantStatsService {
     public TenantStatsService(
             TenantRepository tenantRepository,
             UserRepository userRepository,
-            TeacherRepository teacherRepository,
             StudentRepository studentRepository,
             DepartmentRepository departmentRepository,
             CourseRepository courseRepository,
@@ -50,7 +49,6 @@ public class TenantStatsService {
 
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
-        this.teacherRepository = teacherRepository;
         this.studentRepository = studentRepository;
         this.departmentRepository = departmentRepository;
         this.courseRepository = courseRepository;
@@ -66,8 +64,8 @@ public class TenantStatsService {
         try {
             return new TenantDetailsResponse(
                     TenantSummaryResponse.from(tenant),
-                    userRepository.count(),
-                    teacherRepository.count(),
+                    userRepository.count(), // now includes teacher-role rows too, not just staff/admin
+                    userRepository.countByRole_Name(TEACHER_ROLE),
                     studentRepository.count(),
                     departmentRepository.count(),
                     courseRepository.count(),

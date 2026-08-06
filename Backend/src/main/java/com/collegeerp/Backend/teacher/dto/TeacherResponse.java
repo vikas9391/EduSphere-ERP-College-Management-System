@@ -30,4 +30,11 @@ public class TeacherResponse {
     private Integer experience;
 
     private LocalDate joiningDate;
+
+    /** "TEACHER" for every teacher - included for parity with UserResponse. */
+    private String roleName;
+
+    private boolean isActive;
+
+    private boolean mustChangePassword;
 }

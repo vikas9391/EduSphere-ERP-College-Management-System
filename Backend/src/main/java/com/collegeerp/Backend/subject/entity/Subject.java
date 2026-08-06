@@ -1,7 +1,7 @@
 package com.collegeerp.Backend.subject.entity;
 
 import com.collegeerp.Backend.course.entity.Course;
-import com.collegeerp.Backend.teacher.entity.Teacher;
+import com.collegeerp.Backend.common.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,7 +38,7 @@ public class Subject {
 
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
-    private Teacher teacher;
+    private User teacher;
 
     private LocalDateTime createdAt;
 }

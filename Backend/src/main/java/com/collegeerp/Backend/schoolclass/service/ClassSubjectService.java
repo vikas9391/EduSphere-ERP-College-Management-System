@@ -17,8 +17,8 @@ import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,20 +48,20 @@ public class ClassSubjectService {
 
     private final ClassSubjectRepository classSubjectRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
     private final SchoolClassService schoolClassService;
 
     public ClassSubjectService(ClassSubjectRepository classSubjectRepository,
                                 ClassEnrollmentRepository classEnrollmentRepository,
-                                TeacherRepository teacherRepository,
+                                UserRepository userRepository,
                                 StudentRepository studentRepository,
                                 SubjectRepository subjectRepository,
                                 SchoolClassService schoolClassService) {
         this.classSubjectRepository = classSubjectRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
         this.schoolClassService = schoolClassService;
@@ -88,8 +88,11 @@ public class ClassSubjectService {
                     "This class is capped at " + schoolClass.getMaxSubjects() + " subject(s); remove one before adding another");
         }
 
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+        User teacher = userRepository.findById(request.getTeacherId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", request.getTeacherId()));
+        if (!"TEACHER".equals(teacher.getRole().getName())) {
+            throw ResourceNotFoundException.of("Teacher", request.getTeacherId());
+        }
 
         Subject linkedSubject = null;
         if (request.getSubjectId() != null) {

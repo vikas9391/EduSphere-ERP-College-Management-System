@@ -6,8 +6,8 @@ import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,16 +18,16 @@ public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final SubjectRepository subjectRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
             SubjectRepository subjectRepository,
-            TeacherRepository teacherRepository) {
+            UserRepository userRepository) {
 
         this.assignmentRepository = assignmentRepository;
         this.subjectRepository = subjectRepository;
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
     }
 
     public AssignmentResponse createAssignment(
@@ -37,7 +37,7 @@ public class AssignmentService {
                 .orElseThrow(() ->
                         new RuntimeException("Subject not found"));
 
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+        User teacher = userRepository.findById(request.getTeacherId())
                 .orElseThrow(() ->
                         new RuntimeException("Teacher not found"));
 
@@ -85,7 +85,7 @@ public class AssignmentService {
                 .orElseThrow(() ->
                         new RuntimeException("Subject not found"));
 
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+        User teacher = userRepository.findById(request.getTeacherId())
                 .orElseThrow(() ->
                         new RuntimeException("Teacher not found"));
 

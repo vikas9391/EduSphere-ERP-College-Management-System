@@ -1,6 +1,6 @@
 package com.collegeerp.Backend.schoolclass.entity;
 
-import com.collegeerp.Backend.teacher.entity.Teacher;
+import com.collegeerp.Backend.common.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,7 +40,7 @@ public class SchoolClass {
     /** The teacher who owns/manages this class. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
-    private Teacher teacher;
+    private User teacher;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

@@ -44,6 +44,15 @@ public class TenantProvisioningService {
 
     private static final Logger log = LoggerFactory.getLogger(TenantProvisioningService.class);
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String TEACHER_ROLE = "TEACHER";
+
+    // Mirrors the permission set seeded for existing tenants by V22 -
+    // TeacherService#createTeacher looks this role up by name, so every new tenant
+    // needs it seeded here too, not just backfilled onto tenants that already existed.
+    private static final java.util.Set<Permission> TEACHER_PERMISSIONS = java.util.Set.of(
+            Permission.VIEW_STUDENT, Permission.VIEW_SUBJECT, Permission.VIEW_COURSE, Permission.VIEW_DEPARTMENT,
+            Permission.VIEW_ENROLLMENT, Permission.MANAGE_ATTENDANCE, Permission.VIEW_ATTENDANCE_REPORTS,
+            Permission.MANAGE_ASSIGNMENTS, Permission.VIEW_ASSIGNMENTS, Permission.MANAGE_MARKS, Permission.VIEW_RESULTS);
 
     private final TenantRepository tenantRepository;
     private final TenantSchemaMigrator schemaMigrator;
@@ -212,6 +221,14 @@ public class TenantProvisioningService {
                     .build();
 
             userRepository.save(admin);
+
+            Role teacherRole = new Role();
+            teacherRole.setName(TEACHER_ROLE);
+            teacherRole.setDescription("Teaching staff");
+            teacherRole.setSystemRole(true);
+            teacherRole.setPermissions(
+                    TEACHER_PERMISSIONS.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()));
+            roleRepository.save(teacherRole);
 
         } catch (Exception e) {
             throw new TenantProvisioningException(

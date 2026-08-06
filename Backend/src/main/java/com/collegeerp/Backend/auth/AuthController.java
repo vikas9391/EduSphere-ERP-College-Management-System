@@ -16,8 +16,6 @@ import com.collegeerp.Backend.common.service.EmailService;
 import com.collegeerp.Backend.security.JwtService;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import com.collegeerp.Backend.tenant.TenantContext;
 import com.collegeerp.Backend.tenant.entity.Tenant;
 import com.collegeerp.Backend.tenant.repository.TenantRepository;
@@ -38,22 +36,21 @@ public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final String STUDENT_ROLE = "STUDENT";
-    private static final String TEACHER_ROLE = "TEACHER";
     private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
     private static final String STUDENT_STATUS_ACTIVE = "ACTIVE";
     private static final String PUBLIC_SCHEMA = "public";
 
     // Account-type tags embedded in refresh tokens only (see JwtService#generateRefreshToken) -
-    // tells /api/auth/refresh which repository to re-look-up the account in.
+    // tells /api/auth/refresh which repository to re-look-up the account in. Teacher is not
+    // a separate tag: teachers are plain "users" rows (role = TEACHER) now, so they fall
+    // under STAFF like Admin/HOD/any custom role.
     private static final String ACCOUNT_TYPE_STAFF = "STAFF";
-    private static final String ACCOUNT_TYPE_TEACHER = "TEACHER";
     private static final String ACCOUNT_TYPE_STUDENT = "STUDENT";
     private static final String ACCOUNT_TYPE_SUPER_ADMIN = "SUPER_ADMIN";
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
-    private final TeacherRepository teacherRepository;
     private final SuperAdminRepository superAdminRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
@@ -75,7 +72,6 @@ public class AuthController {
             TenantRepository tenantRepository,
             UserRepository userRepository,
             StudentRepository studentRepository,
-            TeacherRepository teacherRepository,
             SuperAdminRepository superAdminRepository,
             JwtService jwtService,
             PasswordEncoder passwordEncoder,
@@ -87,7 +83,6 @@ public class AuthController {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
-        this.teacherRepository = teacherRepository;
         this.superAdminRepository = superAdminRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
@@ -127,7 +122,6 @@ public class AuthController {
 
         try {
             LoginResponse response = authenticateStaffOrAdmin(request, tenant)
-                    .or(() -> authenticateTeacher(request, tenant))
                     .or(() -> authenticateStudent(request, tenant))
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
@@ -205,7 +199,6 @@ public class AuthController {
             LoginResponse response = switch (accountType) {
                 case ACCOUNT_TYPE_SUPER_ADMIN -> refreshSuperAdmin(id);
                 case ACCOUNT_TYPE_STAFF -> refreshStaffOrAdmin(id, schema);
-                case ACCOUNT_TYPE_TEACHER -> refreshTeacher(id, schema);
                 case ACCOUNT_TYPE_STUDENT -> refreshStudent(id, schema);
                 default -> throw new InvalidCredentialsException("Invalid or expired refresh token");
             };
@@ -341,14 +334,6 @@ public class AuthController {
                 schema, user.isMustChangePassword());
     }
 
-    private LoginResponse refreshTeacher(Long id, String schema) {
-        Teacher teacher = teacherRepository.findById(id)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
-        String token = jwtService.generateAccessToken(teacher.getId(), teacher.getEmail(), schema, TEACHER_ROLE);
-        String newRefreshToken = jwtService.generateRefreshToken(teacher.getId(), teacher.getEmail(), schema, ACCOUNT_TYPE_TEACHER);
-        return LoginResponse.of(token, newRefreshToken, accessTokenExpiration, teacher.getEmail(), TEACHER_ROLE, schema);
-    }
-
     private LoginResponse refreshStudent(Long id, String schema) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
@@ -360,6 +345,14 @@ public class AuthController {
         return LoginResponse.of(token, newRefreshToken, accessTokenExpiration, student.getEmail(), STUDENT_ROLE, schema);
     }
 
+    /**
+     * Handles every account that lives on the shared users/roles table - Admin, HOD,
+     * Supervisor, any custom role, and Teacher (see the "TEACHER" system role seeded
+     * in V22 / {@code TenantProvisioningService}). Teacher needs no special-casing
+     * here anymore: it's just another role name, and {@code user.getId()} is exactly
+     * what every teacher-scoped FK (subjects, classes, assignments, exam schedules)
+     * points at now.
+     */
     private java.util.Optional<LoginResponse> authenticateStaffOrAdmin(LoginRequest request, Tenant tenant) {
         return userRepository.findByEmail(request.email())
                 .map(user -> {
@@ -376,27 +369,6 @@ public class AuthController {
                             user.getId(), user.getEmail(), tenant.getSchemaName(), ACCOUNT_TYPE_STAFF);
                     return LoginResponse.ofStaff(token, refreshToken, accessTokenExpiration, user.getEmail(), user.getRole().getName(),
                             tenant.getSchemaName(), user.isMustChangePassword());
-                });
-    }
-
-    private java.util.Optional<LoginResponse> authenticateTeacher(LoginRequest request, Tenant tenant) {
-        return teacherRepository.findByEmail(request.email())
-                .map(teacher -> {
-                    if (teacher.getPasswordHash() == null) {
-                        // Teacher record predates the password_hash column being added, or was
-                        // created before a password was ever set. Fail clearly instead of
-                        // letting passwordEncoder.matches() throw on a null encoded value.
-                        throw new InvalidCredentialsException(
-                                "This teacher account has no password set. Please contact an administrator.");
-                    }
-                    if (!passwordEncoder.matches(request.password(), teacher.getPasswordHash())) {
-                        throw new InvalidCredentialsException("Invalid email or password");
-                    }
-                    String token = jwtService.generateAccessToken(
-                            teacher.getId(), teacher.getEmail(), tenant.getSchemaName(), TEACHER_ROLE);
-                    String refreshToken = jwtService.generateRefreshToken(
-                            teacher.getId(), teacher.getEmail(), tenant.getSchemaName(), ACCOUNT_TYPE_TEACHER);
-                    return LoginResponse.of(token, refreshToken, accessTokenExpiration, teacher.getEmail(), TEACHER_ROLE, tenant.getSchemaName());
                 });
     }
 

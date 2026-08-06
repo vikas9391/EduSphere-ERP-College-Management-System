@@ -1,5 +1,7 @@
 package com.collegeerp.Backend.subject.service;
 
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.exception.DuplicateResourceException;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.course.entity.Course;
@@ -8,8 +10,6 @@ import com.collegeerp.Backend.subject.dto.SubjectRequest;
 import com.collegeerp.Backend.subject.dto.SubjectResponse;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -24,17 +24,18 @@ import java.time.LocalDateTime;
 public class SubjectService {
 
     private static final Logger log = LoggerFactory.getLogger(SubjectService.class);
+    private static final String TEACHER_ROLE = "TEACHER";
 
     private final SubjectRepository subjectRepository;
     private final CourseRepository courseRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
 
     public SubjectService(SubjectRepository subjectRepository,
                            CourseRepository courseRepository,
-                           TeacherRepository teacherRepository) {
+                           UserRepository userRepository) {
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
     }
 
     public SubjectResponse createSubject(SubjectRequest request) {
@@ -44,7 +45,7 @@ public class SubjectService {
         }
 
         Course course = findCourseOrThrow(request.getCourseId());
-        Teacher teacher = findTeacherOrThrow(request.getTeacherId());
+        User teacher = findTeacherOrThrow(request.getTeacherId());
 
         Subject subject = Subject.builder()
                 .subjectCode(request.getSubjectCode())
@@ -83,7 +84,7 @@ public class SubjectService {
         }
 
         Course course = findCourseOrThrow(request.getCourseId());
-        Teacher teacher = findTeacherOrThrow(request.getTeacherId());
+        User teacher = findTeacherOrThrow(request.getTeacherId());
 
         subject.setSubjectCode(request.getSubjectCode());
         subject.setSubjectName(request.getSubjectName());
@@ -116,9 +117,14 @@ public class SubjectService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Course", courseId));
     }
 
-    private Teacher findTeacherOrThrow(Long teacherId) {
-        return teacherRepository.findById(teacherId)
+    /** Also enforces that whoever gets assigned really is a teacher, not e.g. an Admin. */
+    private User findTeacherOrThrow(Long teacherId) {
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
+        if (!TEACHER_ROLE.equals(teacher.getRole().getName())) {
+            throw ResourceNotFoundException.of("Teacher", teacherId);
+        }
+        return teacher;
     }
 
     private SubjectResponse map(Subject s) {

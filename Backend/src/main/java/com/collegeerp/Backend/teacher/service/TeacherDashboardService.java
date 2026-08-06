@@ -6,14 +6,14 @@ import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
 import com.collegeerp.Backend.attendance.entity.Attendance;
 import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.enrollment.entity.Enrollment;
 import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import com.collegeerp.Backend.teacher.dto.*;
-import com.collegeerp.Backend.teacher.entity.Teacher;
-import com.collegeerp.Backend.teacher.repository.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class TeacherDashboardService {
     private static final String PRESENT_STATUS = "PRESENT";
     private static final String EVALUATED_STATUS = "EVALUATED";
 
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
     private final SubjectRepository subjectRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AttendanceRepository attendanceRepository;
@@ -54,7 +54,7 @@ public class TeacherDashboardService {
     private final TeacherAnnouncementService announcementService;
 
     public TeacherDashboardService(
-            TeacherRepository teacherRepository,
+            UserRepository userRepository,
             SubjectRepository subjectRepository,
             EnrollmentRepository enrollmentRepository,
             AttendanceRepository attendanceRepository,
@@ -62,7 +62,7 @@ public class TeacherDashboardService {
             AssignmentSubmissionRepository submissionRepository,
             TeacherScheduleService scheduleService,
             TeacherAnnouncementService announcementService) {
-        this.teacherRepository = teacherRepository;
+        this.userRepository = userRepository;
         this.subjectRepository = subjectRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.attendanceRepository = attendanceRepository;
@@ -76,7 +76,7 @@ public class TeacherDashboardService {
 
         log.debug("Building dashboard for teacher id={}", teacherId);
 
-        Teacher teacher = teacherRepository.findById(teacherId)
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
 
         List<Subject> subjects = subjectRepository.findByTeacherIdWithRelations(teacherId);

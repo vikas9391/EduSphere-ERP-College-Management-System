@@ -1,7 +1,7 @@
 package com.collegeerp.Backend.schoolclass.entity;
 
 import com.collegeerp.Backend.subject.entity.Subject;
-import com.collegeerp.Backend.teacher.entity.Teacher;
+import com.collegeerp.Backend.common.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,7 +42,7 @@ public class ClassSubject {
     /** The subject-specific teacher - not necessarily the class owner. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
-    private Teacher teacher;
+    private User teacher;
 
     @Column(name = "enrollment_mode", nullable = false)
     @Enumerated(EnumType.STRING)

@@ -1,7 +1,7 @@
 package com.collegeerp.Backend.examination.entity;
 
 import com.collegeerp.Backend.subject.entity.Subject;
-import com.collegeerp.Backend.teacher.entity.Teacher;
+import com.collegeerp.Backend.common.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,7 +35,7 @@ public class ExamSchedule {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invigilator_id")
-    private Teacher invigilator;
+    private User invigilator;
 
     @Column(nullable = false)
     private LocalDate examDate;
