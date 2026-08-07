@@ -83,11 +83,16 @@ public class RoleService {
 
         Role role = findRoleOrThrow(id);
 
-        if (role.isSystemRole()) {
-            throw new ForbiddenException("'" + role.getName() + "' is a built-in role and can't be edited");
+        String name = request.getName().trim();
+
+        // Built-in roles (ADMIN, TEACHER) keep their name locked because other
+        // services (e.g. TeacherService) look them up by exact name - but their
+        // permissions can still be changed freely.
+        if (role.isSystemRole() && !role.getName().equals(name)) {
+            throw new ForbiddenException(
+                    "'" + role.getName() + "' is a built-in role - its name can't be changed, but its permissions can");
         }
 
-        String name = request.getName().trim();
         if (!role.getName().equals(name) && roleRepository.existsByName(name)) {
             throw new DuplicateResourceException("A role named '" + name + "' already exists");
         }

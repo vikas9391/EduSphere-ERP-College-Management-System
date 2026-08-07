@@ -145,16 +145,16 @@ export function RolesPage() {
                       : `${role.permissions.length} permission${role.permissions.length === 1 ? '' : 's'} granted`}
                   </p>
                 </div>
-                {!role.isSystemRole && (
-                  <div className="flex shrink-0 gap-3">
-                    <button onClick={() => openEdit(role)} className="text-muted hover:text-text">
-                      <Pencil size={15} />
-                    </button>
+                <div className="flex shrink-0 gap-3">
+                  <button onClick={() => openEdit(role)} className="text-muted hover:text-text">
+                    <Pencil size={15} />
+                  </button>
+                  {!role.isSystemRole && (
                     <button onClick={() => handleDelete(role)} className="text-muted hover:text-danger">
                       <Trash2 size={15} />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </li>
           ))}
@@ -167,11 +167,15 @@ export function RolesPage() {
             <Field label="Role name">
               <input
                 required
+                disabled={editing?.isSystemRole}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Supervisor"
-                className={inputClass}
+                className={`${inputClass} ${editing?.isSystemRole ? 'cursor-not-allowed opacity-60' : ''}`}
               />
+              {editing?.isSystemRole && (
+                <p className="mt-1 text-xs text-muted">Built-in role names can't be changed.</p>
+              )}
             </Field>
             <Field label="Description">
               <input
