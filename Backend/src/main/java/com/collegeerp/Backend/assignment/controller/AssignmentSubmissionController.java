@@ -33,15 +33,16 @@ public class AssignmentSubmissionController {
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @GetMapping
-    public List<AssignmentSubmissionResponse> getAllSubmissions() {
-        return service.getAllSubmissions();
+    public List<AssignmentSubmissionResponse> getAllSubmissions(Authentication authentication) {
+        return service.getAllSubmissions(principal(authentication));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @GetMapping("/assignment/{assignmentId}")
     public List<AssignmentSubmissionResponse> getAssignmentSubmissions(
+            Authentication authentication,
             @PathVariable Long assignmentId) {
-        return service.getAssignmentSubmissions(assignmentId);
+        return service.getAssignmentSubmissions(assignmentId, principal(authentication));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
@@ -51,7 +52,10 @@ public class AssignmentSubmissionController {
             @PathVariable Long id,
             @RequestParam Integer marks,
             @RequestParam(required = false, defaultValue = "") String feedback) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return service.evaluateSubmission(id, marks, feedback, principal);
+        return service.evaluateSubmission(id, marks, feedback, principal(authentication));
+    }
+
+    private UserPrincipal principal(Authentication authentication) {
+        return (UserPrincipal) authentication.getPrincipal();
     }
 }
