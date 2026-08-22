@@ -26,19 +26,18 @@ public class EnrollmentService {
             EnrollmentRepository enrollmentRepository,
             StudentRepository studentRepository,
             SubjectRepository subjectRepository) {
-
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
     }
 
     public EnrollmentResponse createEnrollment(EnrollmentRequest request) {
-
-        if (enrollmentRepository.existsByStudentIdAndSubjectId(
+        if (enrollmentRepository.existsByStudentIdAndSubjectIdAndAcademicYearAndSemester(
                 request.getStudentId(),
-                request.getSubjectId())) {
-
-            throw new RuntimeException("Student already enrolled.");
+                request.getSubjectId(),
+                request.getAcademicYear(),
+                request.getSemester())) {
+            throw new RuntimeException("Student is already enrolled in this subject for the selected academic year and semester.");
         }
 
         Student student = studentRepository.findById(request.getStudentId())
@@ -58,37 +57,27 @@ public class EnrollmentService {
                 .build();
 
         enrollment = enrollmentRepository.save(enrollment);
-
         return map(enrollment);
     }
 
     public List<EnrollmentResponse> getAllEnrollments() {
-
-        return enrollmentRepository.findAll()
-                .stream()
-                .map(this::map)
-                .toList();
+        return enrollmentRepository.findAll().stream().map(this::map).toList();
     }
 
     public EnrollmentResponse getEnrollment(Long id) {
-
         Enrollment enrollment = enrollmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found"));
-
         return map(enrollment);
     }
 
     public void deleteEnrollment(Long id) {
-
         if (!enrollmentRepository.existsById(id)) {
             throw new RuntimeException("Enrollment not found");
         }
-
         enrollmentRepository.deleteById(id);
     }
 
     private EnrollmentResponse map(Enrollment e) {
-
         return EnrollmentResponse.builder()
                 .id(e.getId())
                 .studentId(e.getStudent().getId())
