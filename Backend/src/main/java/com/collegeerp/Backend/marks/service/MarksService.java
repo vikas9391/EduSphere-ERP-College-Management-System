@@ -15,8 +15,12 @@ import com.collegeerp.Backend.marks.repository.MarksRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
+import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +57,8 @@ public class MarksService {
 
     public MarksResponse enterMarks(MarksRequest request) {
         ExamSchedule examSchedule = findExamSchedule(request.getExamScheduleId());
+        requireCanManageSubject(examSchedule);
+
         Student student = studentRepository.findById(request.getStudentId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", request.getStudentId()));
 
@@ -85,6 +91,7 @@ public class MarksService {
 
     public MarksResponse updateMarks(Long id, MarksRequest request) {
         Marks marks = findMarks(id);
+        requireCanManageSubject(marks.getExamSchedule());
 
         if ("PUBLISHED".equals(marks.getStatus())) {
             throw new BadRequestException("Published marks cannot be edited");
@@ -108,7 +115,8 @@ public class MarksService {
 
     @Transactional(readOnly = true)
     public List<MarksResponse> getMarksByExamSchedule(Long examScheduleId) {
-        findExamSchedule(examScheduleId);
+        ExamSchedule schedule = findExamSchedule(examScheduleId);
+        requireCanManageSubject(schedule);
         return marksRepository.findByExamScheduleIdWithDetails(examScheduleId)
                 .stream().map(this::map).toList();
     }
@@ -120,13 +128,15 @@ public class MarksService {
 
     public MarksResponse publishMarks(Long id) {
         Marks marks = findMarks(id);
+        requireCanManageSubject(marks.getExamSchedule());
         marks.setStatus("PUBLISHED");
         marks.setUpdatedAt(LocalDateTime.now());
         return map(marksRepository.save(marks));
     }
 
     public List<MarksResponse> publishMarksForExamSchedule(Long examScheduleId) {
-        findExamSchedule(examScheduleId);
+        ExamSchedule schedule = findExamSchedule(examScheduleId);
+        requireCanManageSubject(schedule);
         List<Marks> marksList = marksRepository.findByExamScheduleIdWithDetails(examScheduleId);
         if (marksList.isEmpty()) {
             throw new ResourceNotFoundException("No marks found for this exam schedule");
@@ -142,6 +152,7 @@ public class MarksService {
 
     public void deleteMarks(Long id) {
         Marks marks = findMarks(id);
+        requireCanManageSubject(marks.getExamSchedule());
         if ("PUBLISHED".equals(marks.getStatus())) {
             throw new BadRequestException("Published marks cannot be deleted");
         }
@@ -151,6 +162,7 @@ public class MarksService {
     @Transactional(readOnly = true)
     public List<EligibleStudentResponse> getEligibleStudents(Long examScheduleId) {
         ExamSchedule examSchedule = findExamSchedule(examScheduleId);
+        requireCanManageSubject(examSchedule);
         Long subjectId = examSchedule.getSubject().getId();
         List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
 
@@ -180,6 +192,36 @@ public class MarksService {
                         .alreadyGraded(marksRepository.existsByExamScheduleIdAndStudentId(examScheduleId, s.getId()))
                         .build())
                 .toList();
+    }
+
+    /**
+     * Teachers may only manage marks for subjects assigned to their own user account.
+     * College admins retain the existing unrestricted administrative path.
+     */
+    private void requireCanManageSubject(ExamSchedule examSchedule) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+
+        Object principalObject = authentication.getPrincipal();
+        if (!(principalObject instanceof UserPrincipal principal)) {
+            throw new AccessDeniedException("Unable to determine the authenticated user");
+        }
+
+        String role = principal.getRole();
+        if ("ADMIN".equalsIgnoreCase(role) || "SUPER_ADMIN".equalsIgnoreCase(role)) {
+            return;
+        }
+
+        if (!"TEACHER".equalsIgnoreCase(role)) {
+            throw new AccessDeniedException("Only the assigned teacher or a college admin can manage marks");
+        }
+
+        if (examSchedule.getSubject().getTeacher() == null
+                || !principal.getId().equals(examSchedule.getSubject().getTeacher().getId())) {
+            throw new AccessDeniedException("Teachers can only manage marks for their assigned subjects");
+        }
     }
 
     private void validateEligibility(Long subjectId, Long studentId) {
