@@ -8,16 +8,11 @@ import java.util.List;
 
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
-    boolean existsByStudentIdAndSubjectId(Long studentId, Long subjectId);
+    boolean existsByStudentIdAndSubjectIdAndAcademicYearAndSemester(
+            Long studentId, Long subjectId, String academicYear, Integer semester);
 
     List<Enrollment> findByStudentId(Long studentId);
 
-    /**
-     * Fetch-joins subject -> course -> department and subject -> teacher, so the student
-     * self-service endpoints (dashboard, enrollments, subjects) can render everything in one
-     * query without N+1 lazy-loading. {@code course.department} uses LEFT JOIN FETCH because
-     * {@code Course.department} is nullable.
-     */
     @Query("""
            SELECT e
            FROM Enrollment e
@@ -30,14 +25,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            """)
     List<Enrollment> findByStudentIdWithDetails(Long studentId);
 
-    /**
-     * Fetch-joins student + subject -> course -> department, so the teacher self-service
-     * roster endpoint ("my students") can render every enrolled student across every
-     * subject this teacher owns without N+1 lazy-loading. One row per (student, subject)
-     * pair, same shape as {@link #findByStudentIdWithDetails} - a teacher with the same
-     * student in two subjects sees two rows, which is correct: it's a roster of
-     * enrollments, not a deduplicated student list.
-     */
     @Query("""
            SELECT e
            FROM Enrollment e
@@ -51,11 +38,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            """)
     List<Enrollment> findBySubjectTeacherIdWithDetails(Long teacherId);
 
-    /**
-     * Every student formally enrolled in a given Subject. Used by
-     * {@code MarksService.getEligibleStudents} as the fallback eligibility source when
-     * no {@code ClassSubject} is linked to that Subject.
-     */
     @Query("""
            SELECT e
            FROM Enrollment e
