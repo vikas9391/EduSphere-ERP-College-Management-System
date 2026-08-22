@@ -39,7 +39,6 @@ public class AssignmentSubmissionService {
     public AssignmentSubmissionResponse submitAssignment(AssignmentSubmissionRequest request) {
         Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
-
         Student student = studentRepository.findById(request.getStudentId())
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
@@ -56,7 +55,6 @@ public class AssignmentSubmissionService {
         if (!formallyEnrolled && !sameCourse) {
             throw new AccessDeniedException("You are not enrolled in the course or subject for this assignment");
         }
-
         if (request.getSubmissionUrl() == null || request.getSubmissionUrl().isBlank()) {
             throw new IllegalArgumentException("Submission URL is required");
         }
@@ -72,12 +70,22 @@ public class AssignmentSubmissionService {
         return map(submissionRepository.save(submission));
     }
 
-    public List<AssignmentSubmissionResponse> getAllSubmissions() {
-        return submissionRepository.findAll().stream().map(this::map).toList();
+    public List<AssignmentSubmissionResponse> getAllSubmissions(UserPrincipal principal) {
+        if (isAdmin(principal)) {
+            return submissionRepository.findAll().stream().map(this::map).toList();
+        }
+        requireTeacher(principal);
+        return submissionRepository.findByAssignmentTeacherId(principal.getId())
+                .stream().map(this::map).toList();
     }
 
-    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(Long assignmentId) {
-        return submissionRepository.findByAssignmentId(assignmentId).stream().map(this::map).toList();
+    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(
+            Long assignmentId, UserPrincipal principal) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        requireAssignmentOwner(assignment, principal);
+        return submissionRepository.findByAssignmentIdWithDetails(assignmentId)
+                .stream().map(this::map).toList();
     }
 
     public AssignmentSubmissionResponse evaluateSubmission(
@@ -100,16 +108,25 @@ public class AssignmentSubmissionService {
     }
 
     private void requireAssignmentOwner(Assignment assignment, UserPrincipal principal) {
-        if ("ADMIN".equalsIgnoreCase(principal.getRole())
-                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole())) {
+        if (isAdmin(principal)) {
             return;
         }
-
-        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
-                || assignment.getTeacher() == null
+        requireTeacher(principal);
+        if (assignment.getTeacher() == null
                 || !Objects.equals(assignment.getTeacher().getId(), principal.getId())) {
             throw new AccessDeniedException("You can manage only submissions for your own assignments");
         }
+    }
+
+    private void requireTeacher(UserPrincipal principal) {
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())) {
+            throw new AccessDeniedException("Only teachers can access teacher-scoped submissions");
+        }
+    }
+
+    private boolean isAdmin(UserPrincipal principal) {
+        return "ADMIN".equalsIgnoreCase(principal.getRole())
+                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
     }
 
     private AssignmentSubmissionResponse map(AssignmentSubmission s) {
