@@ -1,5 +1,8 @@
 package com.collegeerp.Backend.marks.service;
 
+import com.collegeerp.Backend.common.exception.BadRequestException;
+import com.collegeerp.Backend.common.exception.DuplicateResourceException;
+import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.enrollment.entity.Enrollment;
 import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
@@ -15,11 +18,13 @@ import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Transactional
 public class MarksService {
 
     private static final String SOURCE_CLASS_ROSTER = "CLASS_ROSTER";
@@ -47,15 +52,12 @@ public class MarksService {
     }
 
     public MarksResponse enterMarks(MarksRequest request) {
-
-        ExamSchedule examSchedule = examScheduleRepository.findById(request.getExamScheduleId())
-                .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
-
+        ExamSchedule examSchedule = findExamSchedule(request.getExamScheduleId());
         Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> ResourceNotFoundException.of("Student", request.getStudentId()));
 
         if (marksRepository.existsByExamScheduleIdAndStudentId(examSchedule.getId(), student.getId())) {
-            throw new RuntimeException("Marks already entered for this student in this exam schedule");
+            throw new DuplicateResourceException("Marks already entered for this student in this exam schedule");
         }
 
         validateEligibility(examSchedule.getSubject().getId(), student.getId());
@@ -78,18 +80,14 @@ public class MarksService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        marks = marksRepository.save(marks);
-
-        return map(marks);
+        return map(marksRepository.save(marks));
     }
 
     public MarksResponse updateMarks(Long id, MarksRequest request) {
-
-        Marks marks = marksRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marks record not found"));
+        Marks marks = findMarks(id);
 
         if ("PUBLISHED".equals(marks.getStatus())) {
-            throw new RuntimeException("Published marks cannot be edited");
+            throw new BadRequestException("Published marks cannot be edited");
         }
 
         validateMarks(request, marks.getExamSchedule());
@@ -105,44 +103,33 @@ public class MarksService {
         marks.setGradePoint(GradeUtil.gradePointFor(grade));
         marks.setUpdatedAt(LocalDateTime.now());
 
-        marks = marksRepository.save(marks);
-
-        return map(marks);
+        return map(marksRepository.save(marks));
     }
 
+    @Transactional(readOnly = true)
     public List<MarksResponse> getMarksByExamSchedule(Long examScheduleId) {
-
+        findExamSchedule(examScheduleId);
         return marksRepository.findByExamScheduleIdWithDetails(examScheduleId)
-                .stream()
-                .map(this::map)
-                .toList();
+                .stream().map(this::map).toList();
     }
 
+    @Transactional(readOnly = true)
     public MarksResponse getMarks(Long id) {
-
-        return map(marksRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new RuntimeException("Marks record not found")));
+        return map(findMarks(id));
     }
 
     public MarksResponse publishMarks(Long id) {
-
-        Marks marks = marksRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marks record not found"));
-
+        Marks marks = findMarks(id);
         marks.setStatus("PUBLISHED");
         marks.setUpdatedAt(LocalDateTime.now());
-
-        marks = marksRepository.save(marks);
-
-        return map(marks);
+        return map(marksRepository.save(marks));
     }
 
     public List<MarksResponse> publishMarksForExamSchedule(Long examScheduleId) {
-
+        findExamSchedule(examScheduleId);
         List<Marks> marksList = marksRepository.findByExamScheduleIdWithDetails(examScheduleId);
-
         if (marksList.isEmpty()) {
-            throw new RuntimeException("No marks found for this exam schedule");
+            throw new ResourceNotFoundException("No marks found for this exam schedule");
         }
 
         marksList.forEach(m -> {
@@ -150,40 +137,20 @@ public class MarksService {
             m.setUpdatedAt(LocalDateTime.now());
         });
 
-        return marksRepository.saveAll(marksList)
-                .stream()
-                .map(this::map)
-                .toList();
+        return marksRepository.saveAll(marksList).stream().map(this::map).toList();
     }
 
     public void deleteMarks(Long id) {
-
-        Marks marks = marksRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marks record not found"));
-
+        Marks marks = findMarks(id);
         if ("PUBLISHED".equals(marks.getStatus())) {
-            throw new RuntimeException("Published marks cannot be deleted");
+            throw new BadRequestException("Published marks cannot be deleted");
         }
-
-        marksRepository.deleteById(id);
+        marksRepository.delete(marks);
     }
 
-    /**
-     * Who can have marks entered against a given exam schedule, and where that
-     * eligibility comes from.
-     * <p>
-     * If the exam schedule's Subject is linked to one or more {@link ClassSubject}s (see
-     * {@code ClassSubject#subject}), eligibility is scoped to the union of those
-     * classes' real rosters (CLASS_ROSTER) - a student must actually be enrolled in the
-     * teacher's class, not just hold a loose formal Enrollment row. Otherwise it falls
-     * back to the plain Enrollment table (FORMAL_ENROLLMENT), unchanged from before this
-     * bridge existed.
-     */
+    @Transactional(readOnly = true)
     public List<EligibleStudentResponse> getEligibleStudents(Long examScheduleId) {
-
-        ExamSchedule examSchedule = examScheduleRepository.findById(examScheduleId)
-                .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
-
+        ExamSchedule examSchedule = findExamSchedule(examScheduleId);
         Long subjectId = examSchedule.getSubject().getId();
         List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
 
@@ -215,15 +182,7 @@ public class MarksService {
                 .toList();
     }
 
-    /**
-     * If the subject being examined is linked to one or more class-subjects, the
-     * student must be on at least one of those classes' rosters - marks entry can no
-     * longer bypass the class roster just because a stray Enrollment row exists.
-     * Subjects with no class-subject link are unaffected (unchanged, pre-existing
-     * behavior - any formally enrolled student is eligible).
-     */
     private void validateEligibility(Long subjectId, Long studentId) {
-
         List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
         if (linkedClassSubjects.isEmpty()) {
             return;
@@ -233,26 +192,39 @@ public class MarksService {
                 .anyMatch(cs -> classEnrollmentRepository.existsByClassSubjectIdAndStudentId(cs.getId(), studentId));
 
         if (!onAnyRoster) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "This subject is linked to a class roster and the student is not enrolled in that class");
         }
     }
 
     private void validateMarks(MarksRequest request, ExamSchedule examSchedule) {
-
+        if (request.getInternalMarks() == null || request.getExternalMarks() == null) {
+            throw new BadRequestException("Internal and external marks are required");
+        }
         if (request.getInternalMarks() < 0 || request.getExternalMarks() < 0) {
-            throw new RuntimeException("Marks cannot be negative");
+            throw new BadRequestException("Marks cannot be negative");
+        }
+        if (examSchedule.getMaxMarks() == null || examSchedule.getMaxMarks() <= 0) {
+            throw new BadRequestException("Exam schedule maximum marks must be greater than zero");
         }
 
         int total = request.getInternalMarks() + request.getExternalMarks();
-
         if (total > examSchedule.getMaxMarks()) {
-            throw new RuntimeException("Total marks cannot exceed the maximum marks for this exam");
+            throw new BadRequestException("Total marks cannot exceed the maximum marks for this exam");
         }
     }
 
-    private MarksResponse map(Marks m) {
+    private ExamSchedule findExamSchedule(Long id) {
+        return examScheduleRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Exam schedule", id));
+    }
 
+    private Marks findMarks(Long id) {
+        return marksRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Marks", id));
+    }
+
+    private MarksResponse map(Marks m) {
         return MarksResponse.builder()
                 .id(m.getId())
                 .examScheduleId(m.getExamSchedule().getId())
