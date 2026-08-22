@@ -16,10 +16,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Extracts and validates the JWT on every request, populates the Spring Security
- * context with a {@link UserPrincipal}, and sets the resolved tenant schema for the
- * duration of the request via {@link TenantContext}. Always clears the tenant context
- * afterwards, even if downstream processing throws.
+ * Extracts and validates an access JWT on every request, populates Spring Security
+ * with the authenticated principal, and sets the tenant schema for the request.
+ * TenantContext is always cleared in finally to prevent thread-pool leakage.
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -42,36 +41,43 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader(AUTH_HEADER);
 
         if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length());
+            String token = authHeader.substring(BEARER_PREFIX.length()).trim();
 
-            if (jwtService.isTokenValid(token) && !jwtService.isRefreshToken(token)) {
+            // Require an explicitly minted access token. Previously any valid JWT that
+            // was not marked as a refresh token could reach protected endpoints.
+            if (jwtService.isTokenValid(token) && jwtService.isAccessToken(token)) {
                 String schema = jwtService.extractSchema(token);
                 String username = jwtService.extractUsername(token);
                 String role = jwtService.extractClaims(token).get("role", String.class);
                 Long userId = jwtService.extractUserId(token);
                 List<String> permissions = jwtService.extractPermissions(token);
 
-                log.debug("Authenticated request for user '{}' (role={}) on tenant '{}' [{}]",
-                        username, role, schema, request.getRequestURI());
+                if (role == null || role.isBlank()) {
+                    log.debug("Rejected access token without role [{}]", request.getRequestURI());
+                } else {
+                    log.debug("Authenticated request for user '{}' (role={}) on tenant '{}' [{}]",
+                            username, role, schema, request.getRequestURI());
 
-                TenantContext.setCurrentTenant(schema);
+                    TenantContext.setCurrentTenant(schema);
 
-                var principal = new UserPrincipal(userId, username, role, new java.util.HashSet<>(permissions));
+                    var principal = new UserPrincipal(
+                            userId, username, role, new java.util.HashSet<>(permissions));
 
-                List<org.springframework.security.core.GrantedAuthority> authorities =
-                        new java.util.ArrayList<>();
-                authorities.add(() -> "ROLE_" + role);
-                permissions.forEach(permission -> authorities.add(() -> permission));
+                    List<org.springframework.security.core.GrantedAuthority> authorities =
+                            new java.util.ArrayList<>();
+                    authorities.add(() -> "ROLE_" + role);
+                    permissions.forEach(permission -> authorities.add(() -> permission));
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        principal,
-                        null,
-                        authorities
-                );
+                    var authToken = new UsernamePasswordAuthenticationToken(
+                            principal,
+                            null,
+                            authorities
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             } else {
-                log.debug("Rejected request with invalid/expired JWT [{}]", request.getRequestURI());
+                log.debug("Rejected invalid/non-access JWT [{}]", request.getRequestURI());
             }
         }
 
@@ -79,6 +85,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();
+            SecurityContextHolder.clearContext();
         }
     }
 }
