@@ -6,12 +6,16 @@ import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.entity.AssignmentSubmission;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
+import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
+import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class AssignmentSubmissionService {
@@ -19,99 +23,102 @@ public class AssignmentSubmissionService {
     private final AssignmentSubmissionRepository submissionRepository;
     private final AssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     public AssignmentSubmissionService(
             AssignmentSubmissionRepository submissionRepository,
             AssignmentRepository assignmentRepository,
-            StudentRepository studentRepository) {
-
+            StudentRepository studentRepository,
+            EnrollmentRepository enrollmentRepository) {
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
         this.studentRepository = studentRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
-    public AssignmentSubmissionResponse submitAssignment(
-            AssignmentSubmissionRequest request) {
+    public AssignmentSubmissionResponse submitAssignment(AssignmentSubmissionRequest request) {
+        Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-        if (submissionRepository.existsByAssignmentIdAndStudentId(
-                request.getAssignmentId(),
-                request.getStudentId())) {
+        Student student = studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
+        if (submissionRepository.existsByAssignmentIdAndStudentId(assignment.getId(), student.getId())) {
             throw new RuntimeException("Assignment already submitted.");
         }
 
-        Assignment assignment = assignmentRepository.findById(
-                request.getAssignmentId())
-                .orElseThrow(() ->
-                        new RuntimeException("Assignment not found"));
+        boolean formallyEnrolled = enrollmentRepository.existsByStudentIdAndSubjectId(
+                student.getId(), assignment.getSubject().getId());
+        boolean sameCourse = student.getCourse() != null
+                && assignment.getSubject().getCourse() != null
+                && Objects.equals(student.getCourse().getId(), assignment.getSubject().getCourse().getId());
 
-        Student student = studentRepository.findById(
-                request.getStudentId())
-                .orElseThrow(() ->
-                        new RuntimeException("Student not found"));
+        if (!formallyEnrolled && !sameCourse) {
+            throw new AccessDeniedException("You are not enrolled in the course or subject for this assignment");
+        }
 
-        AssignmentSubmission submission =
-                AssignmentSubmission.builder()
-                        .assignment(assignment)
-                        .student(student)
-                        .submissionUrl(request.getSubmissionUrl())
-                        .submittedAt(LocalDateTime.now())
-                        .status("SUBMITTED")
-                        .build();
+        if (request.getSubmissionUrl() == null || request.getSubmissionUrl().isBlank()) {
+            throw new IllegalArgumentException("Submission URL is required");
+        }
 
-        submission = submissionRepository.save(submission);
+        AssignmentSubmission submission = AssignmentSubmission.builder()
+                .assignment(assignment)
+                .student(student)
+                .submissionUrl(request.getSubmissionUrl().trim())
+                .submittedAt(LocalDateTime.now())
+                .status("SUBMITTED")
+                .build();
 
-        return map(submission);
+        return map(submissionRepository.save(submission));
     }
 
     public List<AssignmentSubmissionResponse> getAllSubmissions() {
-
-        return submissionRepository.findAll()
-                .stream()
-                .map(this::map)
-                .toList();
+        return submissionRepository.findAll().stream().map(this::map).toList();
     }
 
-    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(
-            Long assignmentId) {
-
-        return submissionRepository.findByAssignmentId(assignmentId)
-                .stream()
-                .map(this::map)
-                .toList();
+    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(Long assignmentId) {
+        return submissionRepository.findByAssignmentId(assignmentId).stream().map(this::map).toList();
     }
 
     public AssignmentSubmissionResponse evaluateSubmission(
-            Long id,
-            Integer marks,
-            String feedback) {
+            Long id, Integer marks, String feedback, UserPrincipal principal) {
+        AssignmentSubmission submission = submissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Submission not found"));
 
-        AssignmentSubmission submission =
-                submissionRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException("Submission not found"));
+        requireAssignmentOwner(submission.getAssignment(), principal);
+
+        Integer maxMarks = submission.getAssignment().getMaxMarks();
+        if (marks == null || marks < 0 || marks > maxMarks) {
+            throw new IllegalArgumentException("Marks must be between 0 and " + maxMarks);
+        }
 
         submission.setMarks(marks);
         submission.setFeedback(feedback);
         submission.setStatus("EVALUATED");
 
-        submission = submissionRepository.save(submission);
-
-        return map(submission);
+        return map(submissionRepository.save(submission));
     }
 
-    private AssignmentSubmissionResponse map(
-            AssignmentSubmission s) {
+    private void requireAssignmentOwner(Assignment assignment, UserPrincipal principal) {
+        if ("ADMIN".equalsIgnoreCase(principal.getRole())
+                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole())) {
+            return;
+        }
 
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
+                || assignment.getTeacher() == null
+                || !Objects.equals(assignment.getTeacher().getId(), principal.getId())) {
+            throw new AccessDeniedException("You can manage only submissions for your own assignments");
+        }
+    }
+
+    private AssignmentSubmissionResponse map(AssignmentSubmission s) {
         return AssignmentSubmissionResponse.builder()
                 .id(s.getId())
                 .assignmentId(s.getAssignment().getId())
                 .assignmentTitle(s.getAssignment().getTitle())
                 .studentId(s.getStudent().getId())
-                .studentName(
-                        s.getStudent().getFirstName()
-                                + " "
-                                + s.getStudent().getLastName())
+                .studentName(s.getStudent().getFirstName() + " " + s.getStudent().getLastName())
                 .submissionUrl(s.getSubmissionUrl())
                 .submittedAt(s.getSubmittedAt())
                 .marks(s.getMarks())
@@ -119,5 +126,4 @@ public class AssignmentSubmissionService {
                 .status(s.getStatus())
                 .build();
     }
-
 }
