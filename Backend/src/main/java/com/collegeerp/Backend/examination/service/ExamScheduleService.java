@@ -12,8 +12,10 @@ import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ExamScheduleService {
@@ -34,26 +36,18 @@ public class ExamScheduleService {
     }
 
     public ExamScheduleResponse createSchedule(ExamScheduleRequest request) {
-
         Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
-
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
+
+        validateSchedule(request, exam, subject);
 
         if (examScheduleRepository.existsByExamIdAndSubjectId(exam.getId(), subject.getId())) {
             throw new RuntimeException("This subject is already scheduled for this exam");
         }
 
-        User invigilator = null;
-        if (request.getInvigilatorId() != null) {
-            invigilator = userRepository.findById(request.getInvigilatorId())
-                    .orElseThrow(() -> new RuntimeException("Invigilator not found"));
-        }
-
-        if (!request.getEndTime().isAfter(request.getStartTime())) {
-            throw new RuntimeException("End time must be after start time");
-        }
+        User invigilator = findInvigilator(request.getInvigilatorId());
 
         ExamSchedule schedule = ExamSchedule.builder()
                 .exam(exam)
@@ -67,67 +61,83 @@ public class ExamScheduleService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        schedule = examScheduleRepository.save(schedule);
-
-        return map(schedule);
+        return map(examScheduleRepository.save(schedule));
     }
 
     public List<ExamScheduleResponse> getScheduleByExam(Long examId) {
-
-        return examScheduleRepository.findByExamIdWithDetails(examId)
-                .stream()
-                .map(this::map)
-                .toList();
+        return examScheduleRepository.findByExamIdWithDetails(examId).stream()
+                .map(this::map).toList();
     }
 
     public ExamScheduleResponse getSchedule(Long id) {
-
         return map(examScheduleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Exam schedule not found")));
     }
 
     public ExamScheduleResponse updateSchedule(Long id, ExamScheduleRequest request) {
-
         ExamSchedule schedule = examScheduleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
 
-        User invigilator = null;
-        if (request.getInvigilatorId() != null) {
-            invigilator = userRepository.findById(request.getInvigilatorId())
-                    .orElseThrow(() -> new RuntimeException("Invigilator not found"));
-        }
+        validateSchedule(request, schedule.getExam(), subject);
 
-        if (!request.getEndTime().isAfter(request.getStartTime())) {
-            throw new RuntimeException("End time must be after start time");
+        boolean subjectChanged = !Objects.equals(schedule.getSubject().getId(), subject.getId());
+        if (subjectChanged && examScheduleRepository.existsByExamIdAndSubjectId(
+                schedule.getExam().getId(), subject.getId())) {
+            throw new RuntimeException("This subject is already scheduled for this exam");
         }
 
         schedule.setSubject(subject);
-        schedule.setInvigilator(invigilator);
+        schedule.setInvigilator(findInvigilator(request.getInvigilatorId()));
         schedule.setExamDate(request.getExamDate());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
         schedule.setRoom(request.getRoom());
         schedule.setMaxMarks(request.getMaxMarks());
 
-        schedule = examScheduleRepository.save(schedule);
-
-        return map(schedule);
+        return map(examScheduleRepository.save(schedule));
     }
 
     public void deleteSchedule(Long id) {
+        ExamSchedule schedule = examScheduleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
+        examScheduleRepository.delete(schedule);
+    }
 
-        if (!examScheduleRepository.existsById(id)) {
-            throw new RuntimeException("Exam schedule not found");
+    private void validateSchedule(ExamScheduleRequest request, Exam exam, Subject subject) {
+        if (request.getExamDate() == null || request.getStartTime() == null || request.getEndTime() == null) {
+            throw new IllegalArgumentException("Exam date, start time and end time are required");
+        }
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+        if (request.getMaxMarks() == null || request.getMaxMarks() <= 0) {
+            throw new IllegalArgumentException("Maximum marks must be greater than zero");
+        }
+        if (subject.getCourse() == null || exam.getCourse() == null
+                || !Objects.equals(subject.getCourse().getId(), exam.getCourse().getId())) {
+            throw new IllegalArgumentException("The scheduled subject must belong to the exam's course");
         }
 
-        examScheduleRepository.deleteById(id);
+        LocalDate startDate = exam.getStartDate() == null ? null : exam.getStartDate().toLocalDate();
+        LocalDate endDate = exam.getEndDate() == null ? null : exam.getEndDate().toLocalDate();
+        if (startDate != null && request.getExamDate().isBefore(startDate)
+                || endDate != null && request.getExamDate().isAfter(endDate)) {
+            throw new IllegalArgumentException("Exam schedule date must fall within the exam date range");
+        }
+    }
+
+    private User findInvigilator(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invigilator not found"));
     }
 
     private ExamScheduleResponse map(ExamSchedule s) {
-
         return ExamScheduleResponse.builder()
                 .id(s.getId())
                 .examId(s.getExam().getId())
@@ -135,7 +145,8 @@ public class ExamScheduleService {
                 .subjectId(s.getSubject().getId())
                 .subjectName(s.getSubject().getSubjectName())
                 .invigilatorId(s.getInvigilator() != null ? s.getInvigilator().getId() : null)
-                .invigilatorName(s.getInvigilator() != null ? s.getInvigilator().getFirstName() + " " + s.getInvigilator().getLastName() : null)
+                .invigilatorName(s.getInvigilator() != null
+                        ? s.getInvigilator().getFirstName() + " " + s.getInvigilator().getLastName() : null)
                 .examDate(s.getExamDate())
                 .startTime(s.getStartTime())
                 .endTime(s.getEndTime())
