@@ -17,6 +17,8 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
     Optional<Tenant> findBySubdomain(String subdomain);
 
+    Optional<Tenant> findBySchemaName(String schemaName);
+
     /** Still-active tenants whose subscription expiry has passed - candidates for auto-suspension. */
     List<Tenant> findByIsActiveTrueAndSubscriptionExpiresAtBefore(LocalDateTime cutoff);
 }
