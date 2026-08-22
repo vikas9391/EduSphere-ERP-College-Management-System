@@ -49,7 +49,10 @@ public class RoleService {
 
         String name = request.getName().trim();
 
-        if (roleRepository.existsByName(name)) {
+        // PostgreSQL's normal UNIQUE constraint is case-sensitive. Treat role names as
+        // case-insensitive at the service boundary so "Supervisor" and "SUPERVISOR"
+        // cannot become two effectively identical roles.
+        if (roleRepository.existsByNameIgnoreCase(name)) {
             throw new DuplicateResourceException("A role named '" + name + "' already exists");
         }
 
@@ -85,22 +88,26 @@ public class RoleService {
 
         String name = request.getName().trim();
 
-        // Built-in roles (ADMIN, TEACHER) keep their name locked because other
-        // services (e.g. TeacherService) look them up by exact name - but their
-        // permissions can still be changed freely.
-        if (role.isSystemRole() && !role.getName().equals(name)) {
+        // Built-in roles keep their exact canonical name because other services may
+        // look them up by name. The caller may submit different casing, but not rename
+        // the system role to another name.
+        if (role.isSystemRole() && !role.getName().equalsIgnoreCase(name)) {
             throw new ForbiddenException(
                     "'" + role.getName() + "' is a built-in role - its name can't be changed, but its permissions can");
         }
 
-        if (!role.getName().equals(name) && roleRepository.existsByName(name)) {
+        if (!role.getName().equalsIgnoreCase(name) && roleRepository.existsByNameIgnoreCase(name)) {
             throw new DuplicateResourceException("A role named '" + name + "' already exists");
         }
 
         Set<String> permissions = validatePermissions(request.getPermissions());
         guardAgainstEscalation(permissions);
 
-        role.setName(name);
+        // Preserve the canonical spelling of system roles even when the request uses a
+        // different case.
+        if (!role.isSystemRole()) {
+            role.setName(name);
+        }
         role.setDescription(request.getDescription());
         role.setPermissions(permissions);
 
