@@ -1,11 +1,18 @@
 package com.collegeerp.Backend.student.entity;
 
 import com.collegeerp.Backend.course.entity.Course;
+import com.collegeerp.Backend.enrollment.entity.Enrollment;
+import com.collegeerp.Backend.marks.entity.Marks;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.entity.ClassStudent;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "students")
@@ -39,7 +46,6 @@ public class Student {
     private String passwordHash;
 
     private String phone;
-
     private String gender;
 
     @Column(name = "date_of_birth")
@@ -48,28 +54,36 @@ public class Student {
     @Column(name = "admission_date")
     private LocalDate admissionDate;
 
-    /**
-     * The course/programme this student is admitted into. Nullable: existing students
-     * predating this field have no value until an admin assigns one. This is separate
-     * from - and does not replace - the per-subject relationship reachable via
-     * Enrollment; that still governs which specific subjects (and therefore which
-     * teachers) a student is connected to for a given semester. This field answers the
-     * coarser "what course/batch is this student in" question directly, without having
-     * to derive it from enrollment rows.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
     private Course course;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<ClassStudent> classMemberships = new HashSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<ClassEnrollment> classEnrollments = new HashSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Enrollment> enrollments = new HashSet<>();
+
+    /** Exam results are represented by marks -> exam schedule -> exam. */
+    @JsonIgnore
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Marks> marks = new HashSet<>();
+
     @Column(columnDefinition = "TEXT")
     private String address;
-
     private String city;
-
     private String state;
-
     private String country;
-
     private String pincode;
 
     @Column(name = "father_name")
@@ -88,7 +102,6 @@ public class Student {
     private String bloodGroup;
 
     private String category;
-
     private String nationality;
 
     @Column(name = "aadhaar_number")
@@ -96,7 +109,6 @@ public class Student {
 
     @Column(name = "photo_url")
     private String photoUrl;
-
     private String status;
 
     @Column(name = "created_at")
