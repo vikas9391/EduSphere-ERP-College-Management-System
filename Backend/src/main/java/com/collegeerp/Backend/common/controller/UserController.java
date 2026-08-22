@@ -3,6 +3,7 @@ package com.collegeerp.Backend.common.controller;
 import com.collegeerp.Backend.common.dto.ApiResponse;
 import com.collegeerp.Backend.common.dto.PagedResponse;
 import com.collegeerp.Backend.common.dto.PasswordChangeRequest;
+import com.collegeerp.Backend.common.dto.RoleAssignmentRequest;
 import com.collegeerp.Backend.common.dto.UserCreateRequest;
 import com.collegeerp.Backend.common.dto.UserResponse;
 import com.collegeerp.Backend.common.service.UserService;
@@ -56,6 +57,17 @@ public class UserController {
     public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreateRequest request, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         return ApiResponse.success("User created", userService.createUser(request, principal.getId()));
+    }
+
+    /** Assigns an existing user to a role without requiring account recreation. */
+    @PreAuthorize("hasAuthority('ASSIGN_ROLE')")
+    @PutMapping("/{id}/role")
+    public ApiResponse<UserResponse> assignRole(
+            @PathVariable Long id,
+            @Valid @RequestBody RoleAssignmentRequest request,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ApiResponse.success("Role assigned", userService.assignRole(id, request, principal.getId()));
     }
 
     @PreAuthorize("hasAuthority('VIEW_USER')")
