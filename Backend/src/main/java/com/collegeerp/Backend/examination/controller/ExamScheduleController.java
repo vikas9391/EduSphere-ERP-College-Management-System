@@ -3,10 +3,10 @@ package com.collegeerp.Backend.examination.controller;
 import com.collegeerp.Backend.examination.dto.ExamScheduleRequest;
 import com.collegeerp.Backend.examination.dto.ExamScheduleResponse;
 import com.collegeerp.Backend.examination.service.ExamScheduleService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/exam-schedules")
@@ -18,7 +18,7 @@ public class ExamScheduleController {
         this.examScheduleService = examScheduleService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PostMapping
     public ExamScheduleResponse createSchedule(@RequestBody ExamScheduleRequest request) {
         return examScheduleService.createSchedule(request);
@@ -34,19 +34,17 @@ public class ExamScheduleController {
         return examScheduleService.getSchedule(id);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ExamScheduleResponse updateSchedule(@PathVariable Long id,
                                                 @RequestBody ExamScheduleRequest request) {
         return examScheduleService.updateSchedule(id, request);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     public String deleteSchedule(@PathVariable Long id) {
-
         examScheduleService.deleteSchedule(id);
-
         return "Exam schedule deleted successfully.";
     }
 }
