@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
@@ -31,7 +32,9 @@ public class JwtService {
     private static final String ACCOUNT_TYPE_CLAIM = "acct";
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        // Always use UTF-8 explicitly so the signing key is deterministic across
+        // operating systems and JVM defaults.
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(Long id, String username, String schemaName, String role) {
@@ -50,14 +53,11 @@ public class JwtService {
     }
 
     /**
-     * Same as {@link #generateAccessToken(Long, String, String, String)} but also embeds
-     * the caller's fine-grained permissions (see {@link com.collegeerp.Backend.common.Permission})
-     * as a claim, so {@code @PreAuthorize("hasAuthority(...)")} checks don't need a DB
-     * round-trip on every request. Used for staff/admin logins (the only accounts that
-     * go through the Role/Permission system) - teachers, students, and the super admin
-     * keep using the 4-arg overload above.
+     * Access token variant carrying fine-grained permissions so @PreAuthorize
+     * checks do not require a database lookup on every request.
      */
-    public String generateAccessToken(Long id, String username, String schemaName, String role, java.util.Collection<String> permissions) {
+    public String generateAccessToken(Long id, String username, String schemaName, String role,
+                                      java.util.Collection<String> permissions) {
         return Jwts.builder()
                 .subject(username)
                 .claims(Map.of(
@@ -74,13 +74,9 @@ public class JwtService {
     }
 
     /**
-     * Issues a long-lived refresh token, deliberately carrying only what's needed to
-     * re-derive a fresh access token later: the account id, its schema, and which
-     * repository it lives in ({@code accountType}: STAFF/TEACHER/STUDENT/SUPER_ADMIN).
-     * No role or permissions are embedded here on purpose - {@code /api/auth/refresh}
-     * re-reads those fresh from the DB every time, so a role edit or permission change
-     * takes effect on the next silent refresh instead of being stuck until the user
-     * fully re-logs-in.
+     * Issues a refresh token containing only the account identity needed to re-derive
+     * a fresh access token. Role and permissions are intentionally re-read from the DB
+     * during refresh so permission changes take effect without a full re-login.
      */
     public String generateRefreshToken(Long id, String username, String schemaName, String accountType) {
         return Jwts.builder()
@@ -97,9 +93,6 @@ public class JwtService {
                 .compact();
     }
 
-    /** True only for a token minted by {@link #generateRefreshToken}. Used both to stop
-     *  a refresh token being used directly as an access token, and to stop an access
-     *  token being handed to {@code /api/auth/refresh}. */
     public boolean isRefreshToken(String token) {
         return TOKEN_TYPE_REFRESH.equals(extractClaims(token).get(TOKEN_TYPE_CLAIM, String.class));
     }
@@ -120,8 +113,12 @@ public class JwtService {
 
     public Long extractUserId(String token) {
         Number id = extractClaims(token).get("id", Number.class);
+        if (id == null) {
+            throw new IllegalArgumentException("JWT is missing user id");
+        }
         return id.longValue();
     }
+
     public io.jsonwebtoken.Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -131,12 +128,17 @@ public class JwtService {
     }
 
     public String extractSchema(String token) {
-        return extractClaims(token).get("schema", String.class);
+        String schema = extractClaims(token).get("schema", String.class);
+        if (schema == null || schema.isBlank()) {
+            throw new IllegalArgumentException("JWT is missing tenant schema");
+        }
+        return schema;
     }
 
     public String extractUsername(String token) {
         return extractClaims(token).getSubject();
     }
+
     public boolean isTokenValid(String token) {
         try {
             extractClaims(token);
