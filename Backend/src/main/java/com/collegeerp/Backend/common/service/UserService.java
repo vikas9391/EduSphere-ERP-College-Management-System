@@ -5,6 +5,7 @@ import com.collegeerp.Backend.common.RoleRepository;
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.dto.PasswordChangeRequest;
+import com.collegeerp.Backend.common.dto.RoleAssignmentRequest;
 import com.collegeerp.Backend.common.dto.UserCreateRequest;
 import com.collegeerp.Backend.common.dto.UserResponse;
 import com.collegeerp.Backend.common.exception.BadRequestException;
@@ -67,8 +68,6 @@ public class UserService {
                 .role(role)
                 .isActive(true)
                 .isEmailVerified(false)
-                // The admin picked this password for them, not the user themselves -
-                // force a change before they can use the account for anything.
                 .mustChangePassword(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -76,6 +75,29 @@ public class UserService {
 
         user = userRepository.save(user);
         log.info("Created user id={} email={} role={}", user.getId(), user.getEmail(), role.getName());
+
+        return mapToResponse(user);
+    }
+
+    /**
+     * Assigns an existing staff account to another role. The same privilege-escalation
+     * rule as user creation applies: an administrator can only assign permissions they
+     * already possess. This also means a role edited since the user's last login takes
+     * effect immediately on their next request/refresh.
+     */
+    public UserResponse assignRole(Long userId, RoleAssignmentRequest request, Long actingUserId) {
+        User user = findUserOrThrow(userId);
+        Role role = roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> ResourceNotFoundException.of("Role", request.getRoleId()));
+
+        guardAgainstEscalation(actingUserId, role.getPermissions());
+
+        user.setRole(role);
+        user.setUpdatedAt(LocalDateTime.now());
+        user = userRepository.save(user);
+
+        log.info("Assigned role id={} name={} to user id={} by user id={}",
+                role.getId(), role.getName(), user.getId(), actingUserId);
 
         return mapToResponse(user);
     }
