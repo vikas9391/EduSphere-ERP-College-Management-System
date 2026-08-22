@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "enrollments",
        uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"student_id", "subject_id"})
+           @UniqueConstraint(columnNames = {"student_id", "subject_id", "academic_year", "semester"})
        })
 @Getter
 @Setter
