@@ -6,6 +6,7 @@ import { Modal } from '@/components/Modal'
 import { Field, inputClass } from '@/components/FormField'
 import { StampGrid } from '@/components/motion'
 import { getMyClasses, createSchoolClass, deleteSchoolClass, type SchoolClass, type SchoolClassPayload } from '@/api'
+import { useAuthStore } from '@/store/authStore'
 import { Plus, Trash2, Layers, Users, BookMarked } from 'lucide-react'
 import { StatCard, PanelError, Badge, STAT_SHADES } from '@/components/PageBits'
 
@@ -19,6 +20,7 @@ type FormState = typeof emptyForm
 
 export function ClassesPage() {
   const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.user)
   const [classes, setClasses] = useState<SchoolClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export function ClassesPage() {
     try {
       setClasses(await getMyClasses())
     } catch {
-      setError('Could not load your classes.')
+      setError('Could not load the classes available to you.')
     } finally {
       setLoading(false)
     }
@@ -77,12 +79,16 @@ export function ClassesPage() {
       await deleteSchoolClass(id)
       await load()
     } catch {
-      alert('Could not delete this class.')
+      alert('You can only delete a class you created, unless you are an administrator.')
     }
   }
 
   const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0)
   const totalSubjects = classes.reduce((sum, c) => sum + c.subjectCount, 0)
+  const canDelete = (c: SchoolClass) =>
+    currentUser?.role?.toUpperCase() === 'ADMIN' ||
+    currentUser?.role?.toUpperCase() === 'SUPER_ADMIN' ||
+    currentUser?.id === c.teacherId
 
   return (
     <Layout>
@@ -90,7 +96,7 @@ export function ClassesPage() {
         <div>
           <h1 className="font-heading text-2xl font-medium text-text">Classes</h1>
           <p className="mt-1 text-sm text-muted">
-            Set up a batch/section: name it, build its roster, then add the subjects for the term.
+            Classes shared across your college. Open any class to view its roster and subjects.
           </p>
         </div>
         <button
@@ -103,7 +109,7 @@ export function ClassesPage() {
       </div>
 
       <StampGrid className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Layers} label="My Classes" value={classes.length} accent={STAT_SHADES[0]} />
+        <StatCard icon={Layers} label="Available Classes" value={classes.length} accent={STAT_SHADES[0]} />
         <StatCard icon={Users} label="Total Students" value={totalStudents} accent={STAT_SHADES[2]} />
         <StatCard icon={BookMarked} label="Total Subjects" value={totalSubjects} accent={STAT_SHADES[4]} />
       </StampGrid>
@@ -132,17 +138,20 @@ export function ClassesPage() {
                 <div>
                   <p className="font-heading text-lg font-medium text-text">{c.name}</p>
                   <p className="mt-0.5 text-xs text-muted">{c.academicYear} · Semester {c.semester}</p>
+                  <p className="mt-1 text-xs text-muted">Teacher: {c.teacherName}</p>
                 </div>
-                <button
-                  title="Delete"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete(c.id)
-                  }}
-                  className="rounded p-1.5 hover:bg-danger/10"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {canDelete(c) && (
+                  <button
+                    title="Delete"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(c.id)
+                    }}
+                    className="rounded p-1.5 hover:bg-danger/10"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge variant="neutral">{c.studentCount} student{c.studentCount === 1 ? '' : 's'}</Badge>
