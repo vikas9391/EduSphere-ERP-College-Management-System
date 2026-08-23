@@ -56,7 +56,7 @@ const AssignmentsPage = lazy(() => import("@/pages/AssignmentsPage").then((m) =>
 const SubmissionsPage = lazy(() => import("@/pages/Submissionspage").then((m) => ({ default: m.SubmissionsPage })));
 
 // Teacher
-const TeacherDashboard = lazy(() => import("@/pages/Teacherdashboard ").then((m) => ({ default: m.TeacherDashboard })));
+const TeacherDashboard = lazy(() => import("@/pages/Teacherdashboard").then((m) => ({ default: m.TeacherDashboard })));
 const ClassesPage = lazy(() => import("@/pages/ClassesPage").then((m) => ({ default: m.ClassesPage })));
 const ClassDetailPage = lazy(() => import("@/pages/ClassDetailPage").then((m) => ({ default: m.ClassDetailPage })));
 
@@ -91,277 +91,46 @@ export default function App() {
           {/* Reachable both as the forced first-login flow (any authenticated staff
               role) and as a voluntary account-settings page - ChangePasswordPage
               itself decides which mode based on user.mustChangePassword. */}
-          <Route
-            path="/change-password"
-            element={
-              <ProtectedRoute>
-                <ChangePasswordPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
 
-          {/* Super Admin — college onboarding. The backend now requires a
-              SUPER_ADMIN-authenticated caller for /api/tenants/**, so this route
-              is gated the same way on the frontend. */}
-          <Route
-            path="/colleges"
-            element={
-              <ProtectedRoute role="SUPER_ADMIN">
-                <CollegesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/colleges/:tenantId"
-            element={
-              <ProtectedRoute role="SUPER_ADMIN">
-                <CollegeDetailPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Super Admin */}
+          <Route path="/colleges" element={<ProtectedRoute role="SUPER_ADMIN"><CollegesPage /></ProtectedRoute>} />
+          <Route path="/colleges/:tenantId" element={<ProtectedRoute role="SUPER_ADMIN"><CollegeDetailPage /></ProtectedRoute>} />
 
           {/* Admin */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
+          <Route path="/courses" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
+          <Route path="/subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
+          <Route path="/teachers" element={<ProtectedRoute><TeachersPage /></ProtectedRoute>} />
+          <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
+          <Route path="/roles" element={<ProtectedRoute><RolesPage /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
 
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/departments"
-            element={
-              <ProtectedRoute>
-                <DepartmentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/courses"
-            element={
-              <ProtectedRoute>
-                <CoursesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/subjects"
-            element={
-              <ProtectedRoute>
-                <SubjectsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/teachers"
-            element={
-              <ProtectedRoute>
-                <TeachersPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/students"
-            element={
-              <ProtectedRoute>
-                <StudentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/roles"
-            element={
-              <ProtectedRoute>
-                <RolesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute>
-                <UsersPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/exams"
-            element={
-              <ProtectedRoute>
-                <ExamsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/exams/:examId/schedule"
-            element={
-              <ProtectedRoute>
-                <ExamSchedulePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/exam-schedules/:scheduleId/marks"
-            element={
-              <ProtectedRoute>
-                <MarksEntryPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/results"
-            element={
-              <ProtectedRoute>
-                <ResultsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/enrollments"
-            element={
-              <ProtectedRoute>
-                <EnrollmentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/attendance"
-            element={
-              <ProtectedRoute>
-                <AttendancePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/assignments"
-            element={
-              <ProtectedRoute>
-                <AssignmentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/submissions"
-            element={
-              <ProtectedRoute>
-                <SubmissionsPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/exams" element={<ProtectedRoute><ExamsPage /></ProtectedRoute>} />
+          <Route path="/exams/:examId/schedule" element={<ProtectedRoute><ExamSchedulePage /></ProtectedRoute>} />
+          <Route path="/exam-schedules/:scheduleId/marks" element={<ProtectedRoute><MarksEntryPage /></ProtectedRoute>} />
+          <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+          <Route path="/enrollments" element={<ProtectedRoute><EnrollmentsPage /></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+          <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>} />
+          <Route path="/submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
 
           {/* Teacher */}
-
-          <Route
-            path="/teacher/dashboard"
-            element={
-              <ProtectedRoute>
-                <TeacherDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/teacher/classes"
-            element={
-              <ProtectedRoute role="TEACHER">
-                <ClassesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/teacher/classes/:id"
-            element={
-              <ProtectedRoute role="TEACHER">
-                <ClassDetailPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/teacher/dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher/classes" element={<ProtectedRoute role="TEACHER"><ClassesPage /></ProtectedRoute>} />
+          <Route path="/teacher/classes/:id" element={<ProtectedRoute role="TEACHER"><ClassDetailPage /></ProtectedRoute>} />
 
           {/* Student */}
-
-          <Route
-            path="/student/dashboard"
-            element={
-              <ProtectedRoute>
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student/classes"
-            element={
-              <ProtectedRoute role="STUDENT">
-                <StudentClassesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student/profile"
-            element={
-              <ProtectedRoute>
-                <StudentProfilePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student/enrollments"
-            element={
-              <ProtectedRoute>
-                <StudentEnrollmentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student/attendance"
-            element={
-              <ProtectedRoute>
-                <StudentAttendancePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student/assignments"
-            element={
-              <ProtectedRoute>
-                <StudentAssignmentsPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/classes" element={<ProtectedRoute role="STUDENT"><StudentClassesPage /></ProtectedRoute>} />
+          <Route path="/student/profile" element={<ProtectedRoute><StudentProfilePage /></ProtectedRoute>} />
+          <Route path="/student/enrollments" element={<ProtectedRoute><StudentEnrollmentsPage /></ProtectedRoute>} />
+          <Route path="/student/attendance" element={<ProtectedRoute><StudentAttendancePage /></ProtectedRoute>} />
+          <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignmentsPage /></ProtectedRoute>} />
 
           {/* Default */}
-
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
 
