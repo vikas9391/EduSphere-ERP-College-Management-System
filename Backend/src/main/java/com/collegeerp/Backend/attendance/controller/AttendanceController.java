@@ -3,10 +3,10 @@ package com.collegeerp.Backend.attendance.controller;
 import com.collegeerp.Backend.attendance.dto.AttendanceRequest;
 import com.collegeerp.Backend.attendance.dto.AttendanceResponse;
 import com.collegeerp.Backend.attendance.service.AttendanceService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -14,39 +14,37 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
-    public AttendanceController(
-            AttendanceService attendanceService) {
-
+    public AttendanceController(AttendanceService attendanceService) {
         this.attendanceService = attendanceService;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @PostMapping
-    public AttendanceResponse createAttendance(
-            @RequestBody AttendanceRequest request) {
-
+    public AttendanceResponse createAttendance(@RequestBody AttendanceRequest request) {
         return attendanceService.createAttendance(request);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping
     public List<AttendanceResponse> getAllAttendance() {
-
         return attendanceService.getAllAttendance();
     }
 
-    @GetMapping("/{id}")
-    public AttendanceResponse getAttendance(
-            @PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @GetMapping("/student/{studentId}")
+    public List<AttendanceResponse> getStudentAttendance(@PathVariable Long studentId) {
+        return attendanceService.getStudentAttendance(studentId);
+    }
 
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @GetMapping("/{id}")
+    public AttendanceResponse getAttendance(@PathVariable Long id) {
         return attendanceService.getAttendance(id);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @DeleteMapping("/{id}")
-    public void deleteAttendance(
-            @PathVariable Long id) {
-
+    public void deleteAttendance(@PathVariable Long id) {
         attendanceService.deleteAttendance(id);
     }
-
 }
