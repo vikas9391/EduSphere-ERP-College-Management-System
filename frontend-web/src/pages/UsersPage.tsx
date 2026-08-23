@@ -4,7 +4,15 @@ import { Layout } from '@/components/Layout'
 import { Modal } from '@/components/Modal'
 import { Field, inputClass } from '@/components/FormField'
 import { PanelError, Badge } from '@/components/PageBits'
-import { getUsers, createUser, getRoles, type StaffUser, type UserCreatePayload, type Role } from '@/api'
+import {
+  getUsers,
+  createUser,
+  assignUserRole,
+  getRoles,
+  type StaffUser,
+  type UserCreatePayload,
+  type Role,
+} from '@/api'
 import { Plus, Loader2, UserCircle2 } from 'lucide-react'
 
 const emptyForm: UserCreatePayload = { firstName: '', lastName: '', email: '', password: '', roleId: 0 }
@@ -14,6 +22,7 @@ export function UsersPage() {
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [changingRoleId, setChangingRoleId] = useState<number | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState<UserCreatePayload>(emptyForm)
@@ -56,6 +65,24 @@ export function UsersPage() {
       setFormError(err instanceof Error ? err.message : 'Could not create this account. Check the fields and try again.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleRoleChange(user: StaffUser, roleId: number) {
+    if (roleId === user.roleId) return
+    const nextRole = roles.find((role) => role.id === roleId)
+    if (!nextRole) return
+
+    if (!confirm(`Change ${user.firstName} ${user.lastName}'s role to ${nextRole.name}?`)) return
+
+    setChangingRoleId(user.id)
+    try {
+      const updated = await assignUserRole(user.id, { roleId })
+      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not change this user\'s role.')
+    } finally {
+      setChangingRoleId(null)
     }
   }
 
@@ -104,7 +131,22 @@ export function UsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted">{u.email}</td>
-                  <td className="px-4 py-3 font-numbers text-xs text-text">{u.roleName}</td>
+                  <td className="px-4 py-3 font-numbers text-xs text-text">
+                    <select
+                      value={u.roleId}
+                      disabled={changingRoleId === u.id}
+                      onChange={(e) => handleRoleChange(u, Number(e.target.value))}
+                      className={`${inputClass} max-w-48 py-1.5 text-xs`}
+                      aria-label={`Role for ${u.firstName} ${u.lastName}`}
+                    >
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                    {changingRoleId === u.id && <span className="ml-2 text-muted">Saving…</span>}
+                  </td>
                   <td className="px-4 py-3">
                     {u.mustChangePassword ? (
                       <Badge variant="warning">Password not yet set</Badge>
