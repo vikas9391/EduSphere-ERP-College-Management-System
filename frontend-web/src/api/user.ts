@@ -29,6 +29,10 @@ export interface UserCreatePayload {
   roleId: number
 }
 
+export interface RoleAssignmentPayload {
+  roleId: number
+}
+
 /**
  * Mirrors com.collegeerp.Backend.common.dto.PasswordChangeRequest.
  */
@@ -44,6 +48,12 @@ export async function getUsers(): Promise<StaffUser[]> {
 
 export async function createUser(payload: UserCreatePayload): Promise<StaffUser> {
   const res = await api.post<StaffUser>('/users', payload)
+  return res.data
+}
+
+/** Assign a new role to an existing staff account. Backend enforces ASSIGN_ROLE. */
+export async function assignUserRole(id: number, payload: RoleAssignmentPayload): Promise<StaffUser> {
+  const res = await api.put<StaffUser>(`/users/${id}/role`, payload)
   return res.data
 }
 
