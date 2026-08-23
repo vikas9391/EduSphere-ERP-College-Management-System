@@ -121,10 +121,13 @@ public class ExamScheduleService {
             throw new IllegalArgumentException("The scheduled subject must belong to the exam's course");
         }
 
-        LocalDate startDate = exam.getStartDate() == null ? null : exam.getStartDate().toLocalDate();
-        LocalDate endDate = exam.getEndDate() == null ? null : exam.getEndDate().toLocalDate();
-        if (startDate != null && request.getExamDate().isBefore(startDate)
-                || endDate != null && request.getExamDate().isAfter(endDate)) {
+        // Exam startDate/endDate are already LocalDate values, so no conversion is needed.
+        LocalDate startDate = exam.getStartDate();
+        LocalDate endDate = exam.getEndDate();
+        LocalDate examDate = request.getExamDate();
+
+        if ((startDate != null && examDate.isBefore(startDate))
+                || (endDate != null && examDate.isAfter(endDate))) {
             throw new IllegalArgumentException("Exam schedule date must fall within the exam date range");
         }
     }
