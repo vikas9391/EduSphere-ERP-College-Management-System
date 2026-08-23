@@ -40,6 +40,15 @@ public class EnrollmentController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public EnrollmentResponse updateEnrollment(
+            @PathVariable Long id,
+            @RequestBody EnrollmentRequest request) {
+
+        return enrollmentService.updateEnrollment(id, request);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void deleteEnrollment(
             @PathVariable Long id) {
