@@ -27,6 +27,7 @@ public class SuperAdmin {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Builder.Default
     @Column(name = "is_active")
     private boolean isActive = true;
 
