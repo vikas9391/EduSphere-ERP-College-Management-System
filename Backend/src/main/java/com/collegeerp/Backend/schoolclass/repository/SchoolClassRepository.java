@@ -9,6 +9,11 @@ import java.util.Optional;
 
 public interface SchoolClassRepository extends JpaRepository<SchoolClass, Long> {
 
+    /** All tenant classes, used by the shared teacher class view. */
+    @Query("SELECT c FROM SchoolClass c JOIN FETCH c.teacher ORDER BY c.id DESC")
+    List<SchoolClass> findAllWithTeacher();
+
+    /** Retained for owner-specific operations and backwards compatibility. */
     @Query("SELECT c FROM SchoolClass c JOIN FETCH c.teacher WHERE c.teacher.id = :teacherId ORDER BY c.id DESC")
     List<SchoolClass> findAllByTeacherId(Long teacherId);
 
