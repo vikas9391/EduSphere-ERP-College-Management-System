@@ -60,6 +60,32 @@ public class EnrollmentService {
         return map(enrollment);
     }
 
+    public EnrollmentResponse updateEnrollment(Long id, EnrollmentRequest request) {
+        Enrollment enrollment = enrollmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found"));
+
+        if (enrollmentRepository.existsByStudentIdAndSubjectIdAndAcademicYearAndSemesterAndIdNot(
+                request.getStudentId(),
+                request.getSubjectId(),
+                request.getAcademicYear(),
+                request.getSemester(),
+                id)) {
+            throw new RuntimeException("Student is already enrolled in this subject for the selected academic year and semester.");
+        }
+
+        Student student = studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+
+        enrollment.setStudent(student);
+        enrollment.setSubject(subject);
+        enrollment.setAcademicYear(request.getAcademicYear());
+        enrollment.setSemester(request.getSemester());
+        enrollment.setEnrollmentDate(request.getEnrollmentDate());
+        return map(enrollmentRepository.save(enrollment));
+    }
+
     public List<EnrollmentResponse> getAllEnrollments() {
         return enrollmentRepository.findAll().stream().map(this::map).toList();
     }
