@@ -1,65 +1,44 @@
 import { api } from './axios'
 
-export interface Attendance{
-
-  id:number
-
-  enrollmentId:number
-
-  studentId:number
-
-  studentName:string
-
-  subjectId:number
-
-  subjectName:string
-
-  attendanceDate:string
-
-  status:string
-
-  remarks:string
-
+export interface Attendance {
+  id: number
+  enrollmentId: number
+  studentId: number
+  studentName: string
+  subjectId: number
+  subjectName: string
+  attendanceDate: string
+  status: string
+  remarks?: string
 }
 
-export interface AttendancePayload{
-
-  enrollmentId:number
-
-  attendanceDate:string
-
-  status:string
-
-  remarks:string
-
+export interface AttendancePayload {
+  enrollmentId: number
+  attendanceDate: string
+  status: string
+  remarks?: string
 }
 
-export async function getAttendance(){
-
-  const res=await api.get<Attendance[]>('/attendance')
-
+export async function getAttendance(): Promise<Attendance[]> {
+  const res = await api.get<Attendance[]>('/attendance')
   return res.data
-
 }
 
-export async function getAttendanceRecord(id:number){
-
-  const res=await api.get<Attendance>(`/attendance/${id}`)
-
+export async function getStudentAttendance(studentId: number): Promise<Attendance[]> {
+  const res = await api.get<Attendance[]>(`/attendance/student/${studentId}`)
   return res.data
-
 }
 
-export async function createAttendance(payload:AttendancePayload){
-
-  const res=await api.post<Attendance>('/attendance',payload)
-
+export async function getAttendanceRecord(id: number): Promise<Attendance> {
+  const res = await api.get<Attendance>(`/attendance/${id}`)
   return res.data
-
 }
 
-export async function deleteAttendance(id:number){
+export async function createAttendance(payload: AttendancePayload): Promise<Attendance> {
+  const res = await api.post<Attendance>('/attendance', payload)
+  return res.data
+}
 
+export async function deleteAttendance(id: number): Promise<void> {
   await api.delete(`/attendance/${id}`)
-
 }
