@@ -8,6 +8,8 @@ import com.collegeerp.Backend.department.entity.Department;
 import com.collegeerp.Backend.department.repository.DepartmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class DepartmentService {
         this.departmentRepository = departmentRepository;
     }
 
+    @CacheEvict(cacheNames = "departments", allEntries = true)
     public DepartmentResponse createDepartment(DepartmentRequest request) {
 
         if (departmentRepository.existsByCode(request.getCode())) {
@@ -53,10 +56,12 @@ public class DepartmentService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "departments", keyGenerator = "tenantAwareKeyGenerator")
     public DepartmentResponse getDepartment(Long id) {
         return mapToResponse(findDepartmentOrThrow(id));
     }
 
+    @CacheEvict(cacheNames = "departments", allEntries = true)
     public DepartmentResponse updateDepartment(Long id, DepartmentRequest request) {
 
         Department department = findDepartmentOrThrow(id);
@@ -77,6 +82,7 @@ public class DepartmentService {
         return mapToResponse(department);
     }
 
+    @CacheEvict(cacheNames = "departments", allEntries = true)
     public void deleteDepartment(Long id) {
         Department department = findDepartmentOrThrow(id);
         // Relies on GlobalExceptionHandler#handleDataIntegrityViolation to translate a
