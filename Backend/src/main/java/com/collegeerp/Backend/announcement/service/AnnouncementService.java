@@ -48,10 +48,11 @@ public class AnnouncementService {
                                ClassStudentRepository classStudentRepository, ClassSubjectRepository classSubjectRepository,
                                SubjectRepository subjectRepository, DepartmentRepository departmentRepository) {
         this.announcementRepository = announcementRepository; this.recipientRepository = recipientRepository;
-        this.recipientReadRepository = recipientReadRepository; this.userRepository = userRepository;
-        this.studentRepository = studentRepository; this.schoolClassRepository = schoolClassRepository;
-        this.classStudentRepository = classStudentRepository; this.classSubjectRepository = classSubjectRepository;
-        this.subjectRepository = subjectRepository; this.departmentRepository = departmentRepository;
+        this.recipientReadRepository = recipientReadRepository; this.recipientReadRepository = recipientReadRepository;
+        this.userRepository = userRepository; this.studentRepository = studentRepository;
+        this.schoolClassRepository = schoolClassRepository; this.classStudentRepository = classStudentRepository;
+        this.classSubjectRepository = classSubjectRepository; this.subjectRepository = subjectRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     @Transactional
@@ -75,28 +76,40 @@ public class AnnouncementService {
 
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> received(UserPrincipal principal) {
-        RecipientType type = recipientType(principal);
-        return recipientReadRepository.findReceived(type, principal.getId()).stream().map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
+        Recipient recipient = currentRecipient(principal);
+        return recipientReadRepository.findReceived(recipient.type(), recipient.id()).stream().map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
     }
 
     @Transactional
     public void markRead(UserPrincipal principal, Long announcementId) {
-        int updated = recipientRepository.markRead(announcementId, recipientType(principal), principal.getId(), LocalDateTime.now());
+        Recipient recipient = currentRecipient(principal);
+        int updated = recipientRepository.markRead(announcementId, recipient.type(), recipient.id(), LocalDateTime.now());
         if (updated == 0) throw new ResourceNotFoundException("Announcement not found for this user");
     }
 
     @Transactional(readOnly = true)
     public long unreadCount(UserPrincipal principal) {
-        return recipientRepository.countUnread(recipientType(principal), principal.getId());
+        Recipient recipient = currentRecipient(principal);
+        return recipientRepository.countUnread(recipient.type(), recipient.id());
     }
 
     @Transactional
     public void markAllRead(UserPrincipal principal) {
-        recipientRepository.markAllRead(recipientType(principal), principal.getId(), LocalDateTime.now());
+        Recipient recipient = currentRecipient(principal);
+        recipientRepository.markAllRead(recipient.type(), recipient.id(), LocalDateTime.now());
+    }
+
+    private Recipient currentRecipient(UserPrincipal principal) {
+        if ("STUDENT".equals(principal.getRole())) {
+            Student student = studentRepository.findByEmail(principal.getEmail())
+                    .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
+            return new Recipient(RecipientType.STUDENT, student.getId());
+        }
+        return new Recipient(RecipientType.USER, principal.getId());
     }
 
     private RecipientType recipientType(UserPrincipal principal) {
-        return "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
+        return currentRecipient(principal).type();
     }
 
     @Transactional(readOnly = true)
@@ -133,8 +146,9 @@ public class AnnouncementService {
         if ("ADMIN".equals(principal.getRole())) {
             teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equals(u.getRole().getName())).map(User::getId).toList());
         } else if ("STUDENT".equals(principal.getRole())) {
-            classStudentRepository.findAllByStudentId(principal.getId()).forEach(cs -> { teacherIds.add(cs.getSchoolClass().getTeacher().getId()); classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
-            Student student = studentRepository.findByIdWithCourse(principal.getId()).orElse(null);
+            Long studentId = currentRecipient(principal).id();
+            classStudentRepository.findAllByStudentId(studentId).forEach(cs -> { teacherIds.add(cs.getSchoolClass().getTeacher().getId()); classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
+            Student student = studentRepository.findByIdWithCourse(studentId).orElse(null);
             if (student != null && student.getCourse() != null && student.getCourse().getDepartment() != null) {
                 Long dept = student.getCourse().getDepartment().getId();
                 subjectRepository.findAll().stream().filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), dept)).forEach(s -> teacherIds.add(s.getTeacher().getId()));
