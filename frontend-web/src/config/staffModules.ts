@@ -1,20 +1,10 @@
-import {
-  LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck,
-  ClipboardList, Upload, Award, BookMarked, ShieldCheck, IdCard, Megaphone, type LucideIcon,
-} from 'lucide-react'
+import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, BookMarked, ShieldCheck, IdCard, Megaphone, type LucideIcon } from 'lucide-react'
 
-export interface StaffModule {
-  to: string
-  label: string
-  icon: LucideIcon
-  desc: string
-  permissions: string[] | null
-  category: 'administration' | 'operational'
-}
+export interface StaffModule { to: string; label: string; icon: LucideIcon; desc: string; permissions: string[] | null; category: 'administration' | 'operational' }
 
 export const staffModules: StaffModule[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Your overview', permissions: null, category: 'administration' },
-  { to: '/announcements', label: 'Announcements', icon: Megaphone, desc: 'Send and receive college announcements', permissions: ['VIEW_ANNOUNCEMENT', 'CREATE_ANNOUNCEMENT'], category: 'administration' },
+  { to: '/announcements', label: 'Announcements', icon: Megaphone, desc: 'Send and receive college announcements', permissions: null, category: 'administration' },
   { to: '/departments', label: 'Departments', icon: Building2, desc: 'Manage academic departments', permissions: ['VIEW_DEPARTMENT'], category: 'operational' },
   { to: '/courses', label: 'Courses', icon: BookOpen, desc: 'Manage college courses', permissions: ['VIEW_COURSE'], category: 'operational' },
   { to: '/subjects', label: 'Subjects', icon: Layers, desc: 'Subjects offered in each course', permissions: ['VIEW_SUBJECT'], category: 'operational' },
@@ -30,12 +20,5 @@ export const staffModules: StaffModule[] = [
   { to: '/roles', label: 'Roles', icon: ShieldCheck, desc: 'Build custom roles and permission sets', permissions: ['CREATE_ROLE', 'EDIT_ROLE', 'DELETE_ROLE', 'ASSIGN_ROLE'], category: 'administration' },
 ]
 
-export function canAccessModule(module: StaffModule, granted: string[]): boolean {
-  if (module.permissions === null) return true
-  return module.permissions.some((p) => granted.includes(p))
-}
-
-export function navModulesForRole(role: string | undefined, granted: string[]): StaffModule[] {
-  if (role === 'ADMIN') return staffModules.filter((module) => module.category === 'administration')
-  return staffModules.filter((module) => canAccessModule(module, granted))
-}
+export function canAccessModule(module: StaffModule, granted: string[]): boolean { return module.permissions === null || module.permissions.some((p) => granted.includes(p)) }
+export function navModulesForRole(role: string | undefined, granted: string[]): StaffModule[] { return role === 'ADMIN' ? staffModules.filter((m) => m.category === 'administration') : staffModules.filter((m) => canAccessModule(m, granted)) }
