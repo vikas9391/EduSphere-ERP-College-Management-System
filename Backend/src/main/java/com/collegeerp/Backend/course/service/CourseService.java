@@ -10,6 +10,8 @@ import com.collegeerp.Backend.department.entity.Department;
 import com.collegeerp.Backend.department.repository.DepartmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class CourseService {
         this.departmentRepository = departmentRepository;
     }
 
+    @CacheEvict(cacheNames = "courses", allEntries = true)
     public CourseResponse createCourse(CourseRequest request) {
 
         if (courseRepository.existsByCourseCode(request.getCourseCode())) {
@@ -60,11 +63,13 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "courses", keyGenerator = "tenantAwareKeyGenerator")
     public CourseResponse getCourse(Long id) {
         return map(courseRepository.findByIdWithDepartment(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Course", id)));
     }
 
+    @CacheEvict(cacheNames = "courses", allEntries = true)
     public CourseResponse updateCourse(Long id, CourseRequest request) {
 
         Course course = findCourseOrThrow(id);
@@ -88,6 +93,7 @@ public class CourseService {
         return map(course);
     }
 
+    @CacheEvict(cacheNames = "courses", allEntries = true)
     public void deleteCourse(Long id) {
         Course course = findCourseOrThrow(id);
         // FK violations (e.g. Subjects/Exams still referencing this course) are translated
