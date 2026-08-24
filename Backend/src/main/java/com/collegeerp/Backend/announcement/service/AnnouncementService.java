@@ -62,8 +62,8 @@ public class AnnouncementService {
     @Transactional
     public AnnouncementResponse create(UserPrincipal principal, AnnouncementCreateRequest request) {
         String role = principal.getRole();
-        boolean teacher = "TEACHER".equals(role);
-        boolean staffCanCreate = "ADMIN".equals(role) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
+        boolean teacher = "TEACHER".equalsIgnoreCase(role);
+        boolean staffCanCreate = "ADMIN".equalsIgnoreCase(role) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
         if (!teacher && !staffCanCreate) throw new BadRequestException("You are not allowed to send announcements");
         if (teacher && !isStudentAudience(request.getAudienceType())) throw new BadRequestException("Teachers can send announcements only to students");
         if (requiresAudienceId(request.getAudienceType()) && request.getAudienceId() == null) throw new BadRequestException("A class or department must be selected");
@@ -114,10 +114,16 @@ public class AnnouncementService {
     }
 
     private Recipient currentRecipient(UserPrincipal principal) {
-        if ("STUDENT".equals(principal.getRole())) {
+        // Role names in the database are not consistently cased (the current
+        // student account reaches this service as "students"), while announcement
+        // recipients are stored using the STUDENT recipient type. Treat role names
+        // case-insensitively so the authenticated student is resolved to the actual
+        // Student ID instead of incorrectly falling back to USER + UserPrincipal.id.
+        if ("STUDENT".equalsIgnoreCase(principal.getRole())) {
             Student student = studentRepository.findByEmail(principal.getEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
-            log.info("Resolved student recipient: authUserId={} email={} studentId={}", principal.getId(), principal.getEmail(), student.getId());
+            log.info("Resolved student recipient: authUserId={} email={} role={} studentId={}",
+                    principal.getId(), principal.getEmail(), principal.getRole(), student.getId());
             return new Recipient(RecipientType.STUDENT, student.getId());
         }
         return new Recipient(RecipientType.USER, principal.getId());
@@ -126,20 +132,20 @@ public class AnnouncementService {
     @Transactional(readOnly = true)
     public List<AnnouncementAudienceOption> audienceOptions(UserPrincipal principal) {
         List<AnnouncementAudienceOption> options = new ArrayList<>();
-        boolean teacher = "TEACHER".equals(principal.getRole());
-        boolean canCreate = "ADMIN".equals(principal.getRole()) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
+        boolean teacher = "TEACHER".equalsIgnoreCase(principal.getRole());
+        boolean canCreate = "ADMIN".equalsIgnoreCase(principal.getRole()) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
         if (!teacher && !canCreate) return options;
         if (!teacher) {
             options.add(option(AudienceType.ALL_STUDENTS, null, "All students"));
             options.add(option(AudienceType.ALL_TEACHERS, null, "All teachers"));
         }
-        List<SchoolClass> classes = "ADMIN".equals(principal.getRole()) ? schoolClassRepository.findAllWithTeacher() : schoolClassRepository.findAllByTeacherId(principal.getId());
+        List<SchoolClass> classes = "ADMIN".equalsIgnoreCase(principal.getRole()) ? schoolClassRepository.findAllWithTeacher() : schoolClassRepository.findAllByTeacherId(principal.getId());
         classes.forEach(c -> {
             options.add(option(AudienceType.CLASS_STUDENTS, c.getId(), "Students · " + c.getName()));
             if (!teacher) options.add(option(AudienceType.CLASS_TEACHERS, c.getId(), "Teachers · " + c.getName()));
         });
         Set<Long> departmentIds = new LinkedHashSet<>();
-        if ("ADMIN".equals(principal.getRole())) departmentIds.addAll(departmentRepository.findAll().stream().map(Department::getId).toList());
+        if ("ADMIN".equalsIgnoreCase(principal.getRole())) departmentIds.addAll(departmentRepository.findAll().stream().map(Department::getId).toList());
         else departmentIds.addAll(subjectRepository.findByTeacherIdWithRelations(principal.getId()).stream().map(s -> s.getCourse().getDepartment()).filter(Objects::nonNull).map(Department::getId).toList());
         for (Long departmentId : departmentIds) {
             Department d = departmentRepository.findById(departmentId).orElse(null);
@@ -154,9 +160,9 @@ public class AnnouncementService {
     @Transactional(readOnly = true)
     public List<AnnouncementContact> contacts(UserPrincipal principal) {
         Set<Long> teacherIds = new LinkedHashSet<>();
-        if ("ADMIN".equals(principal.getRole())) {
-            teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equals(u.getRole().getName())).map(User::getId).toList());
-        } else if ("STUDENT".equals(principal.getRole())) {
+        if ("ADMIN".equalsIgnoreCase(principal.getRole())) {
+            teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equalsIgnoreCase(u.getRole().getName())).map(User::getId).toList());
+        } else if ("STUDENT".equalsIgnoreCase(principal.getRole())) {
             Long studentId = currentRecipient(principal).id();
             classStudentRepository.findAllByStudentId(studentId).forEach(cs -> { teacherIds.add(cs.getSchoolClass().getTeacher().getId()); classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
             Student student = studentRepository.findByIdWithCourse(studentId).orElse(null);
@@ -164,7 +170,7 @@ public class AnnouncementService {
                 Long dept = student.getCourse().getDepartment().getId();
                 subjectRepository.findAll().stream().filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), dept)).forEach(s -> teacherIds.add(s.getTeacher().getId()));
             }
-        } else if ("TEACHER".equals(principal.getRole())) {
+        } else if ("TEACHER".equalsIgnoreCase(principal.getRole())) {
             schoolClassRepository.findAllByTeacherId(principal.getId()).forEach(c -> { teacherIds.add(c.getTeacher().getId()); classSubjectRepository.findAllByClassId(c.getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
             subjectRepository.findByTeacherIdWithRelations(principal.getId()).forEach(s -> { if (s.getCourse() != null && s.getCourse().getDepartment() != null) { Long dept = s.getCourse().getDepartment().getId(); subjectRepository.findAll().stream().filter(other -> other.getCourse() != null && other.getCourse().getDepartment() != null && Objects.equals(other.getCourse().getDepartment().getId(), dept)).forEach(other -> teacherIds.add(other.getTeacher().getId())); } });
         }
@@ -174,7 +180,7 @@ public class AnnouncementService {
     private Set<Recipient> resolveRecipients(AudienceType type, Long id) {
         return switch (type) {
             case ALL_STUDENTS -> studentRepository.findAll().stream().map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
-            case ALL_TEACHERS -> userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equals(u.getRole().getName())).map(u -> new Recipient(RecipientType.USER, u.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+            case ALL_TEACHERS -> userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equalsIgnoreCase(u.getRole().getName())).map(u -> new Recipient(RecipientType.USER, u.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
             case CLASS_STUDENTS -> classStudentRepository.findAllByClassId(requireClass(id).getId()).stream().map(ClassStudent::getStudent).map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
             case CLASS_TEACHERS -> { SchoolClass c = requireClass(id); Set<Recipient> result = new LinkedHashSet<>(); result.add(new Recipient(RecipientType.USER, c.getTeacher().getId())); classSubjectRepository.findAllByClassId(id).forEach(cs -> result.add(new Recipient(RecipientType.USER, cs.getTeacher().getId()))); yield result; }
             case DEPARTMENT_STUDENTS -> studentRepository.findAll().stream().filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), id)).map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
@@ -183,7 +189,7 @@ public class AnnouncementService {
     }
 
     private void validateAudienceAccess(UserPrincipal principal, AnnouncementCreateRequest request) {
-        if (!"TEACHER".equals(principal.getRole())) return;
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())) return;
         if (request.getAudienceType() == AudienceType.CLASS_STUDENTS && schoolClassRepository.findAllByTeacherId(principal.getId()).stream().noneMatch(c -> Objects.equals(c.getId(), request.getAudienceId()))) throw new BadRequestException("Teachers can only announce to their own classes");
         if (request.getAudienceType() == AudienceType.DEPARTMENT_STUDENTS && subjectRepository.findByTeacherIdWithRelations(principal.getId()).stream().noneMatch(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), request.getAudienceId()))) throw new BadRequestException("Teachers can only announce to their own departments");
     }
