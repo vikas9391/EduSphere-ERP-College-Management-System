@@ -12,6 +12,8 @@ import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ public class SubjectService {
         this.userRepository = userRepository;
     }
 
+    @CacheEvict(cacheNames = "subjects", allEntries = true)
     public SubjectResponse createSubject(SubjectRequest request) {
 
         if (subjectRepository.existsBySubjectCode(request.getSubjectCode())) {
@@ -69,11 +72,13 @@ public class SubjectService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "subjects", keyGenerator = "tenantAwareKeyGenerator")
     public SubjectResponse getSubject(Long id) {
         return map(subjectRepository.findByIdWithRelations(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Subject", id)));
     }
 
+    @CacheEvict(cacheNames = "subjects", allEntries = true)
     public SubjectResponse updateSubject(Long id, SubjectRequest request) {
 
         Subject subject = findSubjectOrThrow(id);
@@ -99,6 +104,7 @@ public class SubjectService {
         return map(subject);
     }
 
+    @CacheEvict(cacheNames = "subjects", allEntries = true)
     public void deleteSubject(Long id) {
         Subject subject = findSubjectOrThrow(id);
         // FK violations (e.g. Assignments/Enrollments/ExamSchedules still referencing this
