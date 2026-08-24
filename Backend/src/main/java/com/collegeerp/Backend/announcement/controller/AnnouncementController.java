@@ -23,6 +23,11 @@ public class AnnouncementController {
         return service.received(principal(authentication));
     }
 
+    @GetMapping("/unread-count")
+    public long unreadCount(Authentication authentication) {
+        return service.unreadCount(principal(authentication));
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AnnouncementResponse create(@Valid @RequestBody AnnouncementCreateRequest request, Authentication authentication) {
@@ -43,6 +48,12 @@ public class AnnouncementController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markRead(@PathVariable Long id, Authentication authentication) {
         service.markRead(principal(authentication), id);
+    }
+
+    @PostMapping("/read-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markAllRead(Authentication authentication) {
+        service.markAllRead(principal(authentication));
     }
 
     private UserPrincipal principal(Authentication authentication) {
