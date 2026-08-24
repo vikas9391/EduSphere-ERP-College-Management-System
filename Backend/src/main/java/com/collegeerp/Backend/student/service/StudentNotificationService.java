@@ -1,55 +1,55 @@
 package com.collegeerp.Backend.student.service;
 
+import com.collegeerp.Backend.announcement.entity.AnnouncementRecipient;
+import com.collegeerp.Backend.announcement.entity.AnnouncementRecipient.RecipientType;
+import com.collegeerp.Backend.announcement.repository.AnnouncementRecipientReadRepository;
+import com.collegeerp.Backend.announcement.repository.AnnouncementRecipientRepository;
 import com.collegeerp.Backend.student.dto.NotificationResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * <b>PLACEHOLDER / MOCK DATA.</b>
- * <p>
- * There is no Notification entity, table, or module anywhere in this codebase. Per the task
- * instructions ("If Notification module does not exist: create a placeholder service with mock
- * data and document it clearly"), this returns a small, fixed, in-memory list rather than
- * reading from any database. Nothing here is persisted or student-specific - every student
- * currently sees the same mock notifications. Replace this class's body with a real
- * repository-backed query once a Notification entity/table is introduced.
+ * Student dashboard notification adapter backed by the persisted announcement recipient records.
+ * Announcements are currently the first persisted notification source; the service is kept as a
+ * small adapter so assignment, exam, result and attendance notifications can be added later
+ * without changing the dashboard contract.
  */
 @Service
 public class StudentNotificationService {
 
-    public List<NotificationResponse> getNotifications(Long studentId) {
-        LocalDateTime now = LocalDateTime.now();
-        return List.of(
-                NotificationResponse.builder()
-                        .id(1L)
-                        .title("Welcome to EduSphere")
-                        .message("Your student portal is ready to use.")
-                        .type("INFO")
-                        .read(false)
-                        .createdAt(now.minusDays(1))
-                        .build(),
-                NotificationResponse.builder()
-                        .id(2L)
-                        .title("Check your assignments")
-                        .message("You may have assignments due soon - review the Assignments tab.")
-                        .type("REMINDER")
-                        .read(false)
-                        .createdAt(now.minusHours(6))
-                        .build(),
-                NotificationResponse.builder()
-                        .id(3L)
-                        .title("Results published")
-                        .message("Check the Results tab for any newly published semester results.")
-                        .type("RESULT")
-                        .read(true)
-                        .createdAt(now.minusDays(3))
-                        .build()
-        );
+    private final AnnouncementRecipientReadRepository recipientReadRepository;
+    private final AnnouncementRecipientRepository recipientRepository;
+
+    public StudentNotificationService(
+            AnnouncementRecipientReadRepository recipientReadRepository,
+            AnnouncementRecipientRepository recipientRepository) {
+        this.recipientReadRepository = recipientReadRepository;
+        this.recipientRepository = recipientRepository;
     }
 
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> getNotifications(Long studentId) {
+        return recipientReadRepository.findReceived(RecipientType.STUDENT, studentId).stream()
+                .map(this::toNotification)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public long getUnreadCount(Long studentId) {
-        return getNotifications(studentId).stream().filter(n -> !n.isRead()).count();
+        return recipientRepository.countUnread(RecipientType.STUDENT, studentId);
+    }
+
+    private NotificationResponse toNotification(AnnouncementRecipient recipient) {
+        var announcement = recipient.getAnnouncement();
+        return NotificationResponse.builder()
+                .id(announcement.getId())
+                .title(announcement.getTitle())
+                .message(announcement.getMessage())
+                .type("ANNOUNCEMENT")
+                .read(recipient.getReadAt() != null)
+                .createdAt(announcement.getCreatedAt())
+                .build();
     }
 }
