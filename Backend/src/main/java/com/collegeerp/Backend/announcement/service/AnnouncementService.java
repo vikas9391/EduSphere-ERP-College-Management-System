@@ -48,7 +48,7 @@ public class AnnouncementService {
                                ClassStudentRepository classStudentRepository, ClassSubjectRepository classSubjectRepository,
                                SubjectRepository subjectRepository, DepartmentRepository departmentRepository) {
         this.announcementRepository = announcementRepository; this.recipientRepository = recipientRepository;
-        this.recipientReadRepository = recipientReadRepository; this.recipientReadRepository = recipientReadRepository;
+        this.recipientReadRepository = recipientReadRepository;
         this.userRepository = userRepository; this.studentRepository = studentRepository;
         this.schoolClassRepository = schoolClassRepository; this.classStudentRepository = classStudentRepository;
         this.classSubjectRepository = classSubjectRepository; this.subjectRepository = subjectRepository;
@@ -106,10 +106,6 @@ public class AnnouncementService {
             return new Recipient(RecipientType.STUDENT, student.getId());
         }
         return new Recipient(RecipientType.USER, principal.getId());
-    }
-
-    private RecipientType recipientType(UserPrincipal principal) {
-        return currentRecipient(principal).type();
     }
 
     @Transactional(readOnly = true)
