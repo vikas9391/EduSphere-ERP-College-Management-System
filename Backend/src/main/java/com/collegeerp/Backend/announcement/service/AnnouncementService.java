@@ -1,0 +1,258 @@
+package com.collegeerp.Backend.announcement.service;
+
+import com.collegeerp.Backend.announcement.dto.*;
+import com.collegeerp.Backend.announcement.entity.Announcement;
+import com.collegeerp.Backend.announcement.entity.Announcement.AudienceType;
+import com.collegeerp.Backend.announcement.entity.AnnouncementRecipient;
+import com.collegeerp.Backend.announcement.entity.AnnouncementRecipient.RecipientType;
+import com.collegeerp.Backend.announcement.repository.AnnouncementRecipientRepository;
+import com.collegeerp.Backend.announcement.repository.AnnouncementRepository;
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
+import com.collegeerp.Backend.common.exception.BadRequestException;
+import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
+import com.collegeerp.Backend.department.entity.Department;
+import com.collegeerp.Backend.department.repository.DepartmentRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassStudent;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.schoolclass.entity.SchoolClass;
+import com.collegeerp.Backend.schoolclass.repository.ClassStudentRepository;
+import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
+import com.collegeerp.Backend.schoolclass.repository.SchoolClassRepository;
+import com.collegeerp.Backend.student.entity.Student;
+import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.subject.entity.Subject;
+import com.collegeerp.Backend.subject.repository.SubjectRepository;
+import com.collegeerp.Backend.security.UserPrincipal;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class AnnouncementService {
+
+    private final AnnouncementRepository announcementRepository;
+    private final AnnouncementRecipientRepository recipientRepository;
+    private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+    private final SchoolClassRepository schoolClassRepository;
+    private final ClassStudentRepository classStudentRepository;
+    private final ClassSubjectRepository classSubjectRepository;
+    private final SubjectRepository subjectRepository;
+    private final DepartmentRepository departmentRepository;
+
+    public AnnouncementService(AnnouncementRepository announcementRepository,
+                               AnnouncementRecipientRepository recipientRepository,
+                               UserRepository userRepository,
+                               StudentRepository studentRepository,
+                               SchoolClassRepository schoolClassRepository,
+                               ClassStudentRepository classStudentRepository,
+                               ClassSubjectRepository classSubjectRepository,
+                               SubjectRepository subjectRepository,
+                               DepartmentRepository departmentRepository) {
+        this.announcementRepository = announcementRepository;
+        this.recipientRepository = recipientRepository;
+        this.userRepository = userRepository;
+        this.studentRepository = studentRepository;
+        this.schoolClassRepository = schoolClassRepository;
+        this.classStudentRepository = classStudentRepository;
+        this.classSubjectRepository = classSubjectRepository;
+        this.subjectRepository = subjectRepository;
+        this.departmentRepository = departmentRepository;
+    }
+
+    @Transactional
+    public AnnouncementResponse create(UserPrincipal principal, AnnouncementCreateRequest request) {
+        String role = principal.getRole();
+        boolean teacher = "TEACHER".equals(role);
+        boolean staffCanCreate = "ADMIN".equals(role) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
+        if (!teacher && !staffCanCreate) {
+            throw new BadRequestException("You are not allowed to send announcements");
+        }
+        if (teacher && !isStudentAudience(request.getAudienceType())) {
+            throw new BadRequestException("Teachers can send announcements only to students");
+        }
+        if (requiresAudienceId(request.getAudienceType()) && request.getAudienceId() == null) {
+            throw new BadRequestException("A class or department must be selected");
+        }
+
+        User sender = userRepository.findById(principal.getId())
+                .orElseThrow(() -> ResourceNotFoundException.of("User", principal.getId()));
+
+        validateAudienceAccess(principal, request);
+        Set<Recipient> recipients = resolveRecipients(request.getAudienceType(), request.getAudienceId());
+        if (recipients.isEmpty()) {
+            throw new BadRequestException("No recipients were found for the selected audience");
+        }
+
+        Announcement announcement = Announcement.builder()
+                .sender(sender)
+                .title(request.getTitle().trim())
+                .message(request.getMessage().trim())
+                .audienceType(request.getAudienceType())
+                .audienceId(request.getAudienceId())
+                .createdAt(LocalDateTime.now())
+                .build();
+        announcementRepository.save(announcement);
+
+        List<AnnouncementRecipient> rows = recipients.stream()
+                .map(r -> AnnouncementRecipient.builder()
+                        .announcement(announcement)
+                        .recipientType(r.type())
+                        .recipientId(r.id())
+                        .build())
+                .toList();
+        recipientRepository.saveAll(rows);
+        return toResponse(announcement, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnnouncementResponse> received(UserPrincipal principal) {
+        RecipientType type = "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
+        List<AnnouncementRecipient> rows = recipientRepository.findReceived(type, principal.getId());
+        return rows.stream().map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
+    }
+
+    @Transactional
+    public void markRead(UserPrincipal principal, Long announcementId) {
+        RecipientType type = "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
+        int updated = recipientRepository.markRead(announcementId, type, principal.getId(), LocalDateTime.now());
+        if (updated == 0) throw new ResourceNotFoundException("Announcement not found for this user");
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnnouncementAudienceOption> audienceOptions(UserPrincipal principal) {
+        List<AnnouncementAudienceOption> options = new ArrayList<>();
+        boolean teacher = "TEACHER".equals(principal.getRole());
+        boolean canCreate = "ADMIN".equals(principal.getRole()) || principal.getPermissions().contains("CREATE_ANNOUNCEMENT");
+        if (!teacher && !canCreate) return options;
+
+        if (!teacher) {
+            options.add(option(AudienceType.ALL_STUDENTS, null, "All students"));
+            options.add(option(AudienceType.ALL_TEACHERS, null, "All teachers"));
+        }
+
+        List<SchoolClass> classes = "ADMIN".equals(principal.getRole())
+                ? schoolClassRepository.findAllWithTeacher()
+                : schoolClassRepository.findAllByTeacherId(principal.getId());
+        classes.forEach(c -> options.add(option(teacher ? AudienceType.CLASS_STUDENTS : AudienceType.CLASS_STUDENTS,
+                c.getId(), "Students · " + c.getName())));
+
+        Set<Long> departmentIds = new LinkedHashSet<>();
+        if ("ADMIN".equals(principal.getRole())) {
+            departmentIds.addAll(departmentRepository.findAll().stream().map(Department::getId).toList());
+        } else {
+            departmentIds.addAll(subjectRepository.findByTeacherIdWithRelations(principal.getId()).stream()
+                    .map(s -> s.getCourse().getDepartment()).filter(Objects::nonNull).map(Department::getId).toList());
+        }
+        for (Long departmentId : departmentIds) {
+            Department d = departmentRepository.findById(departmentId).orElse(null);
+            if (d != null) {
+                options.add(option(AudienceType.DEPARTMENT_STUDENTS, d.getId(), "Students · " + d.getName()));
+                if (!teacher) options.add(option(AudienceType.DEPARTMENT_TEACHERS, d.getId(), "Teachers · " + d.getName()));
+            }
+        }
+        return options;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnnouncementContact> contacts(UserPrincipal principal) {
+        Set<Long> teacherIds = new LinkedHashSet<>();
+        if ("ADMIN".equals(principal.getRole())) {
+            teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equals(u.getRole().getName())).map(User::getId).toList());
+        } else if ("STUDENT".equals(principal.getRole())) {
+            classStudentRepository.findAllByStudentId(principal.getId()).forEach(cs -> {
+                teacherIds.add(cs.getSchoolClass().getTeacher().getId());
+                classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId()));
+            });
+            Student student = studentRepository.findByIdWithCourse(principal.getId()).orElse(null);
+            if (student != null && student.getCourse() != null && student.getCourse().getDepartment() != null) {
+                subjectRepository.findAll().stream()
+                        .filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null
+                                && Objects.equals(s.getCourse().getDepartment().getId(), student.getCourse().getDepartment().getId()))
+                        .forEach(s -> teacherIds.add(s.getTeacher().getId()));
+            }
+        } else if ("TEACHER".equals(principal.getRole())) {
+            teacherIds.addAll(schoolClassRepository.findAllByTeacherId(principal.getId()).stream()
+                    .map(c -> c.getTeacher().getId()).toList());
+            subjectRepository.findByTeacherIdWithRelations(principal.getId()).forEach(s -> {
+                if (s.getCourse() != null && s.getCourse().getDepartment() != null) {
+                    subjectRepository.findAll().stream()
+                            .filter(other -> other.getCourse() != null && other.getCourse().getDepartment() != null
+                                    && Objects.equals(other.getCourse().getDepartment().getId(), s.getCourse().getDepartment().getId()))
+                            .forEach(other -> teacherIds.add(other.getTeacher().getId()));
+                }
+            });
+        }
+
+        return userRepository.findAll().stream()
+                .filter(u -> teacherIds.contains(u.getId()))
+                .map(u -> AnnouncementContact.builder()
+                        .id(u.getId())
+                        .name((u.getFirstName() + " " + u.getLastName()).trim())
+                        .email(u.getEmail())
+                        .phone(u.getPhone())
+                        .role(u.getRole() == null ? "" : u.getRole().getName())
+                        .build())
+                .sorted(Comparator.comparing(AnnouncementContact::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    private Set<Recipient> resolveRecipients(AudienceType type, Long id) {
+        return switch (type) {
+            case ALL_STUDENTS -> studentRepository.findAll().stream().map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+            case ALL_TEACHERS -> userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equals(u.getRole().getName())).map(u -> new Recipient(RecipientType.USER, u.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+            case CLASS_STUDENTS -> classStudentRepository.findAllByClassId(requireClass(id).getId()).stream().map(ClassStudent::getStudent).map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+            case CLASS_TEACHERS -> {
+                SchoolClass c = requireClass(id);
+                Set<Recipient> result = new LinkedHashSet<>();
+                result.add(new Recipient(RecipientType.USER, c.getTeacher().getId()));
+                classSubjectRepository.findAllByClassId(id).forEach(cs -> result.add(new Recipient(RecipientType.USER, cs.getTeacher().getId())));
+                yield result;
+            }
+            case DEPARTMENT_STUDENTS -> studentRepository.findAll().stream().filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), id)).map(s -> new Recipient(RecipientType.STUDENT, s.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+            case DEPARTMENT_TEACHERS -> subjectRepository.findAll().stream().filter(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), id)).map(Subject::getTeacher).filter(Objects::nonNull).map(u -> new Recipient(RecipientType.USER, u.getId())).collect(Collectors.toCollection(LinkedHashSet::new));
+        };
+    }
+
+    private void validateAudienceAccess(UserPrincipal principal, AnnouncementCreateRequest request) {
+        if (!"TEACHER".equals(principal.getRole())) return;
+        if (request.getAudienceType() == AudienceType.CLASS_STUDENTS) {
+            boolean owns = schoolClassRepository.findAllByTeacherId(principal.getId()).stream().anyMatch(c -> Objects.equals(c.getId(), request.getAudienceId()));
+            if (!owns) throw new BadRequestException("Teachers can only announce to their own classes");
+        } else if (request.getAudienceType() == AudienceType.DEPARTMENT_STUDENTS) {
+            boolean teaches = subjectRepository.findByTeacherIdWithRelations(principal.getId()).stream()
+                    .anyMatch(s -> s.getCourse() != null && s.getCourse().getDepartment() != null && Objects.equals(s.getCourse().getDepartment().getId(), request.getAudienceId()));
+            if (!teaches) throw new BadRequestException("Teachers can only announce to their own departments");
+        }
+    }
+
+    private boolean isStudentAudience(AudienceType type) {
+        return type == AudienceType.ALL_STUDENTS || type == AudienceType.CLASS_STUDENTS || type == AudienceType.DEPARTMENT_STUDENTS;
+    }
+
+    private boolean requiresAudienceId(AudienceType type) {
+        return type == AudienceType.CLASS_STUDENTS || type == AudienceType.CLASS_TEACHERS || type == AudienceType.DEPARTMENT_STUDENTS || type == AudienceType.DEPARTMENT_TEACHERS;
+    }
+
+    private SchoolClass requireClass(Long id) {
+        return schoolClassRepository.findByIdWithTeacher(id).orElseThrow(() -> ResourceNotFoundException.of("Class", id));
+    }
+
+    private AnnouncementAudienceOption option(AudienceType type, Long id, String label) {
+        return AnnouncementAudienceOption.builder().type(type).id(id).label(label).build();
+    }
+
+    private AnnouncementResponse toResponse(Announcement a, boolean read) {
+        return AnnouncementResponse.builder()
+                .id(a.getId()).title(a.getTitle()).message(a.getMessage()).audienceType(a.getAudienceType())
+                .audienceId(a.getAudienceId())
+                .senderName((a.getSender().getFirstName() + " " + a.getSender().getLastName()).trim())
+                .createdAt(a.getCreatedAt()).read(read).build();
+    }
+
+    private record Recipient(RecipientType type, Long id) {}
+}
