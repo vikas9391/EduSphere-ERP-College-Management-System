@@ -17,4 +17,11 @@ public interface AnnouncementRecipientRepository extends JpaRepository<Announcem
     @Modifying
     @Query("UPDATE AnnouncementRecipient r SET r.readAt = :readAt WHERE r.announcement.id = :announcementId AND r.recipientType = :type AND r.recipientId = :recipientId")
     int markRead(Long announcementId, RecipientType type, Long recipientId, LocalDateTime readAt);
+
+    @Query("SELECT COUNT(r) FROM AnnouncementRecipient r WHERE r.recipientType = :type AND r.recipientId = :recipientId AND r.readAt IS NULL")
+    long countUnread(RecipientType type, Long recipientId);
+
+    @Modifying
+    @Query("UPDATE AnnouncementRecipient r SET r.readAt = :readAt WHERE r.recipientType = :type AND r.recipientId = :recipientId AND r.readAt IS NULL")
+    int markAllRead(RecipientType type, Long recipientId, LocalDateTime readAt);
 }
