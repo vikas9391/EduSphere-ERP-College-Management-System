@@ -45,6 +45,11 @@ export async function getAnnouncements() {
   return data
 }
 
+export async function getAnnouncementUnreadCount() {
+  const { data } = await api.get<number>('/announcements/unread-count')
+  return data
+}
+
 export async function getAnnouncementOptions() {
   const { data } = await api.get<AudienceOption[]>('/announcements/options')
   return data
@@ -57,6 +62,10 @@ export async function createAnnouncement(request: CreateAnnouncementRequest) {
 
 export async function markAnnouncementRead(id: number) {
   await api.post(`/announcements/${id}/read`)
+}
+
+export async function markAllAnnouncementsRead() {
+  await api.post('/announcements/read-all')
 }
 
 export async function getAnnouncementContacts() {
