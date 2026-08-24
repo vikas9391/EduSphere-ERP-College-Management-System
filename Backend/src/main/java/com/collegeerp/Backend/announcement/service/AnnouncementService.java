@@ -75,15 +75,28 @@ public class AnnouncementService {
 
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> received(UserPrincipal principal) {
-        RecipientType type = "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
+        RecipientType type = recipientType(principal);
         return recipientReadRepository.findReceived(type, principal.getId()).stream().map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
     }
 
     @Transactional
     public void markRead(UserPrincipal principal, Long announcementId) {
-        RecipientType type = "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
-        int updated = recipientRepository.markRead(announcementId, type, principal.getId(), LocalDateTime.now());
+        int updated = recipientRepository.markRead(announcementId, recipientType(principal), principal.getId(), LocalDateTime.now());
         if (updated == 0) throw new ResourceNotFoundException("Announcement not found for this user");
+    }
+
+    @Transactional(readOnly = true)
+    public long unreadCount(UserPrincipal principal) {
+        return recipientRepository.countUnread(recipientType(principal), principal.getId());
+    }
+
+    @Transactional
+    public void markAllRead(UserPrincipal principal) {
+        recipientRepository.markAllRead(recipientType(principal), principal.getId(), LocalDateTime.now());
+    }
+
+    private RecipientType recipientType(UserPrincipal principal) {
+        return "STUDENT".equals(principal.getRole()) ? RecipientType.STUDENT : RecipientType.USER;
     }
 
     @Transactional(readOnly = true)
