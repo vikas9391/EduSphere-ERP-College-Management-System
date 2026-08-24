@@ -22,6 +22,8 @@ import com.collegeerp.Backend.student.repository.StudentRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AnnouncementService {
+    private static final Logger log = LoggerFactory.getLogger(AnnouncementService.class);
+
     private final AnnouncementRepository announcementRepository;
     private final AnnouncementRecipientRepository recipientRepository;
     private final AnnouncementRecipientReadRepository recipientReadRepository;
@@ -66,18 +70,28 @@ public class AnnouncementService {
         User sender = userRepository.findById(principal.getId()).orElseThrow(() -> ResourceNotFoundException.of("User", principal.getId()));
         validateAudienceAccess(principal, request);
         Set<Recipient> recipients = resolveRecipients(request.getAudienceType(), request.getAudienceId());
+        log.info("Announcement recipient resolution: user={} role={} audienceType={} audienceId={} recipients={}",
+                principal.getId(), role, request.getAudienceType(), request.getAudienceId(), recipients.size());
         if (recipients.isEmpty()) throw new BadRequestException("No recipients were found for the selected audience");
         Announcement announcement = Announcement.builder().sender(sender).title(request.getTitle().trim()).message(request.getMessage().trim())
                 .audienceType(request.getAudienceType()).audienceId(request.getAudienceId()).createdAt(LocalDateTime.now()).build();
         announcementRepository.save(announcement);
         recipientRepository.saveAll(recipients.stream().map(r -> AnnouncementRecipient.builder().announcement(announcement).recipientType(r.type()).recipientId(r.id()).build()).toList());
+        log.info("Announcement persisted: id={} recipients={} audienceType={} audienceId={}",
+                announcement.getId(), recipients.size(), request.getAudienceType(), request.getAudienceId());
         return toResponse(announcement, false);
     }
 
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> received(UserPrincipal principal) {
         Recipient recipient = currentRecipient(principal);
-        return recipientReadRepository.findReceived(recipient.type(), recipient.id()).stream().map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
+        log.info("Loading received announcements: user={} role={} recipientType={} recipientId={}",
+                principal.getId(), principal.getRole(), recipient.type(), recipient.id());
+        List<AnnouncementResponse> result = recipientReadRepository.findReceived(recipient.type(), recipient.id()).stream()
+                .map(r -> toResponse(r.getAnnouncement(), r.getReadAt() != null)).toList();
+        log.info("Loaded {} received announcement(s): user={} role={} recipientType={} recipientId={}",
+                result.size(), principal.getId(), principal.getRole(), recipient.type(), recipient.id());
+        return result;
     }
 
     @Transactional
@@ -103,6 +117,7 @@ public class AnnouncementService {
         if ("STUDENT".equals(principal.getRole())) {
             Student student = studentRepository.findByEmail(principal.getEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
+            log.info("Resolved student recipient: authUserId={} email={} studentId={}", principal.getId(), principal.getEmail(), student.getId());
             return new Recipient(RecipientType.STUDENT, student.getId());
         }
         return new Recipient(RecipientType.USER, principal.getId());
