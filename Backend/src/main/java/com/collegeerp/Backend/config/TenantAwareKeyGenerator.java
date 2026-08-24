@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
  * Cached tenant-scoped services must use this generator so the same entity ID
  * in two different tenant schemas never resolves to the same Redis key.
  */
-@Configuration
+@Configuration("tenantAwareKeyGeneratorConfig")
 public class TenantAwareKeyGenerator {
 
     @Bean("tenantAwareKeyGenerator")
