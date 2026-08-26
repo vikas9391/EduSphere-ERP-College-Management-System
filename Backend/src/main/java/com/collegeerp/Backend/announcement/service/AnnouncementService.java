@@ -114,12 +114,8 @@ public class AnnouncementService {
     }
 
     private Recipient currentRecipient(UserPrincipal principal) {
-        // Role names in the database are not consistently cased (the current
-        // student account reaches this service as "students"), while announcement
-        // recipients are stored using the STUDENT recipient type. Treat role names
-        // case-insensitively so the authenticated student is resolved to the actual
-        // Student ID instead of incorrectly falling back to USER + UserPrincipal.id.
-        if ("STUDENT".equalsIgnoreCase(principal.getRole())) {
+        String role = principal.getRole() == null ? "" : principal.getRole().trim();
+        if ("STUDENT".equalsIgnoreCase(role) || "STUDENTS".equalsIgnoreCase(role)) {
             Student student = studentRepository.findByEmail(principal.getEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
             log.info("Resolved student recipient: authUserId={} email={} role={} studentId={}",
@@ -162,7 +158,7 @@ public class AnnouncementService {
         Set<Long> teacherIds = new LinkedHashSet<>();
         if ("ADMIN".equalsIgnoreCase(principal.getRole())) {
             teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equalsIgnoreCase(u.getRole().getName())).map(User::getId).toList());
-        } else if ("STUDENT".equalsIgnoreCase(principal.getRole())) {
+        } else if ("STUDENT".equalsIgnoreCase(principal.getRole()) || "STUDENTS".equalsIgnoreCase(principal.getRole())) {
             Long studentId = currentRecipient(principal).id();
             classStudentRepository.findAllByStudentId(studentId).forEach(cs -> { teacherIds.add(cs.getSchoolClass().getTeacher().getId()); classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
             Student student = studentRepository.findByIdWithCourse(studentId).orElse(null);
