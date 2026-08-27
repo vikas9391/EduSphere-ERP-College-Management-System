@@ -27,7 +27,7 @@ import {
   type AttendancePayload,
 } from '@/api/attendance'
 import { getEnrollments } from '@/api'
-import { getSubjects, type Subject } from '@/api'
+import { getMySubjects, type Subject } from '@/api'
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
 
@@ -68,7 +68,7 @@ export function AttendancePage() {
     setLoading(true)
     setError(null)
     try {
-      const [a, s] = await Promise.all([getAttendance(), getSubjects()])
+      const [a, s] = await Promise.all([getAttendance(), getMySubjects()])
       setRecords(a)
       setSubjects(s)
     } catch {
