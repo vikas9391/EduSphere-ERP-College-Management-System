@@ -30,6 +30,10 @@ public class Attendance {
     @JoinColumn(name = "enrollment_id", nullable = false)
     private Enrollment enrollment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_enrollment_id")
+    private com.collegeerp.Backend.schoolclass.entity.ClassEnrollment classEnrollment;
+
     @Column(nullable = false)
     private LocalDate attendanceDate;
 
