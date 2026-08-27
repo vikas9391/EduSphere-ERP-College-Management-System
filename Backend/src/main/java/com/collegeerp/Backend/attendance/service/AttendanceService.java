@@ -125,7 +125,7 @@ public class AttendanceService {
 
     private boolean isStudentRole(UserPrincipal principal) {
         String role = principal.getRole() == null ? "" : principal.getRole().trim();
-        return "STUDENT".equalsIgnoreCase(role) || "STUDENTS".equalsIgnoreCase(role);
+        return "STUDENT".equalsIgnoreCase(role);
     }
 
     private boolean isAdmin(UserPrincipal principal) {
