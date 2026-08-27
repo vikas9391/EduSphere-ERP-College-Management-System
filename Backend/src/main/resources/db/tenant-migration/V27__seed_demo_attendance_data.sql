@@ -17,7 +17,7 @@ DECLARE
     subject1_id BIGINT;
     subject2_id BIGINT;
     class_id BIGINT;
-    student_id BIGINT;
+    v_student_id BIGINT;
     enrollment1_id BIGINT;
 BEGIN
     SELECT id INTO teacher_role_id FROM roles WHERE name = 'TEACHER' LIMIT 1;
@@ -99,8 +99,8 @@ BEGIN
         RETURNING id INTO class_id;
     END IF;
 
-    SELECT id INTO student_id FROM students WHERE email = 'student.demo@edusphere.test' LIMIT 1;
-    IF student_id IS NULL THEN
+    SELECT id INTO v_student_id FROM students WHERE email = 'student.demo@edusphere.test' LIMIT 1;
+    IF v_student_id IS NULL THEN
         INSERT INTO students
             (admission_no, roll_number, first_name, last_name, email, password_hash,
              admission_date, course_id, status, created_at, updated_at)
@@ -108,15 +108,15 @@ BEGIN
             ('DEMO-S001', '01', 'Demo', 'Student', 'student.demo@edusphere.test',
              '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
              CURRENT_DATE, course_id, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        RETURNING id INTO student_id;
+        RETURNING id INTO v_student_id;
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM class_students
-         WHERE school_class_id = class_id AND student_id = student_id
+        SELECT 1 FROM class_students cs
+         WHERE school_class_id = class_id AND cs.student_id = v_student_id
     ) THEN
         INSERT INTO class_students (school_class_id, student_id, added_at)
-        VALUES (class_id, student_id, CURRENT_TIMESTAMP);
+        VALUES (class_id, v_student_id, CURRENT_TIMESTAMP);
     END IF;
 
     IF NOT EXISTS (
@@ -144,24 +144,24 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM enrollments
-         WHERE student_id = student_id AND subject_id = subject1_id
+        SELECT 1 FROM enrollments e
+         WHERE e.student_id = v_student_id AND e.subject_id = subject1_id
            AND academic_year = '2026-27' AND semester = 1
     ) THEN
         INSERT INTO enrollments
             (student_id, subject_id, academic_year, semester, enrollment_date, status, created_at)
         VALUES
-            (student_id, subject1_id, '2026-27', 1, CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP);
+            (v_student_id, subject1_id, '2026-27', 1, CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM enrollments
-         WHERE student_id = student_id AND subject_id = subject2_id
+         WHERE e.student_id = v_student_id AND e.subject_id = subject2_id
            AND academic_year = '2026-27' AND semester = 1
     ) THEN
         INSERT INTO enrollments
             (student_id, subject_id, academic_year, semester, enrollment_date, status, created_at)
         VALUES
-            (student_id, subject2_id, '2026-27', 1, CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP);
+            (v_student_id, subject2_id, '2026-27', 1, CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP);
     END IF;
 END $$;
