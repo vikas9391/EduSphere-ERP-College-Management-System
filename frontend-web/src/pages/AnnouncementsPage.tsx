@@ -8,6 +8,7 @@ import {
   getAnnouncementContacts,
   getAnnouncementOptions,
   getAnnouncements,
+  markAllAnnouncementsRead,
   markAnnouncementRead,
   type Announcement,
   type AnnouncementContact,
@@ -30,10 +31,12 @@ export function AnnouncementsPage() {
   const [contacts, setContacts] = useState<AnnouncementContact[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [markingAllRead, setMarkingAllRead] = useState(false)
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [selectedOption, setSelectedOption] = useState('')
 
+  const unreadCount = announcements.filter((a) => !a.read).length
   const canSend = options.length > 0 && user?.role !== 'STUDENT'
 
   async function load() {
@@ -96,6 +99,20 @@ export function AnnouncementsPage() {
     }
   }
 
+  async function markAllRead() {
+    if (unreadCount === 0 || markingAllRead) return
+    setMarkingAllRead(true)
+    try {
+      await markAllAnnouncementsRead()
+      setAnnouncements((items) => items.map((a) => ({ ...a, read: true })))
+      toast.success('All announcements marked as read')
+    } catch {
+      toast.error('Could not mark all announcements as read')
+    } finally {
+      setMarkingAllRead(false)
+    }
+  }
+
   return (
     <Layout>
       <div className="mb-7 flex items-start justify-between gap-4">
@@ -106,7 +123,20 @@ export function AnnouncementsPage() {
           </div>
           <p className="mt-1 text-sm text-muted">Send important messages and keep up with announcements from your college.</p>
         </div>
-        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{announcements.filter((a) => !a.read).length} unread</span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{unreadCount} unread</span>
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={() => void markAllRead()}
+              disabled={markingAllRead}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted hover:text-primary disabled:opacity-60"
+            >
+              {markingAllRead ? <Loader2 size={14} className="animate-spin" /> : <CheckCheck size={14} />}
+              {markingAllRead ? 'Marking...' : 'Mark all as read'}
+            </button>
+          )}
+        </div>
       </div>
 
       {canSend && (
