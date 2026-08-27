@@ -9,7 +9,7 @@ import { getMyAttendance, type Attendance } from '@/api/attendance'
 import { getSubjects, type Subject } from '@/api'
 
 interface SubjectSummary {
-  subjectId: number
+  subjectId: number | null
   subjectName: string
   courseName: string
   present: number
@@ -86,7 +86,7 @@ export function StudentAttendancePage() {
         map.set(r.subjectId, {
           subjectId: r.subjectId,
           subjectName: r.subjectName,
-          courseName: courseNameById.get(r.subjectId) || '—',
+          courseName: r.subjectId != null ? (courseNameById.get(r.subjectId) || '—') : '—',
           present: r.status === 'PRESENT' ? 1 : 0,
           absent: r.status === 'ABSENT' ? 1 : 0,
           total: 1,
@@ -134,7 +134,7 @@ export function StudentAttendancePage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {subjectSummaries.map((s) => (
-              <div key={s.subjectId} className="rounded-lg border border-border p-4">
+              <div key={`${s.subjectId ?? 'class'}:${s.subjectName}`} className="rounded-lg border border-border p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-heading text-sm font-medium text-text">{s.subjectName}</p>
