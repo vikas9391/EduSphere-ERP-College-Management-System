@@ -22,13 +22,14 @@ import {
   getAttendance,
   createAttendance,
   deleteAttendance,
+  updateAttendance,
   type Attendance,
   type AttendancePayload,
 } from '@/api/attendance'
 import { getEnrollments } from '@/api'
 import { getSubjects, type Subject } from '@/api'
 
-type AttendanceStatus = 'PRESENT' | 'ABSENT'
+type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
 
 interface RosterRow {
   studentId: number
@@ -144,10 +145,7 @@ export function AttendancePage() {
             status: r.status,
             remarks: '',
           }
-          // No update endpoint exists — replace the existing record instead.
-          if (r.existingRecordId) {
-            await deleteAttendance(r.existingRecordId)
-          }
+          if (r.existingRecordId) return updateAttendance(r.existingRecordId, payload)
           return createAttendance(payload)
         }),
       )
@@ -203,15 +201,13 @@ export function AttendancePage() {
   async function handleToggleStatus(r: Attendance) {
     const nextStatus: AttendanceStatus = r.status === 'PRESENT' ? 'ABSENT' : 'PRESENT'
     try {
-      // No update endpoint — delete and recreate with the flipped status.
-      await deleteAttendance(r.id)
-      const created = await createAttendance({
+      const updated = await updateAttendance(r.id, {
         enrollmentId: r.enrollmentId,
         attendanceDate: r.attendanceDate,
         status: nextStatus,
         remarks: r.remarks,
       })
-      setRecords((prev) => prev.map((rec) => (rec.id === r.id ? created : rec)))
+      setRecords((prev) => prev.map((rec) => (rec.id === r.id ? updated : rec)))
     } catch {
       window.alert('Failed to update attendance status.')
     }
@@ -345,6 +341,8 @@ export function AttendancePage() {
                                 >
                                   Absent
                                 </button>
+                                <button onClick={() => setRowStatus(r.studentId, 'LATE')} className="rounded-md bg-border/40 px-3 py-1 text-xs font-medium text-muted hover:text-amber-700">Late</button>
+                                <button onClick={() => setRowStatus(r.studentId, 'EXCUSED')} className="rounded-md bg-border/40 px-3 py-1 text-xs font-medium text-muted hover:text-blue-700">Excused</button>
                               </div>
                             </td>
                           </tr>
@@ -468,10 +466,10 @@ export function AttendancePage() {
                     <td className="px-5 py-3">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          r.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          r.status === 'PRESENT' ? 'bg-green-100 text-green-700' : r.status === 'ABSENT' ? 'bg-red-100 text-red-700' : r.status === 'LATE' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
                         }`}
                       >
-                        {r.status === 'PRESENT' ? 'Present' : 'Absent'}
+                        {r.status.charAt(0) + r.status.slice(1).toLowerCase()}
                       </span>
                     </td>
                     <td className="px-5 py-3">
