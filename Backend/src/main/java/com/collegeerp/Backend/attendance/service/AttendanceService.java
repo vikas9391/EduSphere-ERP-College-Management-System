@@ -90,6 +90,23 @@ public class AttendanceService {
         return map(attendance);
     }
 
+
+    public AttendanceResponse updateAttendance(Long id, AttendanceRequest request) {
+        Attendance attendance = attendanceRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
+        requireCanManageSubject(attendance.getEnrollment());
+        if (request.getAttendanceDate() == null) throw new BadRequestException("Attendance date is required");
+        String status = normalizeStatus(request.getStatus());
+        if (attendanceRepository.existsByEnrollmentIdAndAttendanceDateAndIdNot(
+                attendance.getEnrollment().getId(), request.getAttendanceDate(), id)) {
+            throw new DuplicateResourceException("Attendance has already been marked for this student and subject on " + request.getAttendanceDate());
+        }
+        attendance.setAttendanceDate(request.getAttendanceDate());
+        attendance.setStatus(status);
+        attendance.setRemarks(normalizeRemarks(request.getRemarks()));
+        return map(attendanceRepository.save(attendance));
+    }
+
     public void deleteAttendance(Long id) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
