@@ -12,6 +12,7 @@ DECLARE
     teacher_role_id BIGINT;
     student_role_id BIGINT;
     teacher_id BIGINT;
+    department_id BIGINT;
     course_id BIGINT;
     subject1_id BIGINT;
     subject2_id BIGINT;
@@ -51,11 +52,22 @@ BEGIN
          WHERE id = teacher_id;
     END IF;
 
+    -- Courses require a department. Create/reuse a stable demo department first.
+    SELECT id INTO department_id FROM departments WHERE code = 'DEMO-CSE' LIMIT 1;
+    IF department_id IS NULL THEN
+        INSERT INTO departments (code, name, hod_name, description, created_at)
+        VALUES ('DEMO-CSE', 'Demo Computer Science', 'Demo HOD',
+                'Demo department for ERP attendance testing', CURRENT_TIMESTAMP)
+        RETURNING id INTO department_id;
+    END IF;
+
     SELECT id INTO course_id FROM courses WHERE course_code = 'DEMO-BCA' LIMIT 1;
     IF course_id IS NULL THEN
-        INSERT INTO courses (course_code, course_name, duration, description, created_at)
-        VALUES ('DEMO-BCA', 'Demo Bachelor of Computer Applications', 3,
-                'Demo course for ERP attendance testing', CURRENT_TIMESTAMP)
+        INSERT INTO courses
+            (course_code, course_name, duration, description, department_id, created_at)
+        VALUES
+            ('DEMO-BCA', 'Demo Bachelor of Computer Applications', 3,
+             'Demo course for ERP attendance testing', department_id, CURRENT_TIMESTAMP)
         RETURNING id INTO course_id;
     END IF;
 
