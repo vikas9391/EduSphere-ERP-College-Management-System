@@ -2,10 +2,10 @@ import { api } from './axios'
 
 export interface Attendance {
   id: number
-  enrollmentId: number
+  enrollmentId: number | null
   studentId: number
   studentName: string
-  subjectId: number
+  subjectId: number | null
   subjectName: string
   classEnrollmentId?: number | null
   attendanceDate: string
