@@ -1,22 +1,11 @@
 // src/pages/StudentAttendancePage.tsx
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Layout } from '@/components/Layout'
 import { StampGrid } from '@/components/motion'
 import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { CalendarDays, UserCheck, UserX, Percent, Layers } from 'lucide-react'
-import { getMyAttendance, type Attendance } from '@/api/attendance'
-import { getSubjects, type Subject } from '@/api'
-
-interface SubjectSummary {
-  subjectId: number | null
-  subjectName: string
-  courseName: string
-  present: number
-  absent: number
-  total: number
-  percentage: number
-}
+import { getMyAttendanceSummary, type StudentAttendanceSummary } from '@/api/attendance'
 
 function progressColor(pct: number) {
   if (pct >= 75) return 'bg-green-500'
@@ -32,8 +21,7 @@ function badgeClasses(pct: number) {
 
 export function StudentAttendancePage() {
   const { user } = useAuthStore()
-  const [records, setRecords] = useState<Attendance[]>([])
-  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [attendance, setAttendance] = useState<StudentAttendanceSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,11 +31,8 @@ export function StudentAttendancePage() {
       setLoading(true)
       setError(null)
       try {
-        const [mine, subs] = await Promise.all([getMyAttendance(), getSubjects()])
-        if (mounted) {
-          setRecords(mine)
-          setSubjects(subs)
-        }
+        const summary = await getMyAttendanceSummary()
+        if (mounted) setAttendance(summary)
       } catch {
         if (mounted) setError('Failed to load your attendance. Please try again.')
       } finally {
@@ -55,116 +40,48 @@ export function StudentAttendancePage() {
       }
     }
     load()
-    return () => {
-      mounted = false
-    }
-  }, [user?.id])
-
-  const courseNameById = useMemo(() => {
-    const m = new Map<number, string>()
-    subjects.forEach((s) => m.set(s.id, s.courseName))
-    return m
-  }, [subjects])
-
-  const overall = useMemo(() => {
-    const present = records.filter((r) => r.status === 'PRESENT').length
-    const absent = records.filter((r) => r.status === 'ABSENT').length
-    const total = records.length
-    const percentage = total ? Math.round((present / total) * 100) : 0
-    return { present, absent, total, percentage }
-  }, [records])
-
-  const subjectSummaries: SubjectSummary[] = useMemo(() => {
-    const map = new Map<number | null, SubjectSummary>()
-    records.forEach((r) => {
-      const existing = map.get(r.subjectId)
-      if (existing) {
-        existing.total += 1
-        if (r.status === 'PRESENT') existing.present += 1
-        else existing.absent += 1
-      } else {
-        map.set(r.subjectId, {
-          subjectId: r.subjectId,
-          subjectName: r.subjectName,
-          courseName: r.subjectId != null ? (courseNameById.get(r.subjectId) || '—') : '—',
-          present: r.status === 'PRESENT' ? 1 : 0,
-          absent: r.status === 'ABSENT' ? 1 : 0,
-          total: 1,
-          percentage: 0,
-        })
-      }
-    })
-    return Array.from(map.values())
-      .map((s) => ({ ...s, percentage: s.total ? Math.round((s.present / s.total) * 100) : 0 }))
-      .sort((a, b) => a.subjectName.localeCompare(b.subjectName))
-  }, [records, courseNameById])
+    const overall = attendance ?? { totalClasses: 0, classesAttended: 0, classesMissed: 0, overallAttendancePercentage: 0, bySubject: [] }
 
   return (
     <Layout>
       <h1 className="font-heading text-2xl font-medium text-text">My Attendance</h1>
-      <p className="mt-1 text-sm text-muted">
-        Your attendance record across all enrolled subjects
-        {user?.email ? ` · ${user.email}` : ''}
-      </p>
+      <p className="mt-1 text-sm text-muted">Overall attendance and subject-wise class attendance</p>
 
-      {/* Overall dashboard cards */}
       <StampGrid className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard icon={Percent} label="Overall Attendance" value={overall.percentage} suffix="%" accent={STAT_SHADES[0]} />
-        <StatCard icon={CalendarDays} label="Total Sessions" value={overall.total} accent={STAT_SHADES[2]} />
-        <StatCard icon={UserCheck} label="Present" value={overall.present} accent={STAT_SHADES[4]} />
-        <StatCard icon={UserX} label="Absent" value={overall.absent} accent={STAT_SHADES[6]} />
+        <StatCard icon={Percent} label="Overall Attendance" value={overall.overallAttendancePercentage} suffix="%" accent={STAT_SHADES[0]} />
+        <StatCard icon={CalendarDays} label="Total Classes" value={overall.totalClasses} accent={STAT_SHADES[2]} />
+        <StatCard icon={UserCheck} label="Classes Attended" value={overall.classesAttended} accent={STAT_SHADES[4]} />
+        <StatCard icon={UserX} label="Classes Not Attended" value={overall.classesMissed} accent={STAT_SHADES[6]} />
       </StampGrid>
 
-      {/* Subject-wise breakdown */}
       <div className="leaf-card mt-8 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
         <PanelHeader icon={Layers} title="Subject-wise Attendance" />
-
         {loading ? (
           <p className="text-center text-sm text-muted">Loading your attendance...</p>
         ) : error ? (
           <PanelError message={error} />
-        ) : subjectSummaries.length === 0 ? (
+        ) : overall.bySubject.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
             <Layers size={32} className="text-muted/50" />
             <p className="font-heading text-base font-medium text-text">No attendance records yet</p>
-            <p className="text-sm text-muted">
-              Your subject-wise attendance will appear here once sessions are recorded.
-            </p>
+            <p className="text-sm text-muted">Subject attendance will appear here once classes are recorded.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {subjectSummaries.map((s) => (
-              <div key={`${s.subjectId ?? 'class'}:${s.subjectName}`} className="rounded-lg border border-border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-heading text-sm font-medium text-text">{s.subjectName}</p>
-                    <p className="text-xs text-muted">{s.courseName}</p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClasses(s.percentage)}`}>
-                    {s.percentage}%
-                  </span>
-                </div>
-
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-border/50">
-                  <div
-                    className={`h-full rounded-full transition-all ${progressColor(s.percentage)}`}
-                    style={{ width: `${s.percentage}%` }}
-                  />
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                  <span className="inline-flex items-center gap-1">
-                    <UserCheck size={12} className="text-green-600" />
-                    {s.present} present
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <UserX size={12} className="text-red-600" />
-                    {s.absent} absent
-                  </span>
-                  <span>{s.total} total</span>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-sm">
+              <thead><tr className="border-b border-border text-left text-xs text-muted">
+                <th className="px-3 py-3">Subject</th><th className="px-3 py-3 text-center">Attendance</th><th className="px-3 py-3 text-center">Total Classes</th><th className="px-3 py-3 text-center">Attended</th><th className="px-3 py-3 text-center">Not Attended</th>
+              </tr></thead>
+              <tbody>
+                {overall.bySubject.map((s) => (
+                  <tr key={s.subjectId ?? s.subjectName} className="border-b border-border/60">
+                    <td className="px-3 py-4"><div className="font-medium text-text">{s.subjectName}</div><div className="text-xs text-muted">{s.subjectCode}</div></td>
+                    <td className="px-3 py-4"><div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-border/50"><div className={`h-full rounded-full ${progressColor(s.attendancePercentage)}`} style={{ width: `${s.attendancePercentage}%` }} /></div><span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClasses(s.attendancePercentage)}`}>{s.attendancePercentage}%</span></div></td>
+                    <td className="px-3 py-4 text-center">{s.totalClasses}</td><td className="px-3 py-4 text-center font-medium">{s.classesAttended}</td><td className="px-3 py-4 text-center">{s.classesMissed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
