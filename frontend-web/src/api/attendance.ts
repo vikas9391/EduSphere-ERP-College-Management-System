@@ -32,6 +32,9 @@ export async function getAttendanceRecord(id: number): Promise<Attendance> {
 export async function createAttendance(payload: AttendancePayload): Promise<Attendance> {
   const res = await api.post<Attendance>('/attendance', payload); return res.data
 }
+export async function updateAttendance(id: number, payload: AttendancePayload): Promise<Attendance> {
+  const res = await api.put<Attendance>(`/attendance/${id}`, payload); return res.data
+}
 export async function deleteAttendance(id: number): Promise<void> {
   await api.delete(`/attendance/${id}`)
 }
