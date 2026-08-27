@@ -7,6 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 public interface AttendanceRepository
         extends JpaRepository<Attendance, Long> {
 
+    boolean existsByClassEnrollmentIdAndAttendanceDate(Long classEnrollmentId, java.time.LocalDate attendanceDate);
+
+    boolean existsByClassEnrollmentIdAndAttendanceDateAndIdNot(Long classEnrollmentId, java.time.LocalDate attendanceDate, Long id);
+
     boolean existsByEnrollmentIdAndAttendanceDate(
             Long enrollmentId,
             java.time.LocalDate attendanceDate);
