@@ -7,12 +7,14 @@ export interface Attendance {
   studentName: string
   subjectId: number
   subjectName: string
+  classEnrollmentId?: number | null
   attendanceDate: string
   status: string
   remarks?: string
 }
 export interface AttendancePayload {
-  enrollmentId: number
+  enrollmentId?: number
+  classEnrollmentId?: number
   attendanceDate: string
   status: string
   remarks?: string
