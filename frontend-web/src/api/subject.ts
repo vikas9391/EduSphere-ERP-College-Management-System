@@ -27,6 +27,11 @@ export async function getSubjects(): Promise<Subject[]> {
   return unwrapList(res.data)
 }
 
+export async function getMySubjects(): Promise<Subject[]> {
+  const res = await api.get<Subject[]>('/subjects/my')
+  return res.data
+}
+
 export async function getSubject(id: number): Promise<Subject> {
   const res = await api.get<Subject>(`/subjects/${id}`)
   return res.data
