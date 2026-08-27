@@ -78,17 +78,18 @@ export function AttendancePage() {
         getMyClasses(),
       ])
 
-      if (attendanceResult.status === 'fulfilled') {
-        setRecords(attendanceResult.value)
-      } else {
+      if (attendanceResult.status === 'fulfilled') setRecords(attendanceResult.value)
+      else {
         setRecords([])
         setError('Failed to load attendance records. Please try again.')
       }
 
-      if (subjectsResult.status === 'fulfilled') {
-        setSubjects(subjectsResult.value)
+      if (subjectsResult.status === 'fulfilled') setSubjects(subjectsResult.value)
+      else setSubjects([])
+
       if (classesResult.status === 'fulfilled') {
         const allClassSubjects: ClassSubject[] = []
+        const enrollmentMap: Record<number, { id:number; studentId:number; studentName:string }[]> = {}
         for (const cls of classesResult.value) {
           try {
             const items = await getClassSubjects(cls.id)
@@ -96,23 +97,15 @@ export function AttendancePage() {
             for (const item of items) {
               try {
                 const enrolled = await getClassSubjectEnrollments(item.id)
-                setClassSubjectEnrollments(prev => ({
-                  ...prev,
-                  [item.id]: enrolled.map(e => ({ id: e.id, studentId: e.studentId, studentName: e.studentName }))
+                enrollmentMap[item.id] = enrolled.map(e => ({
+                  id: e.id, studentId: e.studentId, studentName: e.studentName
                 }))
               } catch {}
             }
           } catch {}
         }
         setClassSubjects(allClassSubjects)
-      }
-      } else {
-        setSubjects([])
-        setError((current) =>
-          current
-            ? current
-            : 'Failed to load your assigned subjects. Please try again.',
-        )
+        setClassSubjectEnrollments(enrollmentMap)
       }
     } catch {
       setError('Failed to load attendance data. Please try again.')
@@ -125,7 +118,6 @@ export function AttendancePage() {
     loadAll()
   }, [])
 
-  // Build roster whenever subject + date are both chosen
   useEffect(() => {
     if (!markSubjectId || !markDate) {
       setRoster([])
@@ -138,20 +130,16 @@ export function AttendancePage() {
       setSaveSuccess(false)
       try {
         const selectedClassSubject = classSubjects.find(s => String(s.id) === markSubjectId)
-        const existingForDate = records.filter(
-          (r) => (selectedClassSubject ? r.subjectName === selectedClassSubject.subjectName : String(r.subjectId) === markSubjectId) && r.attendanceDate.slice(0, 10) === markDate,
+        const existingForDate = records.filter(r =>
+          (selectedClassSubject ? r.subjectName === selectedClassSubject.subjectName : String(r.subjectId) === markSubjectId)
+          && r.attendanceDate.slice(0, 10) === markDate
         )
         const classEnrolled = selectedClassSubject ? (classSubjectEnrollments[selectedClassSubject.id] ?? []) : []
-        const enrolled = classEnrolled.map(e => ({ id: e.id, studentId: e.studentId, studentName: e.studentName, admissionNo: '' }))
-        if (!selectedClassSubject) {
-          const enrollments = await getEnrollments()
-          enrolled.push(...enrollments.filter((e) => String(e.subjectId) === markSubjectId))
-        }
-        /*
-          (r) => String(r.subjectId) === markSubjectId && r.attendanceDate.slice(0, 10) === markDate,
-        )
-        const rows: RosterRow[] = enrolled.map((e) => {
-          const existing = existingForDate.find((r) => r.studentId === e.studentId)
+        const enrolled = selectedClassSubject
+          ? classEnrolled.map(e => ({ id:e.id, studentId:e.studentId, studentName:e.studentName, admissionNo:'' }))
+          : (await getEnrollments()).filter(e => String(e.subjectId) === markSubjectId)
+        const rows: RosterRow[] = enrolled.map(e => {
+          const existing = existingForDate.find(r => r.studentId === e.studentId)
           return {
             studentId: e.studentId,
             enrollmentId: selectedClassSubject ? null : e.id,
@@ -170,10 +158,8 @@ export function AttendancePage() {
       }
     }
     loadRoster()
-    return () => {
-      mounted = false
-    }
-  }, [markSubjectId, markDate, records])
+    return () => { mounted = false }
+  }, [markSubjectId, markDate, records, classSubjects, classSubjectEnrollments])
 
   function setRowStatus(studentId: number, status: AttendanceStatus) {
     setRoster((prev) => prev.map((r) => (r.studentId === studentId ? { ...r, status } : r)))
