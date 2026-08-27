@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Bell, CheckCheck, Loader2, Mail, Megaphone, Phone, Send, Users } from 'lucide-react'
-import { toast } from 'sonner'
 import { Layout } from '@/components/Layout'
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -55,7 +55,7 @@ export function AnnouncementsPage() {
         setSelectedOption(`${first.type}:${first.id ?? ''}`)
       }
     } catch {
-      toast.error('Could not load announcements')
+      window.alert('Could not load announcements')
     } finally {
       setLoading(false)
     }
@@ -79,12 +79,12 @@ export function AnnouncementsPage() {
         audienceType: selected.type,
         audienceId: selected.id ?? null,
       })
-      toast.success('Announcement sent')
+      window.alert('Announcement sent')
       setTitle('')
       setMessage('')
       await load()
     } catch {
-      toast.error('Could not send announcement')
+      window.alert('Could not send announcement')
     } finally {
       setSending(false)
     }
@@ -95,7 +95,7 @@ export function AnnouncementsPage() {
       await markAnnouncementRead(id)
       setAnnouncements((items) => items.map((a) => a.id === id ? { ...a, read: true } : a))
     } catch {
-      toast.error('Could not update announcement')
+      window.alert('Could not update announcement')
     }
   }
 
@@ -105,9 +105,9 @@ export function AnnouncementsPage() {
     try {
       await markAllAnnouncementsRead()
       setAnnouncements((items) => items.map((a) => ({ ...a, read: true })))
-      toast.success('All announcements marked as read')
+      window.alert('All announcements marked as read')
     } catch {
-      toast.error('Could not mark all announcements as read')
+      window.alert('Could not mark all announcements as read')
     } finally {
       setMarkingAllRead(false)
     }
