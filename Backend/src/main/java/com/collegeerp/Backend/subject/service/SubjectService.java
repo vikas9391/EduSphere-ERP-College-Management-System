@@ -71,6 +71,12 @@ public class SubjectService {
         return subjectRepository.findAllWithRelations(pageable).map(this::map);
     }
 
+
+    @Transactional(readOnly = true)
+    public java.util.List<SubjectResponse> getMySubjects(Long teacherId) {
+        return subjectRepository.findByTeacherIdWithRelations(teacherId).stream().map(this::map).toList();
+    }
+
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "subjects", keyGenerator = "tenantAwareKeyGenerator")
     public SubjectResponse getSubject(Long id) {
