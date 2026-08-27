@@ -35,6 +35,10 @@ public class AttendanceController {
     public AttendanceResponse getAttendance(@PathVariable Long id) { return attendanceService.getAttendance(id); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PutMapping("/{id}")
+    public AttendanceResponse updateAttendance(@PathVariable Long id, @RequestBody AttendanceRequest request) { return attendanceService.updateAttendance(id, request); }
+
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @DeleteMapping("/{id}")
     public void deleteAttendance(@PathVariable Long id) { attendanceService.deleteAttendance(id); }
 }
