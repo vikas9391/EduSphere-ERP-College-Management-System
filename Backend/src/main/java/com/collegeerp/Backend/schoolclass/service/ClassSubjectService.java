@@ -128,7 +128,7 @@ public class ClassSubjectService {
     @Transactional(readOnly = true)
     public List<ClassSubjectResponse> getSubjects(Long classId, Long principalId, String role) {
         SchoolClass schoolClass = schoolClassService.findClassOrThrow(classId);
-        SchoolClassService.requireOwnerOrAdmin(schoolClass, principalId, role);
+        SchoolClassService.requireTeacherOrAdmin(role);
         return classSubjectRepository.findAllByClassId(classId).stream().map(this::map).toList();
     }
 
@@ -222,7 +222,7 @@ public class ClassSubjectService {
     @Transactional(readOnly = true)
     public List<ClassEnrollmentResponse> getEnrollments(Long subjectId, Long principalId, String role) {
         ClassSubject subject = findSubjectOrThrow(subjectId);
-        SchoolClassService.requireOwnerOrAdmin(subject.getSchoolClass(), principalId, role);
+        SchoolClassService.requireTeacherOrAdmin(role);
         return classEnrollmentRepository.findAllByClassSubjectId(subjectId).stream()
                 .map(this::mapEnrollment)
                 .toList();
