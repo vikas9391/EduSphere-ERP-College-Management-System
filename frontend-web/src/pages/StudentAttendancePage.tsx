@@ -5,7 +5,7 @@ import { StampGrid } from '@/components/motion'
 import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { CalendarDays, UserCheck, UserX, Percent, Layers } from 'lucide-react'
-import { getAttendance, type Attendance } from '@/api'
+import { getMyAttendance, type Attendance } from '@/api/attendance'
 import { getSubjects, type Subject } from '@/api'
 
 interface SubjectSummary {
@@ -43,9 +43,7 @@ export function StudentAttendancePage() {
       setLoading(true)
       setError(null)
       try {
-        const [all, subs] = await Promise.all([getAttendance(), getSubjects()])
-        // No dedicated "my attendance" endpoint anymore — filter client-side.
-        const mine = all.filter((r) => r.studentId === user?.id)
+        const [mine, subs] = await Promise.all([getMyAttendance(), getSubjects()])
         if (mounted) {
           setRecords(mine)
           setSubjects(subs)
