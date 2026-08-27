@@ -115,7 +115,7 @@ public class AnnouncementService {
 
     private Recipient currentRecipient(UserPrincipal principal) {
         String role = principal.getRole() == null ? "" : principal.getRole().trim();
-        if ("STUDENT".equalsIgnoreCase(role) || "STUDENTS".equalsIgnoreCase(role)) {
+        if ("STUDENT".equalsIgnoreCase(role)) {
             Student student = studentRepository.findByEmail(principal.getEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
             log.info("Resolved student recipient: authUserId={} email={} role={} studentId={}",
@@ -158,7 +158,7 @@ public class AnnouncementService {
         Set<Long> teacherIds = new LinkedHashSet<>();
         if ("ADMIN".equalsIgnoreCase(principal.getRole())) {
             teacherIds.addAll(userRepository.findAll().stream().filter(u -> u.getRole() != null && "TEACHER".equalsIgnoreCase(u.getRole().getName())).map(User::getId).toList());
-        } else if ("STUDENT".equalsIgnoreCase(principal.getRole()) || "STUDENTS".equalsIgnoreCase(principal.getRole())) {
+        } else if ("STUDENT".equalsIgnoreCase(principal.getRole())) {
             Long studentId = currentRecipient(principal).id();
             classStudentRepository.findAllByStudentId(studentId).forEach(cs -> { teacherIds.add(cs.getSchoolClass().getTeacher().getId()); classSubjectRepository.findAllByClassId(cs.getSchoolClass().getId()).forEach(s -> teacherIds.add(s.getTeacher().getId())); });
             Student student = studentRepository.findByIdWithCourse(studentId).orElse(null);
