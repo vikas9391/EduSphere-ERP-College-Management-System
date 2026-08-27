@@ -40,3 +40,25 @@ export async function updateAttendance(id: number, payload: AttendancePayload): 
 export async function deleteAttendance(id: number): Promise<void> {
   await api.delete(`/attendance/${id}`)
 }
+export interface SubjectAttendanceSummary {
+  subjectId: number | null
+  subjectCode: string
+  subjectName: string
+  totalClasses: number
+  classesAttended: number
+  classesMissed: number
+  attendancePercentage: number
+}
+
+export interface StudentAttendanceSummary {
+  totalClasses: number
+  classesAttended: number
+  classesMissed: number
+  overallAttendancePercentage: number
+  bySubject: SubjectAttendanceSummary[]
+}
+
+export async function getMyAttendanceSummary(): Promise<StudentAttendanceSummary> {
+  const res = await api.get<{ data: StudentAttendanceSummary }>('/student/attendance')
+  return res.data.data
+}
