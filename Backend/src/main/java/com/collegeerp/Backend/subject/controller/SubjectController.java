@@ -29,6 +29,13 @@ public class SubjectController {
         return ApiResponse.success("Subject created", subjectService.createSubject(request));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ApiResponse<java.util.List<SubjectResponse>> getMySubjects(org.springframework.security.core.Authentication authentication) {
+        com.collegeerp.Backend.security.UserPrincipal principal = (com.collegeerp.Backend.security.UserPrincipal) authentication.getPrincipal();
+        return ApiResponse.success(subjectService.getMySubjects(principal.getId()));
+    }
+
     @GetMapping
     public ApiResponse<PagedResponse<SubjectResponse>> getAll(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
