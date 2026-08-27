@@ -15,6 +15,8 @@ public class AttendanceResponse {
 
     private Long enrollmentId;
 
+    private Long classEnrollmentId;
+
     private Long studentId;
 
     private String studentName;
