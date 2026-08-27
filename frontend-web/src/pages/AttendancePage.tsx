@@ -28,12 +28,14 @@ import {
 } from '@/api/attendance'
 import { getEnrollments } from '@/api'
 import { getMySubjects, type Subject } from '@/api'
+import { getMyClasses, getClassSubjects, getClassSubjectEnrollments, type ClassSubject } from '@/api/schoolClass'
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
 
 interface RosterRow {
   studentId: number
-  enrollmentId: number
+  enrollmentId: number | null
+  classEnrollmentId: number | null
   studentName: string
   admissionNo: string
   status: AttendanceStatus
@@ -47,6 +49,8 @@ function todayISO() {
 export function AttendancePage() {
   const [records, setRecords] = useState<Attendance[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [classSubjects, setClassSubjects] = useState<ClassSubject[]>([])
+  const [classSubjectEnrollments, setClassSubjectEnrollments] = useState<Record<number, { id:number; studentId:number; studentName:string }[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,9 +72,10 @@ export function AttendancePage() {
     setLoading(true)
     setError(null)
     try {
-      const [attendanceResult, subjectsResult] = await Promise.allSettled([
+      const [attendanceResult, subjectsResult, classesResult] = await Promise.allSettled([
         getAttendance(),
         getMySubjects(),
+        getMyClasses(),
       ])
 
       if (attendanceResult.status === 'fulfilled') {
@@ -82,6 +87,25 @@ export function AttendancePage() {
 
       if (subjectsResult.status === 'fulfilled') {
         setSubjects(subjectsResult.value)
+      if (classesResult.status === 'fulfilled') {
+        const allClassSubjects: ClassSubject[] = []
+        for (const cls of classesResult.value) {
+          try {
+            const items = await getClassSubjects(cls.id)
+            allClassSubjects.push(...items)
+            for (const item of items) {
+              try {
+                const enrolled = await getClassSubjectEnrollments(item.id)
+                setClassSubjectEnrollments(prev => ({
+                  ...prev,
+                  [item.id]: enrolled.map(e => ({ id: e.id, studentId: e.studentId, studentName: e.studentName }))
+                }))
+              } catch {}
+            }
+          } catch {}
+        }
+        setClassSubjects(allClassSubjects)
+      }
       } else {
         setSubjects([])
         setError((current) =>
@@ -113,16 +137,25 @@ export function AttendancePage() {
       setSaveError(null)
       setSaveSuccess(false)
       try {
-        const enrollments = await getEnrollments()
-        const enrolled = enrollments.filter((e) => String(e.subjectId) === markSubjectId)
+        const selectedClassSubject = classSubjects.find(s => String(s.id) === markSubjectId)
         const existingForDate = records.filter(
+          (r) => (selectedClassSubject ? r.subjectName === selectedClassSubject.subjectName : String(r.subjectId) === markSubjectId) && r.attendanceDate.slice(0, 10) === markDate,
+        )
+        const classEnrolled = selectedClassSubject ? (classSubjectEnrollments[selectedClassSubject.id] ?? []) : []
+        const enrolled = classEnrolled.map(e => ({ id: e.id, studentId: e.studentId, studentName: e.studentName, admissionNo: '' }))
+        if (!selectedClassSubject) {
+          const enrollments = await getEnrollments()
+          enrolled.push(...enrollments.filter((e) => String(e.subjectId) === markSubjectId))
+        }
+        /*
           (r) => String(r.subjectId) === markSubjectId && r.attendanceDate.slice(0, 10) === markDate,
         )
         const rows: RosterRow[] = enrolled.map((e) => {
           const existing = existingForDate.find((r) => r.studentId === e.studentId)
           return {
             studentId: e.studentId,
-            enrollmentId: e.id,
+            enrollmentId: selectedClassSubject ? null : e.id,
+            classEnrollmentId: selectedClassSubject ? e.id : null,
             studentName: e.studentName,
             admissionNo: e.admissionNo,
             status: (existing?.status as AttendanceStatus) ?? 'PRESENT',
@@ -160,6 +193,7 @@ export function AttendancePage() {
         roster.map(async (r) => {
           const payload: AttendancePayload = {
             enrollmentId: r.enrollmentId,
+            classEnrollmentId: r.classEnrollmentId,
             attendanceDate: markDate,
             status: r.status,
             remarks: '',
@@ -279,7 +313,12 @@ export function AttendancePage() {
           <Field label="Subject">
             <select value={markSubjectId} onChange={(e) => setMarkSubjectId(e.target.value)} className={inputClass}>
               <option value="">Select a subject</option>
-              {subjects.map((s) => (
+              {classSubjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.subjectName} · {s.subjectCode}
+                </option>
+              ))}
+              {classSubjects.length === 0 && subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.subjectName} · {s.courseName}
                 </option>
@@ -410,10 +449,11 @@ export function AttendancePage() {
             className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           >
             <option value="">All Subjects</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.subjectName}
-              </option>
+            {classSubjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.subjectName}</option>
+            ))}
+            {classSubjects.length === 0 && subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.subjectName}</option>
             ))}
           </select>
 
