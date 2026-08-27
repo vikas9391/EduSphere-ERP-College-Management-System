@@ -1,3 +1,4 @@
+ALTER TABLE attendance ALTER COLUMN enrollment_id DROP NOT NULL;
 ALTER TABLE attendance ADD COLUMN class_enrollment_id BIGINT NULL;
 
 ALTER TABLE attendance
