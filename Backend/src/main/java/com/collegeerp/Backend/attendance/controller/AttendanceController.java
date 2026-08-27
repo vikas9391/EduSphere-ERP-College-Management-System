@@ -11,40 +11,30 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/attendance")
 public class AttendanceController {
-
     private final AttendanceService attendanceService;
-
-    public AttendanceController(AttendanceService attendanceService) {
-        this.attendanceService = attendanceService;
-    }
+    public AttendanceController(AttendanceService attendanceService) { this.attendanceService = attendanceService; }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @PostMapping
-    public AttendanceResponse createAttendance(@RequestBody AttendanceRequest request) {
-        return attendanceService.createAttendance(request);
-    }
+    public AttendanceResponse createAttendance(@RequestBody AttendanceRequest request) { return attendanceService.createAttendance(request); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping
-    public List<AttendanceResponse> getAllAttendance() {
-        return attendanceService.getAllAttendance();
-    }
+    public List<AttendanceResponse> getAllAttendance() { return attendanceService.getAllAttendance(); }
+
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @GetMapping("/me")
+    public List<AttendanceResponse> getMyAttendance() { return attendanceService.getMyAttendance(); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     @GetMapping("/student/{studentId}")
-    public List<AttendanceResponse> getStudentAttendance(@PathVariable Long studentId) {
-        return attendanceService.getStudentAttendance(studentId);
-    }
+    public List<AttendanceResponse> getStudentAttendance(@PathVariable Long studentId) { return attendanceService.getStudentAttendance(studentId); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     @GetMapping("/{id}")
-    public AttendanceResponse getAttendance(@PathVariable Long id) {
-        return attendanceService.getAttendance(id);
-    }
+    public AttendanceResponse getAttendance(@PathVariable Long id) { return attendanceService.getAttendance(id); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @DeleteMapping("/{id}")
-    public void deleteAttendance(@PathVariable Long id) {
-        attendanceService.deleteAttendance(id);
-    }
+    public void deleteAttendance(@PathVariable Long id) { attendanceService.deleteAttendance(id); }
 }
