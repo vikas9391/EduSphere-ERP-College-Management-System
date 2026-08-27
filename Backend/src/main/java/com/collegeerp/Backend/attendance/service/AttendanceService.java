@@ -76,7 +76,12 @@ public class AttendanceService {
         UserPrincipal principal = currentPrincipal();
         if (isAdmin(principal)) return attendanceRepository.findAll().stream().map(this::map).toList();
         if ("TEACHER".equalsIgnoreCase(principal.getRole())) {
-            return attendanceRepository.findBySubjectTeacherId(principal.getId()).stream().map(this::map).toList();
+            return attendanceRepository.findAll().stream().filter(a ->
+                    (a.getClassEnrollment() != null && a.getClassEnrollment().getClassSubject().getTeacher() != null
+                            && principal.getId().equals(a.getClassEnrollment().getClassSubject().getTeacher().getId()))
+                    || (a.getEnrollment() != null && a.getEnrollment().getSubject().getTeacher() != null
+                            && principal.getId().equals(a.getEnrollment().getSubject().getTeacher().getId())))
+                    .map(this::map).toList();
         }
         throw new AccessDeniedException("You are not allowed to view all attendance records");
     }
@@ -84,11 +89,17 @@ public class AttendanceService {
     @Transactional(readOnly = true)
     public List<AttendanceResponse> getStudentAttendance(Long studentId) {
         UserPrincipal principal = currentPrincipal();
-        if (isAdmin(principal)) return attendanceRepository.findByStudentId(studentId).stream().map(this::map).toList();
+        if (isAdmin(principal)) return attendanceRepository.findAll().stream().filter(a ->
+                    (a.getClassEnrollment() != null && a.getClassEnrollment().getStudent().getId().equals(studentId))
+                    || (a.getEnrollment() != null && a.getEnrollment().getStudent().getId().equals(studentId)))
+                    .map(this::map).toList();
         if (isStudentRole(principal)) {
             Long actualStudentId = resolveStudentId(principal);
             if (!actualStudentId.equals(studentId)) throw new AccessDeniedException("Students can only view their own attendance");
-            return attendanceRepository.findByStudentId(actualStudentId).stream().map(this::map).toList();
+            return attendanceRepository.findAll().stream().filter(a ->
+                    (a.getClassEnrollment() != null && a.getClassEnrollment().getStudent().getId().equals(actualStudentId))
+                    || (a.getEnrollment() != null && a.getEnrollment().getStudent().getId().equals(actualStudentId)))
+                    .map(this::map).toList();
         }
         throw new AccessDeniedException("You are not allowed to view student attendance");
     }
@@ -97,7 +108,11 @@ public class AttendanceService {
     public List<AttendanceResponse> getMyAttendance() {
         UserPrincipal principal = currentPrincipal();
         if (!isStudentRole(principal)) throw new AccessDeniedException("Only students can view their own attendance");
-        return attendanceRepository.findByStudentId(resolveStudentId(principal)).stream().map(this::map).toList();
+        Long studentId = resolveStudentId(principal);
+        return attendanceRepository.findAll().stream().filter(a ->
+                    (a.getClassEnrollment() != null && a.getClassEnrollment().getStudent().getId().equals(studentId))
+                    || (a.getEnrollment() != null && a.getEnrollment().getStudent().getId().equals(studentId)))
+                    .map(this::map).toList();
     }
 
     @Transactional(readOnly = true)
@@ -131,7 +146,8 @@ public class AttendanceService {
     public void deleteAttendance(Long id) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
-        requireCanManageSubject(attendance.getEnrollment());
+        if (attendance.getClassEnrollment() != null) requireCanManageClassEnrollment(attendance.getClassEnrollment());
+        else requireCanManageSubject(attendance.getEnrollment());
         attendanceRepository.delete(attendance);
     }
 
