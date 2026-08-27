@@ -155,7 +155,7 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM enrollments
+        SELECT 1 FROM enrollments e
          WHERE e.student_id = v_student_id AND e.subject_id = subject2_id
            AND academic_year = '2026-27' AND semester = 1
     ) THEN
