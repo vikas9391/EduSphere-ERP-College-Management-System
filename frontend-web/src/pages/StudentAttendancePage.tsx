@@ -75,7 +75,7 @@ export function StudentAttendancePage() {
   }, [records])
 
   const subjectSummaries: SubjectSummary[] = useMemo(() => {
-    const map = new Map<number, SubjectSummary>()
+    const map = new Map<number | null, SubjectSummary>()
     records.forEach((r) => {
       const existing = map.get(r.subjectId)
       if (existing) {
