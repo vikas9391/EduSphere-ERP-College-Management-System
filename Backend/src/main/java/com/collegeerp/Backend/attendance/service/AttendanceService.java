@@ -10,6 +10,8 @@ import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.enrollment.entity.Enrollment;
 import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,19 +32,35 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
 
     public AttendanceService(AttendanceRepository attendanceRepository, EnrollmentRepository enrollmentRepository,
-                             StudentRepository studentRepository) {
+                             StudentRepository studentRepository, ClassEnrollmentRepository classEnrollmentRepository) {
         this.attendanceRepository = attendanceRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public AttendanceResponse createAttendance(AttendanceRequest request) {
+        if (request.getAttendanceDate() == null) throw new BadRequestException("Attendance date is required");
+        if (request.getClassEnrollmentId() != null) {
+            ClassEnrollment classEnrollment = classEnrollmentRepository.findById(request.getClassEnrollmentId())
+                    .orElseThrow(() -> ResourceNotFoundException.of("Class enrollment", request.getClassEnrollmentId()));
+            requireCanManageClassEnrollment(classEnrollment);
+            if (attendanceRepository.existsByClassEnrollmentIdAndAttendanceDate(classEnrollment.getId(), request.getAttendanceDate())) {
+                throw new DuplicateResourceException("Attendance has already been marked for this student and subject on " + request.getAttendanceDate());
+            }
+            Attendance attendance = Attendance.builder()
+                    .classEnrollment(classEnrollment).attendanceDate(request.getAttendanceDate())
+                    .status(normalizeStatus(request.getStatus())).remarks(normalizeRemarks(request.getRemarks()))
+                    .createdAt(LocalDateTime.now()).build();
+            return map(attendanceRepository.save(attendance));
+        }
+        if (request.getEnrollmentId() == null) throw new BadRequestException("Enrollment or class enrollment is required");
         Enrollment enrollment = enrollmentRepository.findById(request.getEnrollmentId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Enrollment", request.getEnrollmentId()));
         requireCanManageSubject(enrollment);
-        if (request.getAttendanceDate() == null) throw new BadRequestException("Attendance date is required");
         if (attendanceRepository.existsByEnrollmentIdAndAttendanceDate(enrollment.getId(), request.getAttendanceDate())) {
             throw new DuplicateResourceException("Attendance has already been marked for this student and subject on " + request.getAttendanceDate());
         }
@@ -86,7 +104,8 @@ public class AttendanceService {
     public AttendanceResponse getAttendance(Long id) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
-        requireCanView(attendance.getEnrollment());
+        if (attendance.getClassEnrollment() != null) requireCanView(attendance.getClassEnrollment());
+        else requireCanView(attendance.getEnrollment());
         return map(attendance);
     }
 
@@ -94,11 +113,13 @@ public class AttendanceService {
     public AttendanceResponse updateAttendance(Long id, AttendanceRequest request) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
-        requireCanManageSubject(attendance.getEnrollment());
+        if (attendance.getClassEnrollment() != null) requireCanManageClassEnrollment(attendance.getClassEnrollment());
+        else requireCanManageSubject(attendance.getEnrollment());
         if (request.getAttendanceDate() == null) throw new BadRequestException("Attendance date is required");
         String status = normalizeStatus(request.getStatus());
-        if (attendanceRepository.existsByEnrollmentIdAndAttendanceDateAndIdNot(
-                attendance.getEnrollment().getId(), request.getAttendanceDate(), id)) {
+        if (attendance.getClassEnrollment() != null
+                ? attendanceRepository.existsByClassEnrollmentIdAndAttendanceDateAndIdNot(attendance.getClassEnrollment().getId(), request.getAttendanceDate(), id)
+                : attendanceRepository.existsByEnrollmentIdAndAttendanceDateAndIdNot(attendance.getEnrollment().getId(), request.getAttendanceDate(), id)) {
             throw new DuplicateResourceException("Attendance has already been marked for this student and subject on " + request.getAttendanceDate());
         }
         attendance.setAttendanceDate(request.getAttendanceDate());
@@ -122,6 +143,26 @@ public class AttendanceService {
                 || !principal.getId().equals(enrollment.getSubject().getTeacher().getId())) {
             throw new AccessDeniedException("Teachers can only manage attendance for their assigned subjects");
         }
+    }
+
+    private void requireCanManageClassEnrollment(ClassEnrollment enrollment) {
+        UserPrincipal principal = currentPrincipal();
+        if (isAdmin(principal)) return;
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
+                || enrollment.getClassSubject().getTeacher() == null
+                || !principal.getId().equals(enrollment.getClassSubject().getTeacher().getId())) {
+            throw new AccessDeniedException("Teachers can only manage attendance for their assigned class subjects");
+        }
+    }
+
+    private void requireCanView(ClassEnrollment enrollment) {
+        UserPrincipal principal = currentPrincipal();
+        if (isAdmin(principal)) return;
+        if ("TEACHER".equalsIgnoreCase(principal.getRole())
+                && enrollment.getClassSubject().getTeacher() != null
+                && principal.getId().equals(enrollment.getClassSubject().getTeacher().getId())) return;
+        if (isStudentRole(principal) && resolveStudentId(principal).equals(enrollment.getStudent().getId())) return;
+        throw new AccessDeniedException("You are not allowed to view this attendance record");
     }
 
     private void requireCanView(Enrollment enrollment) {
@@ -173,10 +214,17 @@ public class AttendanceService {
 
     private AttendanceResponse map(Attendance attendance) {
         Enrollment enrollment = attendance.getEnrollment();
+        ClassEnrollment ce = attendance.getClassEnrollment();
         return AttendanceResponse.builder()
-                .id(attendance.getId()).enrollmentId(enrollment.getId()).studentId(enrollment.getStudent().getId())
-                .studentName(enrollment.getStudent().getFirstName() + " " + enrollment.getStudent().getLastName())
-                .subjectId(enrollment.getSubject().getId()).subjectName(enrollment.getSubject().getSubjectName())
+                .id(attendance.getId())
+                .enrollmentId(enrollment != null ? enrollment.getId() : null)
+                .classEnrollmentId(ce != null ? ce.getId() : null)
+                .studentId(ce != null ? ce.getStudent().getId() : enrollment.getStudent().getId())
+                .studentName(ce != null ? ce.getStudent().getFirstName() + " " + ce.getStudent().getLastName()
+                        : enrollment.getStudent().getFirstName() + " " + enrollment.getStudent().getLastName())
+                .subjectId(ce != null && ce.getClassSubject().getSubject() != null
+                        ? ce.getClassSubject().getSubject().getId() : (enrollment != null ? enrollment.getSubject().getId() : null))
+                .subjectName(ce != null ? ce.getClassSubject().getSubjectName() : enrollment.getSubject().getSubjectName())
                 .attendanceDate(attendance.getAttendanceDate()).status(attendance.getStatus()).remarks(attendance.getRemarks())
                 .build();
     }
