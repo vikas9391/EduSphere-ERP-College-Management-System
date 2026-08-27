@@ -68,9 +68,28 @@ export function AttendancePage() {
     setLoading(true)
     setError(null)
     try {
-      const [a, s] = await Promise.all([getAttendance(), getMySubjects()])
-      setRecords(a)
-      setSubjects(s)
+      const [attendanceResult, subjectsResult] = await Promise.allSettled([
+        getAttendance(),
+        getMySubjects(),
+      ])
+
+      if (attendanceResult.status === 'fulfilled') {
+        setRecords(attendanceResult.value)
+      } else {
+        setRecords([])
+        setError('Failed to load attendance records. Please try again.')
+      }
+
+      if (subjectsResult.status === 'fulfilled') {
+        setSubjects(subjectsResult.value)
+      } else {
+        setSubjects([])
+        setError((current) =>
+          current
+            ? current
+            : 'Failed to load your assigned subjects. Please try again.',
+        )
+      }
     } catch {
       setError('Failed to load attendance data. Please try again.')
     } finally {
