@@ -1,5 +1,5 @@
 import { api } from './axios'
-import { unwrapList, type PagedResponse } from './types'
+import { unwrap, unwrapList, type PagedResponse } from './types'
 
 export interface Subject {
   id: number
@@ -28,8 +28,8 @@ export async function getSubjects(): Promise<Subject[]> {
 }
 
 export async function getMySubjects(): Promise<Subject[]> {
-  const res = await api.get<Subject[]>('/subjects/my')
-  return res.data
+  const res = await api.get<Subject[] | { success: boolean; data: Subject[] }>('/subjects/my')
+  return unwrap(res.data)
 }
 
 export async function getSubject(id: number): Promise<Subject> {
