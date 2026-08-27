@@ -13,8 +13,8 @@ export interface Attendance {
   remarks?: string
 }
 export interface AttendancePayload {
-  enrollmentId?: number
-  classEnrollmentId?: number
+  enrollmentId?: number | null
+  classEnrollmentId?: number | null
   attendanceDate: string
   status: string
   remarks?: string
