@@ -11,6 +11,11 @@ public interface AttendanceRepository
             Long enrollmentId,
             java.time.LocalDate attendanceDate);
 
+    boolean existsByEnrollmentIdAndAttendanceDateAndIdNot(
+            Long enrollmentId,
+            java.time.LocalDate attendanceDate,
+            Long id);
+
     /**
      * Fetch-joins enrollment -> subject so the student self-service attendance endpoint can
      * compute overall + per-subject percentages without N+1 lazy-loading.
