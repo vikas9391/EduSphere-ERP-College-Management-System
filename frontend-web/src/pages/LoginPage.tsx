@@ -107,7 +107,7 @@ export function LoginPage() {
         localStorage.removeItem(REMEMBERED_EMAIL_KEY)
       }
 
-      navigate(response.mustChangePassword ? '/change-password' : routeForRole(response.role))
+      navigate(response.mustChangePassword ? '/change-password' : dashboardForRole(response.role))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
     } finally {
