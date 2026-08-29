@@ -198,12 +198,15 @@ public class AttendanceService {
                     ? "CLASS_SUBJECT:" + ce.getClassSubject().getId()
                     : "SUBJECT:" + subjectId;
 
-            var summary = bySubject.computeIfAbsent(key, k ->
-                    StudentAttendanceSummaryResponse.SubjectAttendanceSummary.builder()
-                            .subjectId(subjectId)
-                            .subjectCode(subjectCode)
-                            .subjectName(subjectName)
-                            .build());
+            var summary = bySubject.get(key);
+            if (summary == null) {
+                summary = StudentAttendanceSummaryResponse.SubjectAttendanceSummary.builder()
+                        .subjectId(subjectId)
+                        .subjectCode(subjectCode)
+                        .subjectName(subjectName)
+                        .build();
+                bySubject.put(key, summary);
+            }
 
             summary.setTotalClasses(summary.getTotalClasses() + 1);
             if (isPresent(a.getStatus())) {
