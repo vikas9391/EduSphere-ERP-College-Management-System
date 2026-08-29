@@ -27,6 +27,12 @@ public class AttendanceController {
     public List<AttendanceResponse> getMyAttendance() { return attendanceService.getMyAttendance(); }
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @GetMapping("/me/summary")
+    @PreAuthorize("hasRole('STUDENT')")
+    public com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse getMyAttendanceSummary() {
+        return attendanceService.getMyAttendanceSummary();
+    }
+
     @GetMapping("/student/{studentId}")
     public List<AttendanceResponse> getStudentAttendance(@PathVariable Long studentId) { return attendanceService.getStudentAttendance(studentId); }
 
