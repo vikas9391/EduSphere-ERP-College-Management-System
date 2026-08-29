@@ -59,6 +59,45 @@ export interface StudentAttendanceSummary {
 }
 
 export async function getMyAttendanceSummary(): Promise<StudentAttendanceSummary> {
-  const res = await api.get<{ data: StudentAttendanceSummary }>('/student/attendance')
-  return res.data.data
+  const records = await getMyAttendance()
+  const attended = records.filter((r) => {
+    const status = (r.status || '').trim().toUpperCase()
+    return status === 'PRESENT' || status === 'ATTENDED'
+  }).length
+
+  const bySubject = Array.from(
+    records.reduce((map, record) => {
+      const key = String(record.subjectId ?? record.subjectName ?? 'unknown')
+      const existing = map.get(key) ?? {
+        subjectId: record.subjectId,
+        subjectCode: '',
+        subjectName: record.subjectName || 'Unknown Subject',
+        totalClasses: 0,
+        classesAttended: 0,
+        classesMissed: 0,
+        attendancePercentage: 0,
+      }
+      existing.totalClasses += 1
+      if (['PRESENT', 'ATTENDED'].includes((record.status || '').trim().toUpperCase())) {
+        existing.classesAttended += 1
+      } else {
+        existing.classesMissed += 1
+      }
+      map.set(key, existing)
+      return map
+    }, new Map<string, SubjectAttendanceSummary>())
+  ).map((s) => ({
+    ...s,
+    attendancePercentage: s.totalClasses ? Number(((s.classesAttended / s.totalClasses) * 100).toFixed(1)) : 0,
+  }))
+
+  return {
+    totalClasses: records.length,
+    classesAttended: attended,
+    classesMissed: records.length - attended,
+    overallAttendancePercentage: records.length
+      ? Number(((attended / records.length) * 100).toFixed(1))
+      : 0,
+    bySubject,
+  }
 }
