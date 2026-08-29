@@ -6,6 +6,7 @@ import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/Pag
 import { useAuthStore } from '@/store/authStore'
 import { ClipboardCheck, Search, Layers, GraduationCap, BookOpen } from 'lucide-react'
 import { getMyEnrollments, type Enrollment } from '@/api/'
+import { getMyClassesAsStudent, getClassSubjectsForStudent } from '@/api/schoolClass'
 
 export function StudentEnrollmentsPage() {
   const { user } = useAuthStore()
@@ -20,8 +21,48 @@ export function StudentEnrollmentsPage() {
       setLoading(true)
       setError(null)
       try {
-        const data = await getMyEnrollments()
-        if (mounted) setEnrollments(data)
+        const formalEnrollments = await getMyEnrollments()
+
+        // Class subjects are the source of truth for the newer class-based student
+        // module. Merge subjects the student is actually enrolled in so the page does
+        // not incorrectly show 0 when the class roster/enrollment is populated.
+        const classes = await getMyClassesAsStudent()
+        const classSubjects = (await Promise.all(
+          classes.map((cls) => getClassSubjectsForStudent(cls.id))
+        )).flat()
+
+        const classRows: Enrollment[] = classSubjects
+          .filter((subject) => subject.enrolledByMe)
+          .map((subject) => {
+            const cls = classes.find((item) => item.id === subject.schoolClassId)
+            return {
+              id: -subject.id,
+              studentId: 0,
+              studentName: '',
+              admissionNo: '',
+              subjectId: subject.linkedSubjectId ?? subject.id,
+              subjectName: subject.subjectName,
+              subjectCode: subject.subjectCode,
+              courseName: cls?.name ?? '',
+              teacherName: subject.teacherName,
+              academicYear: cls?.academicYear ?? '',
+              semester: cls?.semester ?? 0,
+              enrollmentDate: '',
+              status: 'ACTIVE',
+            }
+          })
+
+        const merged = [...formalEnrollments]
+        const seen = new Set(merged.map((e) => `subject:${e.subjectId}`))
+        for (const row of classRows) {
+          const key = `subject:${row.subjectId}`
+          if (!seen.has(key)) {
+            merged.push(row)
+            seen.add(key)
+          }
+        }
+
+        if (mounted) setEnrollments(merged)
       } catch {
         if (mounted) setError('Failed to load your enrollments. Please try again.')
       } finally {
