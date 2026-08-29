@@ -27,20 +27,77 @@ export function StudentAttendancePage() {
 
   useEffect(() => {
     let mounted = true
+
     async function load() {
       setLoading(true)
       setError(null)
       try {
-        const summary = await getMyAttendanceSummary()
-        if (mounted) setAttendance(summary)
+        const records = await getMyAttendance()
+
+        const attended = records.filter((r) => {
+          const status = (r.status || '').trim().toUpperCase()
+          return status === 'PRESENT' || status === 'ATTENDED'
+        }).length
+
+        const missed = records.length - attended
+        const bySubject = Array.from(
+          records.reduce((map, record) => {
+            const key = String(record.subjectId ?? record.subjectName ?? 'unknown')
+            const existing = map.get(key) ?? {
+              subjectId: record.subjectId,
+              subjectCode: '',
+              subjectName: record.subjectName || 'Unknown Subject',
+              totalClasses: 0,
+              classesAttended: 0,
+              classesMissed: 0,
+              attendancePercentage: 0,
+            }
+            existing.totalClasses += 1
+            const status = (record.status || '').trim().toUpperCase()
+            if (status === 'PRESENT' || status === 'ATTENDED') {
+              existing.classesAttended += 1
+            } else {
+              existing.classesMissed += 1
+            }
+            map.set(key, existing)
+            return map
+          }, new Map<string, SubjectAttendanceSummary>())
+        ).map((s) => ({
+          ...s,
+          attendancePercentage: s.totalClasses
+            ? Number(((s.classesAttended / s.totalClasses) * 100).toFixed(1))
+            : 0,
+        }))
+
+        if (mounted) {
+          setAttendance({
+            totalClasses: records.length,
+            classesAttended: attended,
+            classesMissed: missed,
+            overallAttendancePercentage: records.length
+              ? Number(((attended / records.length) * 100).toFixed(1))
+              : 0,
+            bySubject,
+          })
+        }
       } catch {
         if (mounted) setError('Failed to load your attendance. Please try again.')
       } finally {
         if (mounted) setLoading(false)
       }
     }
+
     load()
-    const overall = attendance ?? { totalClasses: 0, classesAttended: 0, classesMissed: 0, overallAttendancePercentage: 0, bySubject: [] }
+    return () => { mounted = false }
+  }, [user?.id])
+
+  const overall = attendance ?? {
+    totalClasses: 0,
+    classesAttended: 0,
+    classesMissed: 0,
+    overallAttendancePercentage: 0,
+    bySubject: [],
+  }
 
   return (
     <Layout>
@@ -70,14 +127,30 @@ export function StudentAttendancePage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-sm">
               <thead><tr className="border-b border-border text-left text-xs text-muted">
-                <th className="px-3 py-3">Subject</th><th className="px-3 py-3 text-center">Attendance</th><th className="px-3 py-3 text-center">Total Classes</th><th className="px-3 py-3 text-center">Attended</th><th className="px-3 py-3 text-center">Not Attended</th>
+                <th className="px-3 py-3">Subject</th>
+                <th className="px-3 py-3 text-center">Attendance</th>
+                <th className="px-3 py-3 text-center">Total Classes</th>
+                <th className="px-3 py-3 text-center">Attended</th>
+                <th className="px-3 py-3 text-center">Not Attended</th>
               </tr></thead>
               <tbody>
                 {overall.bySubject.map((s) => (
                   <tr key={s.subjectId ?? s.subjectName} className="border-b border-border/60">
-                    <td className="px-3 py-4"><div className="font-medium text-text">{s.subjectName}</div><div className="text-xs text-muted">{s.subjectCode}</div></td>
-                    <td className="px-3 py-4"><div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-border/50"><div className={`h-full rounded-full ${progressColor(s.attendancePercentage)}`} style={{ width: `${s.attendancePercentage}%` }} /></div><span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClasses(s.attendancePercentage)}`}>{s.attendancePercentage}%</span></div></td>
-                    <td className="px-3 py-4 text-center">{s.totalClasses}</td><td className="px-3 py-4 text-center font-medium">{s.classesAttended}</td><td className="px-3 py-4 text-center">{s.classesMissed}</td>
+                    <td className="px-3 py-4">
+                      <div className="font-medium text-text">{s.subjectName}</div>
+                      <div className="text-xs text-muted">{s.subjectCode}</div>
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 flex-1 rounded-full bg-border/50">
+                          <div className={`h-full rounded-full ${progressColor(s.attendancePercentage)}`} style={{ width: `${s.attendancePercentage}%` }} />
+                        </div>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClasses(s.attendancePercentage)}`}>{s.attendancePercentage}%</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-4 text-center">{s.totalClasses}</td>
+                    <td className="px-3 py-4 text-center font-medium">{s.classesAttended}</td>
+                    <td className="px-3 py-4 text-center">{s.classesMissed}</td>
                   </tr>
                 ))}
               </tbody>
