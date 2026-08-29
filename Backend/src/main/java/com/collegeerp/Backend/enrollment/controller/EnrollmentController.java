@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.collegeerp.Backend.security.UserPrincipal;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/enrollments")
@@ -30,6 +32,14 @@ public class EnrollmentController {
     public List<EnrollmentResponse> getAllEnrollments() {
 
         return enrollmentService.getAllEnrollments();
+    }
+
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public List<EnrollmentResponse> getMyEnrollments(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return enrollmentService.getMyEnrollments(principal.getEmail(), principal.getId());
     }
 
     @GetMapping("/{id}")
