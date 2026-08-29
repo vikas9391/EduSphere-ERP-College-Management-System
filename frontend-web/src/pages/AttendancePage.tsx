@@ -218,9 +218,9 @@ export function AttendancePage() {
   const stats = useMemo(() => {
     const today = todayISO()
     const todays = records.filter((r) => r.attendanceDate.slice(0, 10) === today)
-    const presentToday = todays.filter((r) => r.status === 'PRESENT').length
+    const presentToday = todays.filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length
     const absentToday = todays.filter((r) => r.status === 'ABSENT').length
-    const overallPresent = records.filter((r) => r.status === 'PRESENT').length
+    const overallPresent = records.filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length
     const rate = records.length ? Math.round((overallPresent / records.length) * 100) : 0
     return { total: records.length, presentToday, absentToday, rate }
   }, [records])
@@ -242,6 +242,7 @@ export function AttendancePage() {
     try {
       const updated = await updateAttendance(r.id, {
         enrollmentId: r.enrollmentId,
+        classEnrollmentId: r.classEnrollmentId,
         attendanceDate: r.attendanceDate,
         status: nextStatus,
         remarks: r.remarks,
