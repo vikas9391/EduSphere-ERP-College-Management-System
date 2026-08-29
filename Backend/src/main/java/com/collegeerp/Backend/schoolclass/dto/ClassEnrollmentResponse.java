@@ -14,6 +14,12 @@ public class ClassEnrollmentResponse {
 
     private Long id;
     private Long classSubjectId;
+    private Long schoolClassId;
+    private String className;
+    private String academicYear;
+    private Integer semester;
+    private Long teacherId;
+    private String teacherName;
     private String subjectCode;
     private String subjectName;
     private Long studentId;
