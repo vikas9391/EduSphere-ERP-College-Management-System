@@ -110,10 +110,7 @@ public class AttendanceService {
         UserPrincipal principal = currentPrincipal();
         if (!isStudentRole(principal)) throw new AccessDeniedException("Only students can view their own attendance");
         Long studentId = resolveStudentId(principal);
-        return attendanceRepository.findAll().stream().filter(a ->
-                    (a.getClassEnrollment() != null && a.getClassEnrollment().getStudent().getId().equals(studentId))
-                    || (a.getEnrollment() != null && a.getEnrollment().getStudent().getId().equals(studentId)))
-                    .map(this::map).toList();
+        return findStudentAttendanceRecords(studentId).stream().map(this::map).toList();
     }
 
     /**
@@ -130,13 +127,10 @@ public class AttendanceService {
         }
 
         Long studentId = resolveStudentId(principal);
-        List<Attendance> records = attendanceRepository.findAll().stream()
-                .filter(a ->
-                        (a.getClassEnrollment() != null
-                                && a.getClassEnrollment().getStudent().getId().equals(studentId))
-                        || (a.getEnrollment() != null
-                                && a.getEnrollment().getStudent().getId().equals(studentId)))
-                .toList();
+        // ClassEnrollment is authoritative for current operational attendance.
+        // Legacy Enrollment records are included only when no matching class-based
+        // record exists for the same subject/date, preventing double counting.
+        List<Attendance> records = findStudentAttendanceRecords(studentId);
 
         java.util.Map<String, StudentAttendanceSummaryResponse.SubjectAttendanceSummary> bySubject =
                 new java.util.LinkedHashMap<>();
@@ -229,6 +223,47 @@ public class AttendanceService {
                 .overallAttendancePercentage(records.isEmpty() ? 0 : round1(attended * 100.0 / records.size()))
                 .bySubject(new java.util.ArrayList<>(bySubject.values()))
                 .build();
+    }
+
+    /**
+     * Returns one authoritative attendance stream for a student.
+     *
+     * Current class-based records win. Legacy Enrollment records are retained only
+     * for subject/date combinations that have not yet been migrated, so historical
+     * data remains visible without double-counting migrated rows.
+     */
+    private List<Attendance> findStudentAttendanceRecords(Long studentId) {
+        List<Attendance> classRecords = attendanceRepository.findClassAttendanceByStudentId(studentId);
+        List<Attendance> legacyRecords = attendanceRepository.findLegacyAttendanceByStudentId(studentId);
+
+        java.util.Set<String> authoritativeKeys = classRecords.stream()
+                .map(this::attendanceSubjectDateKey)
+                .collect(java.util.stream.Collectors.toSet());
+
+        java.util.List<Attendance> merged = new java.util.ArrayList<>(classRecords);
+        for (Attendance legacy : legacyRecords) {
+            if (!authoritativeKeys.contains(attendanceSubjectDateKey(legacy))) {
+                merged.add(legacy);
+            }
+        }
+
+        merged.sort(java.util.Comparator.comparing(
+                Attendance::getAttendanceDate,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        return merged;
+    }
+
+    private String attendanceSubjectDateKey(Attendance attendance) {
+        Long subjectId = null;
+        if (attendance.getClassEnrollment() != null
+                && attendance.getClassEnrollment().getClassSubject() != null) {
+            var subject = attendance.getClassEnrollment().getClassSubject().getSubject();
+            if (subject != null) subjectId = subject.getId();
+        } else if (attendance.getEnrollment() != null
+                && attendance.getEnrollment().getSubject() != null) {
+            subjectId = attendance.getEnrollment().getSubject().getId();
+        }
+        return String.valueOf(subjectId) + "|" + attendance.getAttendanceDate();
     }
 
     private boolean isPresent(String status) {
