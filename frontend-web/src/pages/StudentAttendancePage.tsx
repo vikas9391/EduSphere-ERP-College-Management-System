@@ -5,7 +5,8 @@ import { StampGrid } from '@/components/motion'
 import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { CalendarDays, UserCheck, UserX, Percent, Layers } from 'lucide-react'
-import { getMyAttendanceSummary, type StudentAttendanceSummary } from '@/api/attendance'
+import { getMyAttendanceSummary, getMyAttendance, type StudentAttendanceSummary } from '@/api/attendance'
+import { getMyClassesAsStudent, getClassSubjectsForStudent } from '@/api/schoolClass'
 
 function progressColor(pct: number) {
   if (pct >= 75) return 'bg-green-500'
@@ -32,8 +33,75 @@ export function StudentAttendancePage() {
       setLoading(true)
       setError(null)
       try {
-        const summary = await getMyAttendanceSummary()
-        if (mounted) setAttendance(summary)
+        try {
+          const summary = await getMyAttendanceSummary()
+          if (mounted) setAttendance(summary)
+        } catch {
+          // Compatibility fallback: older/local backends may not have the summary
+          // endpoint yet. Build the same view from the existing attendance + class
+          // APIs so the page remains usable instead of showing a false error.
+          const [records, classes] = await Promise.all([
+            getMyAttendance(),
+            getMyClassesAsStudent(),
+          ])
+          const classSubjects = (await Promise.all(
+            classes.map((cls) => getClassSubjectsForStudent(cls.id))
+          )).flat()
+
+          const subjects = new Map<string, StudentAttendanceSummary['bySubject'][number]>()
+          for (const s of classSubjects.filter((x) => x.enrolledByMe)) {
+            const key = String(s.linkedSubjectId ?? s.id)
+            subjects.set(key, {
+              subjectId: s.linkedSubjectId ?? s.id,
+              subjectCode: s.subjectCode,
+              subjectName: s.subjectName,
+              totalClasses: 0,
+              classesAttended: 0,
+              classesMissed: 0,
+              attendancePercentage: 0,
+            })
+          }
+
+          let attended = 0
+          for (const record of records) {
+            const key = String(record.subjectId ?? record.classEnrollmentId ?? record.enrollmentId)
+            const current = subjects.get(key) ?? {
+              subjectId: record.subjectId,
+              subjectCode: '',
+              subjectName: record.subjectName || 'Unknown Subject',
+              totalClasses: 0,
+              classesAttended: 0,
+              classesMissed: 0,
+              attendancePercentage: 0,
+            }
+            current.totalClasses += 1
+            if (['PRESENT', 'ATTENDED'].includes(record.status.toUpperCase())) {
+              current.classesAttended += 1
+              attended += 1
+            } else {
+              current.classesMissed += 1
+            }
+            subjects.set(key, current)
+          }
+
+          const bySubject = Array.from(subjects.values()).map((s) => ({
+            ...s,
+            attendancePercentage: s.totalClasses
+              ? Math.round((s.classesAttended * 1000) / s.totalClasses) / 10
+              : 0,
+          }))
+
+          const fallback: StudentAttendanceSummary = {
+            totalClasses: records.length,
+            classesAttended: attended,
+            classesMissed: records.length - attended,
+            overallAttendancePercentage: records.length
+              ? Math.round((attended * 1000) / records.length) / 10
+              : 0,
+            bySubject,
+          }
+          if (mounted) setAttendance(fallback)
+        }
       } catch {
         if (mounted) setError('Failed to load your attendance. Please try again.')
       } finally {
