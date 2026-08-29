@@ -220,6 +220,14 @@ public class ClassSubjectService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClassEnrollmentResponse> getMyEnrollments(Long studentId, String role) {
+        requireStudent(role);
+        return classEnrollmentRepository.findAllByStudentId(studentId).stream()
+                .map(this::mapEnrollment)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ClassEnrollmentResponse> getEnrollments(Long subjectId, Long principalId, String role) {
         ClassSubject subject = findSubjectOrThrow(subjectId);
         SchoolClassService.requireTeacherOrAdmin(role);
@@ -256,10 +264,19 @@ public class ClassSubjectService {
     }
 
     private ClassEnrollmentResponse mapEnrollment(ClassEnrollment e) {
+        var classSubject = e.getClassSubject();
+        var schoolClass = classSubject.getSchoolClass();
+        var teacher = classSubject.getTeacher();
         return ClassEnrollmentResponse.builder()
                 .id(e.getId())
-                .classSubjectId(e.getClassSubject().getId())
-                .subjectCode(e.getClassSubject().getSubjectCode())
+                .classSubjectId(classSubject.getId())
+                .schoolClassId(schoolClass != null ? schoolClass.getId() : null)
+                .className(schoolClass != null ? schoolClass.getName() : null)
+                .academicYear(schoolClass != null ? schoolClass.getAcademicYear() : null)
+                .semester(schoolClass != null ? schoolClass.getSemester() : null)
+                .teacherId(teacher != null ? teacher.getId() : null)
+                .teacherName(teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null)
+                .subjectCode(classSubject.getSubjectCode())
                 .subjectName(e.getClassSubject().getSubjectName())
                 .studentId(e.getStudent().getId())
                 .studentName(e.getStudent().getFirstName() + " " +
