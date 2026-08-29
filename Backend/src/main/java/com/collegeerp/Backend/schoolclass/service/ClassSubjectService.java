@@ -234,7 +234,7 @@ public class ClassSubjectService {
     }
 
     private static void requireStudent(String role) {
-        if (!STUDENT_ROLE.equals(role)) {
+        if (!STUDENT_ROLE.equalsIgnoreCase(role)) {
             throw new ForbiddenException("Only students can self-enroll");
         }
     }
