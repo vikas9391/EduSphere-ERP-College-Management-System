@@ -2,6 +2,7 @@ package com.collegeerp.Backend.attendance.service;
 
 import com.collegeerp.Backend.attendance.dto.AttendanceRequest;
 import com.collegeerp.Backend.attendance.dto.AttendanceResponse;
+import com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse;
 import com.collegeerp.Backend.attendance.entity.Attendance;
 import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
 import com.collegeerp.Backend.common.exception.BadRequestException;
@@ -113,6 +114,134 @@ public class AttendanceService {
                     (a.getClassEnrollment() != null && a.getClassEnrollment().getStudent().getId().equals(studentId))
                     || (a.getEnrollment() != null && a.getEnrollment().getStudent().getId().equals(studentId)))
                     .map(this::map).toList();
+    }
+
+    /**
+     * Student dashboard summary. The attendance table contains only marked class
+     * sessions, while the student's enrolled subjects live in enrollments /
+     * class_enrollments. Build the response from both sources so subjects remain
+     * visible even when no attendance has been marked for them yet.
+     */
+    @Transactional(readOnly = true)
+    public StudentAttendanceSummaryResponse getMyAttendanceSummary() {
+        UserPrincipal principal = currentPrincipal();
+        if (!isStudentRole(principal)) {
+            throw new AccessDeniedException("Only students can view their own attendance");
+        }
+
+        Long studentId = resolveStudentId(principal);
+        List<Attendance> records = attendanceRepository.findAll().stream()
+                .filter(a ->
+                        (a.getClassEnrollment() != null
+                                && a.getClassEnrollment().getStudent().getId().equals(studentId))
+                        || (a.getEnrollment() != null
+                                && a.getEnrollment().getStudent().getId().equals(studentId)))
+                .toList();
+
+        java.util.Map<String, StudentAttendanceSummaryResponse.SubjectAttendanceSummary> bySubject =
+                new java.util.LinkedHashMap<>();
+
+        // Seed every formal subject the student is enrolled in, including subjects
+        // with zero attendance records.
+        enrollmentRepository.findByStudentIdWithDetails(studentId).forEach(e -> {
+            if (e.getSubject() == null) return;
+            String key = "SUBJECT:" + e.getSubject().getId();
+            bySubject.putIfAbsent(key, StudentAttendanceSummaryResponse.SubjectAttendanceSummary.builder()
+                    .subjectId(e.getSubject().getId())
+                    .subjectCode(e.getSubject().getSubjectCode())
+                    .subjectName(e.getSubject().getSubjectName())
+                    .build());
+        });
+
+        // Seed class-scoped subjects as well. These are the subjects shown under
+        // My Classes and are the source used by class attendance.
+        classEnrollmentRepository.findAllByStudentId(studentId).forEach(ce -> {
+            var cs = ce.getClassSubject();
+            String key = cs.getSubject() != null
+                    ? "SUBJECT:" + cs.getSubject().getId()
+                    : "CLASS_SUBJECT:" + cs.getId();
+            bySubject.putIfAbsent(key, StudentAttendanceSummaryResponse.SubjectAttendanceSummary.builder()
+                    .subjectId(cs.getSubject() != null ? cs.getSubject().getId() : cs.getId())
+                    .subjectCode(cs.getSubject() != null ? cs.getSubject().getSubjectCode() : cs.getSubjectCode())
+                    .subjectName(firstNonBlank(cs.getSubjectName(),
+                            cs.getSubject() != null ? cs.getSubject().getSubjectName() : null,
+                            "Unknown Subject"))
+                    .build());
+        });
+
+        int attended = 0;
+        for (Attendance a : records) {
+            var ce = a.getClassEnrollment();
+            var e = a.getEnrollment();
+            Long subjectId = null;
+            String subjectCode = "";
+            String subjectName = "";
+
+            if (ce != null && ce.getClassSubject() != null) {
+                var cs = ce.getClassSubject();
+                if (cs.getSubject() != null) {
+                    subjectId = cs.getSubject().getId();
+                    subjectCode = cs.getSubject().getSubjectCode();
+                    subjectName = firstNonBlank(cs.getSubjectName(), cs.getSubject().getSubjectName(), "Unknown Subject");
+                } else {
+                    subjectId = cs.getId();
+                    subjectCode = cs.getSubjectCode();
+                    subjectName = firstNonBlank(cs.getSubjectName(), "Unknown Subject");
+                }
+            } else if (e != null && e.getSubject() != null) {
+                subjectId = e.getSubject().getId();
+                subjectCode = e.getSubject().getSubjectCode();
+                subjectName = firstNonBlank(e.getSubject().getSubjectName(), "Unknown Subject");
+            }
+
+            String key = ce != null && ce.getClassSubject() != null && ce.getClassSubject().getSubject() == null
+                    ? "CLASS_SUBJECT:" + ce.getClassSubject().getId()
+                    : "SUBJECT:" + subjectId;
+
+            var summary = bySubject.computeIfAbsent(key, k ->
+                    StudentAttendanceSummaryResponse.SubjectAttendanceSummary.builder()
+                            .subjectId(subjectId)
+                            .subjectCode(subjectCode)
+                            .subjectName(subjectName)
+                            .build());
+
+            summary.setTotalClasses(summary.getTotalClasses() + 1);
+            if (isPresent(a.getStatus())) {
+                summary.setClassesAttended(summary.getClassesAttended() + 1);
+                attended++;
+            } else {
+                summary.setClassesMissed(summary.getClassesMissed() + 1);
+            }
+        }
+
+        bySubject.values().forEach(s ->
+                s.setAttendancePercentage(s.getTotalClasses() == 0
+                        ? 0
+                        : round1((s.getClassesAttended() * 100.0) / s.getTotalClasses())));
+
+        return StudentAttendanceSummaryResponse.builder()
+                .totalClasses(records.size())
+                .classesAttended(attended)
+                .classesMissed(records.size() - attended)
+                .overallAttendancePercentage(records.isEmpty() ? 0 : round1(attended * 100.0 / records.size()))
+                .bySubject(new java.util.ArrayList<>(bySubject.values()))
+                .build();
+    }
+
+    private boolean isPresent(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        return "PRESENT".equals(normalized) || "ATTENDED".equals(normalized);
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) return value.trim();
+        }
+        return "Unknown Subject";
     }
 
     @Transactional(readOnly = true)
