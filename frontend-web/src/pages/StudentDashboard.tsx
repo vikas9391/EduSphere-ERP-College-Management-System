@@ -6,13 +6,13 @@ import { StampGrid, StampItem, TallyCounter, LedgerRule } from '@/components/mot
 import {
   getMyProfile,
   getStudentDashboardSummary,
-  getMyAttendanceSummary,
   getMyAssignments,
   getMyResults,
   getMyTimetable,
   getMyNotifications,
   type StudentProfile,
 } from '@/api'
+import { getMyAttendanceSummary } from '@/api/attendance'
 import {
   CalendarCheck2,
   BookOpen,
