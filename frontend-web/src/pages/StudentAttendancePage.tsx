@@ -75,7 +75,7 @@ export function StudentAttendancePage() {
               attendancePercentage: 0,
             }
             current.totalClasses += 1
-            if (['PRESENT', 'ATTENDED'].includes(record.status.toUpperCase())) {
+            if (['PRESENT', 'ATTENDED', 'LATE'].includes(record.status.toUpperCase())) {
               current.classesAttended += 1
               attended += 1
             } else {
