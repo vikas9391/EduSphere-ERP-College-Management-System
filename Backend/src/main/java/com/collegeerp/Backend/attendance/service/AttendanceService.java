@@ -248,16 +248,26 @@ public class AttendanceService {
     }
 
     private String attendanceSubjectDateKey(Attendance attendance) {
-        Long subjectId = null;
+        // Formal subjects can be shared by multiple ClassSubject rows, so use the
+        // formal Subject id for migrated-vs-legacy deduplication. Informal class
+        // subjects have no Subject id and must instead use their ClassSubject id;
+        // otherwise two different informal subjects on the same date collapse.
+        String subjectKey;
         if (attendance.getClassEnrollment() != null
                 && attendance.getClassEnrollment().getClassSubject() != null) {
-            var subject = attendance.getClassEnrollment().getClassSubject().getSubject();
-            if (subject != null) subjectId = subject.getId();
+            var cs = attendance.getClassEnrollment().getClassSubject();
+            if (cs.getSubject() != null) {
+                subjectKey = "SUBJECT:" + cs.getSubject().getId();
+            } else {
+                subjectKey = "CLASS_SUBJECT:" + cs.getId();
+            }
         } else if (attendance.getEnrollment() != null
                 && attendance.getEnrollment().getSubject() != null) {
-            subjectId = attendance.getEnrollment().getSubject().getId();
+            subjectKey = "SUBJECT:" + attendance.getEnrollment().getSubject().getId();
+        } else {
+            subjectKey = "ATTENDANCE:" + attendance.getId();
         }
-        return String.valueOf(subjectId) + "|" + attendance.getAttendanceDate();
+        return subjectKey + "|" + attendance.getAttendanceDate();
     }
 
     private boolean isPresent(String status) {
