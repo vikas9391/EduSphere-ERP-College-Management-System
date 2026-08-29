@@ -49,4 +49,32 @@ public interface AttendanceRepository
            """)
     java.util.List<Attendance> findBySubjectTeacherId(Long teacherId);
 
+    /** Fetches class-based attendance with the complete class-subject relationship. */
+    @Query("""
+           SELECT a
+           FROM Attendance a
+           JOIN FETCH a.classEnrollment ce
+           JOIN FETCH ce.student st
+           JOIN FETCH ce.classSubject cs
+           LEFT JOIN FETCH cs.subject
+           JOIN FETCH cs.schoolClass
+           JOIN FETCH cs.teacher
+           WHERE st.id = :studentId
+           ORDER BY a.attendanceDate DESC
+           """)
+    java.util.List<Attendance> findClassAttendanceByStudentId(Long studentId);
+
+    /** Legacy attendance retained only for records that have not yet been migrated. */
+    @Query("""
+           SELECT a
+           FROM Attendance a
+           JOIN FETCH a.enrollment e
+           JOIN FETCH e.student st
+           JOIN FETCH e.subject s
+           WHERE st.id = :studentId
+           ORDER BY a.attendanceDate DESC
+           """)
+    java.util.List<Attendance> findLegacyAttendanceByStudentId(Long studentId);
+
+
 }
