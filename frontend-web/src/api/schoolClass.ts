@@ -63,6 +63,12 @@ export interface ClassSubjectPayload {
 export interface ClassEnrollment {
   id: number
   classSubjectId: number
+  schoolClassId?: number | null
+  className?: string | null
+  academicYear?: string | null
+  semester?: number | null
+  teacherId?: number | null
+  teacherName?: string | null
   subjectCode: string
   subjectName: string
   studentId: number
@@ -111,6 +117,12 @@ export async function addStudentsToClass(classId: number, studentIds: number[]):
 
 export async function removeStudentFromClass(classId: number, studentId: number): Promise<void> {
   await api.delete(`/classes/${classId}/students/${studentId}`)
+}
+
+/** Canonical authenticated student's class-based enrollments. */
+export async function getMyClassEnrollments(): Promise<ClassEnrollment[]> {
+  const res = await api.get<ClassEnrollment[]>('/classes/enrollments/mine')
+  return res.data
 }
 
 // ---- Subjects ----
