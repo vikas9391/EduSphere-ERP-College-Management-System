@@ -1,22 +1,9 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { dashboardForRole, isRole, ROLES } from '@/constants/roles'
 
 /** Mirrors routeForRole() in LoginPage — kept in sync manually since there's no shared roles module yet. */
-function dashboardForRole(userRole: string | undefined) {
-  switch (userRole) {
-    case 'SUPER_ADMIN':
-      return '/colleges'
-    case 'TEACHER':
-      return '/teacher/dashboard'
-    case 'STUDENT':
-      return '/student/dashboard'
-    case 'ADMIN':
-      return '/admin/dashboard'
-    default:
-      return '/dashboard'
-  }
-}
 
 /**   
  * `role` restricts the route to a specific JWT role (e.g. "SUPER_ADMIN"). Signed-in
@@ -28,10 +15,10 @@ export function ProtectedRoute({ children, role }: { children: ReactNode; role?:
   const userRole = useAuthStore((s) => s.user?.role)
 
   if (!token) {
-    return <Navigate to={role === 'SUPER_ADMIN' ? '/super-admin/login' : '/login'} replace />
+    return <Navigate to={isRole(role, ROLES.SUPER_ADMIN) ? '/super-admin/login' : '/login'} replace />
   }
 
-  if (role && userRole !== role) {
+  if (role && !isRole(userRole, role as any)) {
     return <Navigate to={dashboardForRole(userRole)} replace />
   }
 
