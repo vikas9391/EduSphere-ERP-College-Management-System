@@ -52,13 +52,8 @@ export async function deleteEnrollment(id: number): Promise<void> {
   await api.delete(`/enrollments/${id}`)
 }
 
-/**
- * Student's own enrollments. The real backend endpoint is `GET /api/student/enrollments`
- * (added as part of the Student Module work), NOT `/api/enrollments/me` - that path was
- * never actually implemented on the backend and would have 404'd every time
- * StudentEnrollmentsPage loaded.
- */
+/** Student's own enrollments, resolved from the authenticated student's profile. */
 export async function getMyEnrollments(): Promise<Enrollment[]> {
-  const res = await api.get<Enrollment[]>('/student/enrollments')
+  const res = await api.get<Enrollment[]>('/enrollments/me')
   return res.data
 }
