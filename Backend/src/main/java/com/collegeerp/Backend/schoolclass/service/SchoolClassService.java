@@ -103,7 +103,7 @@ public class SchoolClassService {
 
     @Transactional(readOnly = true)
     public List<SchoolClassResponse> getMyClassesAsStudent(Long studentId, String role) {
-        if (!STUDENT_ROLE.equals(role)) {
+        if (!STUDENT_ROLE.equalsIgnoreCase(role)) {
             throw new ForbiddenException("Only students can view their own classes");
         }
         return classStudentRepository.findAllByStudentId(studentId).stream()
