@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { normalizeRole } from "@/constants/roles"
 
 /**
  * Fields come from com.collegeerp.Backend.auth.dto.LoginResponse (email, role,
@@ -39,12 +40,6 @@ interface AuthState {
  * this at the auth-store boundary so every page, route guard and sidebar sees a
  * consistent role without having to duplicate plural-role checks everywhere.
  */
-function normalizeRole(role: string | undefined): string {
-  const normalized = (role ?? "").trim().toUpperCase();
-  if (normalized === "STUDENTS") return "STUDENT";
-  if (normalized === "TEACHERS") return "TEACHER";
-  return normalized;
-}
 
 function normalizeUser(user: User | null): User | null {
   if (!user) return null;
