@@ -28,7 +28,6 @@ public class AttendanceController {
 
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     @GetMapping("/me/summary")
-    @PreAuthorize("hasRole('STUDENT')")
     public com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse getMyAttendanceSummary() {
         return attendanceService.getMyAttendanceSummary();
     }
