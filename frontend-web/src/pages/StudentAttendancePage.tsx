@@ -6,7 +6,7 @@ import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/Pag
 import { useAuthStore } from '@/store/authStore'
 import { CalendarDays, UserCheck, UserX, Percent, Layers } from 'lucide-react'
 import { getMyAttendanceSummary, getMyAttendance, type StudentAttendanceSummary } from '@/api/attendance'
-import { getMyClassesAsStudent, getClassSubjectsForStudent } from '@/api/schoolClass'
+import { getMyClassesAsStudent, getClassSubjectsForStudent, getMyClassEnrollments } from '@/api/schoolClass'
 
 function progressColor(pct: number) {
   if (pct >= 75) return 'bg-green-500'
@@ -40,9 +40,10 @@ export function StudentAttendancePage() {
           // Compatibility fallback: older/local backends may not have the summary
           // endpoint yet. Build the same view from the existing attendance + class
           // APIs so the page remains usable instead of showing a false error.
-          const [records, classes] = await Promise.all([
+          const [records, classes, enrollments] = await Promise.all([
             getMyAttendance(),
             getMyClassesAsStudent(),
+            getMyClassEnrollments(),
           ])
           const classSubjects = (await Promise.all(
             classes.map((cls) => getClassSubjectsForStudent(cls.id))
@@ -62,9 +63,17 @@ export function StudentAttendancePage() {
             })
           }
 
+          const enrollmentSubjectKey = new Map(
+            enrollments.map((e) => [e.id, String(e.classSubjectId)])
+          )
+
           let attended = 0
           for (const record of records) {
-            const key = String(record.subjectId ?? record.classEnrollmentId ?? record.enrollmentId)
+            const key = String(
+              record.classEnrollmentId != null
+                ? (enrollmentSubjectKey.get(record.classEnrollmentId) ?? record.classEnrollmentId)
+                : (record.subjectId ?? record.enrollmentId)
+            )
             const current = subjects.get(key) ?? {
               subjectId: record.subjectId,
               subjectCode: '',
