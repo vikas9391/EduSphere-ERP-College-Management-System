@@ -6,6 +6,8 @@ import com.collegeerp.Backend.schoolclass.dto.ClassSubjectRequest;
 import com.collegeerp.Backend.schoolclass.dto.ClassSubjectResponse;
 import com.collegeerp.Backend.schoolclass.service.ClassSubjectService;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.student.entity.Student;
+import com.collegeerp.Backend.student.repository.StudentRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -18,9 +20,11 @@ import java.util.List;
 public class ClassSubjectController {
 
     private final ClassSubjectService classSubjectService;
+    private final StudentRepository studentRepository;
 
-    public ClassSubjectController(ClassSubjectService classSubjectService) {
+    public ClassSubjectController(ClassSubjectService classSubjectService, StudentRepository studentRepository) {
         this.classSubjectService = classSubjectService;
+        this.studentRepository = studentRepository;
     }
 
     @PostMapping("/{classId}/subjects")
@@ -64,7 +68,7 @@ public class ClassSubjectController {
     @GetMapping("/{classId}/subjects/mine")
     public ApiResponse<List<ClassSubjectResponse>> getSubjectsForStudent(Authentication authentication, @PathVariable Long classId) {
         UserPrincipal principal = principal(authentication);
-        return ApiResponse.success(classSubjectService.getSubjectsForStudent(classId, principal.getId(), principal.getRole()));
+        return ApiResponse.success(classSubjectService.getSubjectsForStudent(classId, resolveStudentId(principal), principal.getRole()));
     }
 
     @DeleteMapping("/{classId}/subjects/{subjectId}")
@@ -86,7 +90,7 @@ public class ClassSubjectController {
     public ApiResponse<ClassEnrollmentResponse> selfEnroll(Authentication authentication, @PathVariable Long subjectId) {
         UserPrincipal principal = principal(authentication);
         return ApiResponse.success("Enrolled",
-                classSubjectService.selfEnroll(subjectId, principal.getId(), principal.getRole()));
+                classSubjectService.selfEnroll(subjectId, resolveStudentId(principal), principal.getRole()));
     }
 
     /** A student dropping an ELECTIVE subject they previously self-enrolled in. */
@@ -94,10 +98,19 @@ public class ClassSubjectController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void selfDrop(Authentication authentication, @PathVariable Long subjectId) {
         UserPrincipal principal = principal(authentication);
-        classSubjectService.selfDrop(subjectId, principal.getId(), principal.getRole());
+        classSubjectService.selfDrop(subjectId, resolveStudentId(principal), principal.getRole());
     }
 
     private UserPrincipal principal(Authentication authentication) {
         return (UserPrincipal) authentication.getPrincipal();
     }
+    private Long resolveStudentId(UserPrincipal principal) {
+        if (principal.getEmail() != null) {
+            return studentRepository.findByEmail(principal.getEmail())
+                    .map(Student::getId)
+                    .orElse(principal.getId());
+        }
+        return principal.getId();
+    }
+
 }
