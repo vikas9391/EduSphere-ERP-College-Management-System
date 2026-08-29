@@ -6,6 +6,7 @@ import { Field, inputClass } from '@/components/FormField'
 import { StampGrid, StampItem } from '@/components/motion'
 import { StatCard, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
+import { getMyProfile, type StudentProfile } from '@/api/studentProfile'
 import {
   ClipboardList,
   Clock,
@@ -51,6 +52,7 @@ export function StudentAssignmentsPage() {
   const { user } = useAuthStore()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,9 +65,11 @@ export function StudentAssignmentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [a, s] = await Promise.all([getAssignments(), getSubmissions()])
-      setAssignments(a)
-      setSubmissions(s.filter((sub: AssignmentSubmission) => sub.studentId === user?.id))
+      const [profile, a, s] = await Promise.all([getMyProfile(), getAssignments(), getSubmissions()])
+      setStudentProfile(profile)
+      // Authentication user id and domain Student id are different identifiers.
+      // Submission records use Student.id, so always filter/submit with the profile id.
+      setSubmissions(s.filter((sub: AssignmentSubmission) => sub.studentId === profile.id))
     } catch {
       setError('Failed to load your assignments. Please try again.')
     } finally {
@@ -109,7 +113,7 @@ export function StudentAssignmentsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!activeRow || !user?.id) return
+    if (!activeRow || !studentProfile?.id) return
     if (!submissionUrl.trim()) {
       setSubmitError('Please provide a link to your submission.')
       return
@@ -119,7 +123,7 @@ export function StudentAssignmentsPage() {
     try {
       await submitAssignment({
         assignmentId: activeRow.assignment.id,
-        studentId: user.id,
+        studentId: studentProfile.id,
         submissionUrl: submissionUrl.trim(),
       })
       await loadAll()
