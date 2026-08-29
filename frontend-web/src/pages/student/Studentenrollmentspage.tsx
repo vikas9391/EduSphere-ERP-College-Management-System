@@ -5,7 +5,7 @@ import { StampGrid } from '@/components/motion'
 import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { ClipboardCheck, Search, Layers, GraduationCap, BookOpen } from 'lucide-react'
-import { getMyClassEnrollments, type ClassEnrollment } from '@/api/schoolClass'
+import { getMyClassEnrollments, getMyClassesAsStudent, getClassSubjectsForStudent, selfEnrollInClassSubject, type ClassEnrollment, type ClassSubject } from '@/api/schoolClass'
 
 export function StudentEnrollmentsPage() {
   const { user } = useAuthStore()
@@ -13,6 +13,8 @@ export function StudentEnrollmentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [available, setAvailable] = useState<ClassSubject[]>([])
+  const [enrollingId, setEnrollingId] = useState<number | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -22,8 +24,16 @@ export function StudentEnrollmentsPage() {
       try {
         // ClassEnrollment is the single source of truth for the student's
         // current class/subject participation.
-        const classEnrollments = await getMyClassEnrollments()
-        if (mounted) setEnrollments(classEnrollments)
+        const [classEnrollments, classes] = await Promise.all([
+          getMyClassEnrollments(),
+          getMyClassesAsStudent(),
+        ])
+        const subjectLists = await Promise.all(classes.map((c) => getClassSubjectsForStudent(c.id)))
+        const availableSubjects = subjectLists.flat().filter((s) => !s.enrolledByMe)
+        if (mounted) {
+          setEnrollments(classEnrollments)
+          setAvailable(availableSubjects)
+        }
       } catch {
         if (mounted) setError('Failed to load your enrollments. Please try again.')
       } finally {
@@ -78,6 +88,44 @@ export function StudentEnrollmentsPage() {
           className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none sm:max-w-md"
         />
       </div>
+
+      {/* Available subjects */}
+      {!loading && !error && available.length > 0 && (
+        <div className="leaf-card mt-6 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
+          <PanelHeader icon={BookOpen} title="Available Subjects" note="Elective subjects you can join" />
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {available.map((subject) => (
+              <div key={subject.id} className="rounded-lg border border-border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-heading text-sm font-medium text-text">{subject.subjectName}</p>
+                    <p className="mt-1 text-xs text-muted">{subject.subjectCode} · {subject.teacherName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={enrollingId === subject.id}
+                    onClick={async () => {
+                      setEnrollingId(subject.id)
+                      try {
+                        const enrollment = await selfEnrollInClassSubject(subject.id)
+                        setEnrollments((current) => [...current, enrollment])
+                        setAvailable((current) => current.filter((s) => s.id !== subject.id))
+                      } catch {
+                        setError('Failed to enroll in the subject. Please try again.')
+                      } finally {
+                        setEnrollingId(null)
+                      }
+                    }}
+                    className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                  >
+                    {enrollingId === subject.id ? 'Joining…' : 'Enroll'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       <div className="leaf-card mt-6 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]">
