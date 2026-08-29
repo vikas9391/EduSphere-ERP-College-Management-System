@@ -16,10 +16,6 @@ export interface StudentDashboardSummary {
 }
 export async function getStudentDashboardSummary(): Promise<StudentDashboardSummary> { const res = await api.get<StudentDashboardSummary>('/student/dashboard'); return res.data }
 
-export interface SubjectAttendance { subjectId: number; subjectCode: string; subjectName: string; totalClasses: number; classesAttended: number; classesMissed: number; attendancePercentage: number }
-export interface StudentAttendanceSummary { totalClasses: number; classesAttended: number; classesMissed: number; overallAttendancePercentage: number; bySubject: SubjectAttendance[] }
-export async function getMyAttendanceSummary(): Promise<StudentAttendanceSummary> { const res = await api.get<StudentAttendanceSummary>('/student/attendance'); return res.data }
-
 export interface MyAssignment { assignmentId: number; title: string; description: string; subjectId: number; subjectName: string; teacherName: string; dueDate: string; maxMarks: number; submissionStatus: string; submittedAt: string | null; marksObtained: number | null; feedback: string | null }
 export async function getMyAssignments(): Promise<MyAssignment[]> { const res = await api.get<MyAssignment[]>('/student/assignments'); return res.data }
 
