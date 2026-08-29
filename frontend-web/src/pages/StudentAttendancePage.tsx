@@ -32,54 +32,8 @@ export function StudentAttendancePage() {
       setLoading(true)
       setError(null)
       try {
-        const records = await getMyAttendance()
-
-        const attended = records.filter((r) => {
-          const status = (r.status || '').trim().toUpperCase()
-          return status === 'PRESENT' || status === 'ATTENDED'
-        }).length
-
-        const missed = records.length - attended
-        const bySubject = Array.from(
-          records.reduce((map, record) => {
-            const key = String(record.subjectId ?? record.subjectName ?? 'unknown')
-            const existing = map.get(key) ?? {
-              subjectId: record.subjectId,
-              subjectCode: '',
-              subjectName: record.subjectName || 'Unknown Subject',
-              totalClasses: 0,
-              classesAttended: 0,
-              classesMissed: 0,
-              attendancePercentage: 0,
-            }
-            existing.totalClasses += 1
-            const status = (record.status || '').trim().toUpperCase()
-            if (status === 'PRESENT' || status === 'ATTENDED') {
-              existing.classesAttended += 1
-            } else {
-              existing.classesMissed += 1
-            }
-            map.set(key, existing)
-            return map
-          }, new Map<string, SubjectAttendanceSummary>())
-        ).map((s) => ({
-          ...s,
-          attendancePercentage: s.totalClasses
-            ? Number(((s.classesAttended / s.totalClasses) * 100).toFixed(1))
-            : 0,
-        }))
-
-        if (mounted) {
-          setAttendance({
-            totalClasses: records.length,
-            classesAttended: attended,
-            classesMissed: missed,
-            overallAttendancePercentage: records.length
-              ? Number(((attended / records.length) * 100).toFixed(1))
-              : 0,
-            bySubject,
-          })
-        }
+        const summary = await getMyAttendanceSummary()
+        if (mounted) setAttendance(summary)
       } catch {
         if (mounted) setError('Failed to load your attendance. Please try again.')
       } finally {
