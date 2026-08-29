@@ -5,12 +5,11 @@ import { StampGrid } from '@/components/motion'
 import { StatCard, PanelHeader, PanelError, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { ClipboardCheck, Search, Layers, GraduationCap, BookOpen } from 'lucide-react'
-import { getMyEnrollments, type Enrollment } from '@/api/'
-import { getMyClassesAsStudent, getClassSubjectsForStudent } from '@/api/schoolClass'
+import { getMyClassEnrollments, type ClassEnrollment } from '@/api/schoolClass'
 
 export function StudentEnrollmentsPage() {
   const { user } = useAuthStore()
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
+  const [enrollments, setEnrollments] = useState<ClassEnrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -21,48 +20,10 @@ export function StudentEnrollmentsPage() {
       setLoading(true)
       setError(null)
       try {
-        const formalEnrollments = await getMyEnrollments()
-
-        // Class subjects are the source of truth for the newer class-based student
-        // module. Merge subjects the student is actually enrolled in so the page does
-        // not incorrectly show 0 when the class roster/enrollment is populated.
-        const classes = await getMyClassesAsStudent()
-        const classSubjects = (await Promise.all(
-          classes.map((cls) => getClassSubjectsForStudent(cls.id))
-        )).flat()
-
-        const classRows: Enrollment[] = classSubjects
-          .filter((subject) => subject.enrolledByMe)
-          .map((subject) => {
-            const cls = classes.find((item) => item.id === subject.schoolClassId)
-            return {
-              id: -subject.id,
-              studentId: 0,
-              studentName: '',
-              admissionNo: '',
-              subjectId: subject.linkedSubjectId ?? subject.id,
-              subjectName: subject.subjectName,
-              subjectCode: subject.subjectCode,
-              courseName: cls?.name ?? '',
-              teacherName: subject.teacherName,
-              academicYear: cls?.academicYear ?? '',
-              semester: cls?.semester ?? 0,
-              enrollmentDate: '',
-              status: 'ACTIVE',
-            }
-          })
-
-        const merged = [...formalEnrollments]
-        const seen = new Set(merged.map((e) => `subject:${e.subjectId}`))
-        for (const row of classRows) {
-          const key = `subject:${row.subjectId}`
-          if (!seen.has(key)) {
-            merged.push(row)
-            seen.add(key)
-          }
-        }
-
-        if (mounted) setEnrollments(merged)
+        // ClassEnrollment is the single source of truth for the student's
+        // current class/subject participation.
+        const classEnrollments = await getMyClassEnrollments()
+        if (mounted) setEnrollments(classEnrollments)
       } catch {
         if (mounted) setError('Failed to load your enrollments. Please try again.')
       } finally {
@@ -81,13 +42,13 @@ export function StudentEnrollmentsPage() {
     return enrollments.filter(
       (e) =>
         e.subjectName.toLowerCase().includes(q) ||
-        e.courseName.toLowerCase().includes(q) ||
-        e.teacherName?.toLowerCase().includes(q),
+        (e.className ?? '').toLowerCase().includes(q) ||
+        (e.teacherName ?? '').toLowerCase().includes(q),
     )
   }, [enrollments, search])
 
   const stats = useMemo(() => {
-    const uniqueCourses = new Set(enrollments.map((e) => e.courseName)).size
+    const uniqueCourses = new Set(enrollments.map((e) => e.className).filter(Boolean)).size
     const uniqueTeachers = new Set(enrollments.map((e) => e.teacherName)).size
     return { total: enrollments.length, uniqueCourses, uniqueTeachers }
   }, [enrollments])
@@ -159,9 +120,9 @@ export function StudentEnrollmentsPage() {
                   {filtered.map((en) => (
                     <tr key={en.id} className="border-b border-border last:border-0 hover:bg-white/80">
                       <td className="px-3 py-3 text-text">{en.subjectName}</td>
-                      <td className="px-3 py-3 text-muted">{en.courseName}</td>
-                      <td className="px-3 py-3 text-muted">{en.teacherName}</td>
-                      <td className="px-3 py-3 text-muted">{en.semester}</td>
+                      <td className="px-3 py-3 text-muted">{en.className ?? '—'}</td>
+                      <td className="px-3 py-3 text-muted">{en.teacherName ?? '—'}</td>
+                      <td className="px-3 py-3 text-muted">{en.semester ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -179,10 +140,10 @@ export function StudentEnrollmentsPage() {
                       Sem {en.semester}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-muted">{en.courseName}</p>
+                  <p className="mt-1 text-xs text-muted">{en.className ?? '—'}</p>
                   <p className="mt-2 flex items-center gap-1 text-xs text-muted">
                     <GraduationCap size={12} />
-                    {en.teacherName}
+                    {en.teacherName ?? '—'}
                   </p>
                 </li>
               ))}
