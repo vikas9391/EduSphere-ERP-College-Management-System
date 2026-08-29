@@ -78,6 +78,14 @@ public class ClassSubjectController {
         classSubjectService.deleteSubject(subjectId, principal.getId(), principal.getRole());
     }
 
+    /** Canonical student enrollment list; identity is resolved by the authenticated account. */
+    @GetMapping("/enrollments/mine")
+    public ApiResponse<List<ClassEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
+        UserPrincipal principal = principal(authentication);
+        return ApiResponse.success(
+                classSubjectService.getMyEnrollments(resolveStudentId(principal), principal.getRole()));
+    }
+
     @GetMapping("/subjects/{subjectId}/enrollments")
     public ApiResponse<List<ClassEnrollmentResponse>> getEnrollments(Authentication authentication, @PathVariable Long subjectId) {
         UserPrincipal principal = principal(authentication);
