@@ -105,12 +105,13 @@ public class ClassSubjectController {
         return (UserPrincipal) authentication.getPrincipal();
     }
     private Long resolveStudentId(UserPrincipal principal) {
-        if (principal.getEmail() != null) {
-            return studentRepository.findByEmail(principal.getEmail())
-                    .map(Student::getId)
-                    .orElse(principal.getId());
+        if (principal.getEmail() == null || principal.getEmail().isBlank()) {
+            throw new IllegalStateException("Authenticated student has no email identity");
         }
-        return principal.getId();
+        return studentRepository.findByEmail(principal.getEmail())
+                .map(Student::getId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Student profile not found for authenticated account"));
     }
 
 }
