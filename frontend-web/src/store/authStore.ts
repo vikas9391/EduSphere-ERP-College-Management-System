@@ -33,13 +33,37 @@ interface AuthState {
   logout: () => void;
 }
 
+/**
+ * Some existing tenant data stores the student role as "students" while the
+ * frontend routing/navigation expects the canonical "STUDENT" role. Normalize
+ * this at the auth-store boundary so every page, route guard and sidebar sees a
+ * consistent role without having to duplicate plural-role checks everywhere.
+ */
+function normalizeRole(role: string | undefined): string {
+  const normalized = (role ?? "").trim().toUpperCase();
+  if (normalized === "STUDENTS") return "STUDENT";
+  if (normalized === "TEACHERS") return "TEACHER";
+  return normalized;
+}
+
+function normalizeUser(user: User | null): User | null {
+  if (!user) return null;
+  return { ...user, role: normalizeRole(user.role) };
+}
+
+const storedUser = localStorage.getItem("user");
+const initialUser = storedUser ? normalizeUser(JSON.parse(storedUser) as User) : null;
+
+// Upgrade already-saved sessions too, so users do not have to sign out and back in
+// just to get the corrected student navigation.
+if (initialUser && storedUser) {
+  localStorage.setItem("user", JSON.stringify(initialUser));
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem("token"),
   refreshToken: localStorage.getItem("refreshToken"),
-
-  user: localStorage.getItem("user")
-    ? JSON.parse(localStorage.getItem("user")!)
-    : null,
+  user: initialUser,
 
   setToken: (token) => {
     if (token) {
@@ -62,13 +86,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user) => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
+    const normalizedUser = normalizeUser(user);
+
+    if (normalizedUser) {
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
     } else {
       localStorage.removeItem("user");
     }
 
-    set({ user });
+    set({ user: normalizedUser });
   },
 
   logout: () => {
