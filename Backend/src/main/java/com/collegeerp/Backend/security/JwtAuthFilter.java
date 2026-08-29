@@ -48,7 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (jwtService.isTokenValid(token) && jwtService.isAccessToken(token)) {
                 String schema = jwtService.extractSchema(token);
                 String username = jwtService.extractUsername(token);
-                String role = jwtService.extractClaims(token).get("role", String.class);
+                String role = normalizeRole(jwtService.extractClaims(token).get("role", String.class));
                 Long userId = jwtService.extractUserId(token);
                 List<String> permissions = jwtService.extractPermissions(token);
 
@@ -88,4 +88,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
     }
+    /**
+     * JWTs issued by older login flows can contain plural/lower-case role names
+     * (for example "students"), while Spring Security endpoint guards use the
+     * canonical singular authorities (ROLE_STUDENT, ROLE_TEACHER, ROLE_ADMIN).
+     * Normalize at the authentication boundary so every protected endpoint sees
+     * one consistent role instead of requiring every controller to special-case it.
+     */
+    private String normalizeRole(String rawRole) {
+        if (rawRole == null) return null;
+        String role = rawRole.trim().toUpperCase(java.util.Locale.ROOT);
+        if (role.startsWith("ROLE_")) role = role.substring("ROLE_".length());
+        return switch (role) {
+            case "STUDENTS" -> "STUDENT";
+            case "TEACHERS" -> "TEACHER";
+            case "ADMINS", "ADMINISTRATORS" -> "ADMIN";
+            default -> role;
+        };
+    }
+
 }
