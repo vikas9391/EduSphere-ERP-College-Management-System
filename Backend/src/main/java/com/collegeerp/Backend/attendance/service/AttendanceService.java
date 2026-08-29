@@ -262,7 +262,7 @@ public class AttendanceService {
 
     private boolean isPresent(String status) {
         String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
-        return "PRESENT".equals(normalized) || "ATTENDED".equals(normalized);
+        return "PRESENT".equals(normalized) || "ATTENDED".equals(normalized) || "LATE".equals(normalized);
     }
 
     private double round1(double value) {
