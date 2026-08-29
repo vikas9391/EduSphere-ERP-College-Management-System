@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { login } from '@/api'
 import { useAuthStore } from '@/store/authStore'
+import { dashboardForRole } from '@/constants/roles'
 import { Building2, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { BrandMark } from '@/components/BrandMark'
 import { GoogleIcon, MicrosoftIcon } from '@/components/OAuthIcons'
@@ -48,20 +49,6 @@ function decodeJwt<T>(token: string): T | null {
 // the staff/admin table, then teacher, then student, and returns whichever matched
 // along with the real `role` - routing here is driven entirely by that response,
 // never by anything chosen in the UI.
-function routeForRole(role: string | undefined) {
-  switch (role) {
-    case 'SUPER_ADMIN':
-      return '/colleges'
-    case 'ADMIN':
-      return '/admin/dashboard'
-    case 'TEACHER':
-      return '/teacher/dashboard'
-    case 'STUDENT':
-      return '/student/dashboard'
-    default:
-      return '/dashboard'
-  }
-}
 
 export function LoginPage() {
   const navigate = useNavigate()
