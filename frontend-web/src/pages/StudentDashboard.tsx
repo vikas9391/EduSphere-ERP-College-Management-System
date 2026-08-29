@@ -356,7 +356,7 @@ export function StudentDashboard() {
         department: summary?.department ?? null,
         semester: summary?.semester ?? null,
         attendancePercentage: Math.round(attendance?.overallAttendancePercentage ?? summary?.attendancePercentage ?? 0),
-        subjectsCount: summary?.totalSubjects ?? 0,
+        subjectsCount: summary?.totalSubjects ?? attendance?.bySubject.length ?? 0,
         assignmentsCount: assignments.length,
         pendingWorkCount: notSubmitted.length,
         averageMarks,
