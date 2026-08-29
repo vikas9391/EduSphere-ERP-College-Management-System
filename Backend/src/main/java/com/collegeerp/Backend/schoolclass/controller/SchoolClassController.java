@@ -7,6 +7,8 @@ import com.collegeerp.Backend.schoolclass.dto.SchoolClassRequest;
 import com.collegeerp.Backend.schoolclass.dto.SchoolClassResponse;
 import com.collegeerp.Backend.schoolclass.service.SchoolClassService;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.student.entity.Student;
+import com.collegeerp.Backend.student.repository.StudentRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -27,9 +29,11 @@ import java.util.List;
 public class SchoolClassController {
 
     private final SchoolClassService schoolClassService;
+    private final StudentRepository studentRepository;
 
-    public SchoolClassController(SchoolClassService schoolClassService) {
+    public SchoolClassController(SchoolClassService schoolClassService, StudentRepository studentRepository) {
         this.schoolClassService = schoolClassService;
+        this.studentRepository = studentRepository;
     }
 
     @PostMapping
@@ -51,7 +55,8 @@ public class SchoolClassController {
     @GetMapping("/mine-as-student")
     public ApiResponse<List<SchoolClassResponse>> getMineAsStudent(Authentication authentication) {
         UserPrincipal principal = principal(authentication);
-        return ApiResponse.success(schoolClassService.getMyClassesAsStudent(principal.getId(), principal.getRole()));
+        Long studentId = resolveStudentId(principal);
+        return ApiResponse.success(schoolClassService.getMyClassesAsStudent(studentId, principal.getRole()));
     }
 
     @GetMapping("/{id}")
@@ -92,4 +97,13 @@ public class SchoolClassController {
     private UserPrincipal principal(Authentication authentication) {
         return (UserPrincipal) authentication.getPrincipal();
     }
+    private Long resolveStudentId(UserPrincipal principal) {
+        if (principal.getEmail() != null) {
+            return studentRepository.findByEmail(principal.getEmail())
+                    .map(Student::getId)
+                    .orElse(principal.getId());
+        }
+        return principal.getId();
+    }
+
 }
