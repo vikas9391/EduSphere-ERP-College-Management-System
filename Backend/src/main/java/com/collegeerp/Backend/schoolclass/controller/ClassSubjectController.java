@@ -6,8 +6,7 @@ import com.collegeerp.Backend.schoolclass.dto.ClassSubjectRequest;
 import com.collegeerp.Backend.schoolclass.dto.ClassSubjectResponse;
 import com.collegeerp.Backend.schoolclass.service.ClassSubjectService;
 import com.collegeerp.Backend.security.UserPrincipal;
-import com.collegeerp.Backend.student.entity.Student;
-import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -20,11 +19,12 @@ import java.util.List;
 public class ClassSubjectController {
 
     private final ClassSubjectService classSubjectService;
-    private final StudentRepository studentRepository;
+    private final StudentIdentityService studentIdentityService;
 
-    public ClassSubjectController(ClassSubjectService classSubjectService, StudentRepository studentRepository) {
+    public ClassSubjectController(ClassSubjectService classSubjectService,
+                                  StudentIdentityService studentIdentityService) {
         this.classSubjectService = classSubjectService;
-        this.studentRepository = studentRepository;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @PostMapping("/{classId}/subjects")
@@ -37,15 +37,6 @@ public class ClassSubjectController {
                 classSubjectService.createSubject(classId, principal.getId(), principal.getRole(), request));
     }
 
-    /**
-     * Sets up every subject for the term in one call - e.g. "create all this semester's
-     * subjects" for a newly-created class. Each subject is created independently (same
-     * validation and auto-enrollment as the single-create endpoint); if one item in the
-     * list fails (duplicate code, over the class's max-subjects cap, etc.) the request
-     * stops there and returns an error - subjects already created earlier in the list
-     * remain created. Re-submitting the remaining items is safe since duplicate codes
-     * are rejected.
-     */
     @PostMapping("/{classId}/subjects/bulk")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<List<ClassSubjectResponse>> createSubjects(Authentication authentication,
@@ -64,11 +55,11 @@ public class ClassSubjectController {
         return ApiResponse.success(classSubjectService.getSubjects(classId, principal.getId(), principal.getRole()));
     }
 
-    /** Student-facing counterpart to the list above: this class's subjects, tagged with the caller's own enrollment status. */
     @GetMapping("/{classId}/subjects/mine")
     public ApiResponse<List<ClassSubjectResponse>> getSubjectsForStudent(Authentication authentication, @PathVariable Long classId) {
         UserPrincipal principal = principal(authentication);
-        return ApiResponse.success(classSubjectService.getSubjectsForStudent(classId, resolveStudentId(principal), principal.getRole()));
+        return ApiResponse.success(classSubjectService.getSubjectsForStudent(
+                classId, studentIdentityService.requireStudentId(principal), principal.getRole()));
     }
 
     @DeleteMapping("/{classId}/subjects/{subjectId}")
@@ -78,12 +69,11 @@ public class ClassSubjectController {
         classSubjectService.deleteSubject(subjectId, principal.getId(), principal.getRole());
     }
 
-    /** Canonical student enrollment list; identity is resolved by the authenticated account. */
     @GetMapping("/enrollments/mine")
     public ApiResponse<List<ClassEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         UserPrincipal principal = principal(authentication);
-        return ApiResponse.success(
-                classSubjectService.getMyEnrollments(resolveStudentId(principal), principal.getRole()));
+        return ApiResponse.success(classSubjectService.getMyEnrollments(
+                studentIdentityService.requireStudentId(principal), principal.getRole()));
     }
 
     @GetMapping("/subjects/{subjectId}/enrollments")
@@ -92,34 +82,22 @@ public class ClassSubjectController {
         return ApiResponse.success(classSubjectService.getEnrollments(subjectId, principal.getId(), principal.getRole()));
     }
 
-    /** A student opting into an ELECTIVE subject of a class they're a roster member of. */
     @PostMapping("/subjects/{subjectId}/enroll")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ClassEnrollmentResponse> selfEnroll(Authentication authentication, @PathVariable Long subjectId) {
         UserPrincipal principal = principal(authentication);
-        return ApiResponse.success("Enrolled",
-                classSubjectService.selfEnroll(subjectId, resolveStudentId(principal), principal.getRole()));
+        return ApiResponse.success("Enrolled", classSubjectService.selfEnroll(
+                subjectId, studentIdentityService.requireStudentId(principal), principal.getRole()));
     }
 
-    /** A student dropping an ELECTIVE subject they previously self-enrolled in. */
     @DeleteMapping("/subjects/{subjectId}/enroll")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void selfDrop(Authentication authentication, @PathVariable Long subjectId) {
         UserPrincipal principal = principal(authentication);
-        classSubjectService.selfDrop(subjectId, resolveStudentId(principal), principal.getRole());
+        classSubjectService.selfDrop(subjectId, studentIdentityService.requireStudentId(principal), principal.getRole());
     }
 
     private UserPrincipal principal(Authentication authentication) {
         return (UserPrincipal) authentication.getPrincipal();
     }
-    private Long resolveStudentId(UserPrincipal principal) {
-        if (principal.getEmail() == null || principal.getEmail().isBlank()) {
-            throw new IllegalStateException("Authenticated student has no email identity");
-        }
-        return studentRepository.findByEmail(principal.getEmail())
-                .map(Student::getId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Student profile not found for authenticated account"));
-    }
-
 }
