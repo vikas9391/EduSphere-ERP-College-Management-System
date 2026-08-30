@@ -7,8 +7,7 @@ import com.collegeerp.Backend.schoolclass.dto.SchoolClassRequest;
 import com.collegeerp.Backend.schoolclass.dto.SchoolClassResponse;
 import com.collegeerp.Backend.schoolclass.service.SchoolClassService;
 import com.collegeerp.Backend.security.UserPrincipal;
-import com.collegeerp.Backend.student.entity.Student;
-import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -16,24 +15,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Teacher-owned classes (batches/sections) and their student rosters. Every endpoint
- * here is scoped to "teachers manage their own classes" - see
- * {@link SchoolClassService#requireOwnerOrAdmin} - rather than relying on the
- * application-wide authorization gap tracked separately (every endpoint elsewhere
- * currently just requires *some* valid token). Subject management lives in
- * {@link ClassSubjectController}.
- */
 @RestController
 @RequestMapping("/api/classes")
 public class SchoolClassController {
 
     private final SchoolClassService schoolClassService;
-    private final StudentRepository studentRepository;
+    private final StudentIdentityService studentIdentityService;
 
-    public SchoolClassController(SchoolClassService schoolClassService, StudentRepository studentRepository) {
+    public SchoolClassController(SchoolClassService schoolClassService,
+                                 StudentIdentityService studentIdentityService) {
         this.schoolClassService = schoolClassService;
-        this.studentRepository = studentRepository;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @PostMapping
@@ -51,12 +43,11 @@ public class SchoolClassController {
         return ApiResponse.success(schoolClassService.getMyClasses(principal.getId(), principal.getRole()));
     }
 
-    /** Student-facing counterpart to {@code /mine}: classes the calling student belongs to. */
     @GetMapping("/mine-as-student")
     public ApiResponse<List<SchoolClassResponse>> getMineAsStudent(Authentication authentication) {
         UserPrincipal principal = principal(authentication);
-        Long studentId = resolveStudentId(principal);
-        return ApiResponse.success(schoolClassService.getMyClassesAsStudent(studentId, principal.getRole()));
+        return ApiResponse.success(schoolClassService.getMyClassesAsStudent(
+                studentIdentityService.requireStudentId(principal), principal.getRole()));
     }
 
     @GetMapping("/{id}")
@@ -97,14 +88,4 @@ public class SchoolClassController {
     private UserPrincipal principal(Authentication authentication) {
         return (UserPrincipal) authentication.getPrincipal();
     }
-    private Long resolveStudentId(UserPrincipal principal) {
-        if (principal.getEmail() == null || principal.getEmail().isBlank()) {
-            throw new IllegalStateException("Authenticated student has no email identity");
-        }
-        return studentRepository.findByEmail(principal.getEmail())
-                .map(Student::getId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Student profile not found for authenticated account"));
-    }
-
 }
