@@ -29,6 +29,7 @@ public class EnrollmentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<EnrollmentResponse> getAllEnrollments() {
 
         return enrollmentService.getAllEnrollments();
@@ -43,6 +44,7 @@ public class EnrollmentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public EnrollmentResponse getEnrollment(
             @PathVariable Long id) {
 
