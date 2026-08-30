@@ -42,6 +42,7 @@ public class SchoolClassService {
 
     private static final Logger log = LoggerFactory.getLogger(SchoolClassService.class);
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
     private static final String TEACHER_ROLE = "TEACHER";
     private static final String STUDENT_ROLE = "STUDENT";
 
@@ -223,13 +224,13 @@ public class SchoolClassService {
     }
 
     static void requireTeacherOrAdmin(String role) {
-        if (!TEACHER_ROLE.equals(role) && !ADMIN_ROLE.equals(role)) {
+        if (!TEACHER_ROLE.equalsIgnoreCase(role) && !ADMIN_ROLE.equalsIgnoreCase(role) && !SUPER_ADMIN_ROLE.equalsIgnoreCase(role)) {
             throw new ForbiddenException("Only teachers or admins can access shared classes");
         }
     }
 
     static void requireOwnerOrAdmin(SchoolClass schoolClass, Long principalId, String role) {
-        if (ADMIN_ROLE.equals(role)) {
+        if (ADMIN_ROLE.equalsIgnoreCase(role) || SUPER_ADMIN_ROLE.equalsIgnoreCase(role)) {
             return;
         }
         if (!TEACHER_ROLE.equals(role) || !schoolClass.getTeacher().getId().equals(principalId)) {
