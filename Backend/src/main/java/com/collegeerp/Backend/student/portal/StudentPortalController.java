@@ -5,10 +5,7 @@ import com.collegeerp.Backend.enrollment.dto.EnrollmentResponse;
 import com.collegeerp.Backend.result.dto.OverallResultResponse;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.dto.*;
-import com.collegeerp.Backend.student.entity.Student;
-import com.collegeerp.Backend.student.repository.StudentRepository;
 import com.collegeerp.Backend.student.service.*;
-import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +28,7 @@ public class StudentPortalController {
     private final StudentResultService resultService;
     private final StudentTimetableService timetableService;
     private final StudentNotificationService notificationService;
-    private final StudentRepository studentRepository;
+    private final StudentIdentityService studentIdentityService;
 
     public StudentPortalController(
             StudentDashboardService dashboardService,
@@ -42,7 +39,7 @@ public class StudentPortalController {
             StudentResultService resultService,
             StudentTimetableService timetableService,
             StudentNotificationService notificationService,
-            StudentRepository studentRepository) {
+            StudentIdentityService studentIdentityService) {
         this.dashboardService = dashboardService;
         this.enrollmentQueryService = enrollmentQueryService;
         this.attendanceService = attendanceService;
@@ -51,7 +48,7 @@ public class StudentPortalController {
         this.resultService = resultService;
         this.timetableService = timetableService;
         this.notificationService = notificationService;
-        this.studentRepository = studentRepository;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @GetMapping("/dashboard")
@@ -94,15 +91,7 @@ public class StudentPortalController {
         return ApiResponse.success(notificationService.getNotifications(studentId(authentication)));
     }
 
-    /**
-     * UserPrincipal.id is the authenticated User id, not necessarily the Student id.
-     * Resolve the student by the email embedded in the authenticated JWT so every
-     * student-scoped endpoint uses the same canonical Student id as announcements.
-     */
     private Long studentId(Authentication authentication) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        Student student = studentRepository.findByEmail(principal.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
-        return student.getId();
+        return studentIdentityService.requireStudentId((UserPrincipal) authentication.getPrincipal());
     }
 }
