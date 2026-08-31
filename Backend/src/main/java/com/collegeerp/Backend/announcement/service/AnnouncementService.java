@@ -19,6 +19,7 @@ import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.schoolclass.repository.SchoolClassRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
@@ -45,18 +46,20 @@ public class AnnouncementService {
     private final ClassSubjectRepository classSubjectRepository;
     private final SubjectRepository subjectRepository;
     private final DepartmentRepository departmentRepository;
+    private final StudentIdentityService studentIdentityService;
 
     public AnnouncementService(AnnouncementRepository announcementRepository, AnnouncementRecipientRepository recipientRepository,
                                AnnouncementRecipientReadRepository recipientReadRepository, UserRepository userRepository,
                                StudentRepository studentRepository, SchoolClassRepository schoolClassRepository,
                                ClassStudentRepository classStudentRepository, ClassSubjectRepository classSubjectRepository,
-                               SubjectRepository subjectRepository, DepartmentRepository departmentRepository) {
+                               SubjectRepository subjectRepository, DepartmentRepository departmentRepository, StudentIdentityService studentIdentityService) {
         this.announcementRepository = announcementRepository; this.recipientRepository = recipientRepository;
         this.recipientReadRepository = recipientReadRepository;
         this.userRepository = userRepository; this.studentRepository = studentRepository;
         this.schoolClassRepository = schoolClassRepository; this.classStudentRepository = classStudentRepository;
         this.classSubjectRepository = classSubjectRepository; this.subjectRepository = subjectRepository;
         this.departmentRepository = departmentRepository;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @Transactional
@@ -116,11 +119,10 @@ public class AnnouncementService {
     private Recipient currentRecipient(UserPrincipal principal) {
         String role = principal.getRole() == null ? "" : principal.getRole().trim();
         if ("STUDENT".equalsIgnoreCase(role) || "STUDENTS".equalsIgnoreCase(role)) {
-            Student student = studentRepository.findByEmail(principal.getEmail())
-                    .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for authenticated user"));
+            Long studentId = studentIdentityService.requireStudentId(principal);
             log.info("Resolved student recipient: authUserId={} email={} role={} studentId={}",
-                    principal.getId(), principal.getEmail(), principal.getRole(), student.getId());
-            return new Recipient(RecipientType.STUDENT, student.getId());
+                    principal.getId(), principal.getEmail(), principal.getRole(), studentId);
+            return new Recipient(RecipientType.STUDENT, studentId);
         }
         return new Recipient(RecipientType.USER, principal.getId());
     }
