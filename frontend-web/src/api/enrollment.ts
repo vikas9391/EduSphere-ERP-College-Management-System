@@ -54,6 +54,6 @@ export async function deleteEnrollment(id: number): Promise<void> {
 
 /** Student's own enrollments, resolved from the authenticated student's profile. */
 export async function getMyEnrollments(): Promise<Enrollment[]> {
-  const res = await api.get<Enrollment[]>('/enrollments/me')
-  return res.data
+  const res = await api.get<Enrollment[] | { data: Enrollment[] }>('/enrollments/me')
+  return Array.isArray(res.data) ? res.data : res.data.data
 }
