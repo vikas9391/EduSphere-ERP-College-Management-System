@@ -121,11 +121,7 @@ public class EnrollmentService {
                 .build();
     }
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getMyEnrollments(String email, Long fallbackStudentId) {
-        Student student = email != null
-                ? studentRepository.findByEmail(email).orElse(null)
-                : null;
-        Long studentId = student != null ? student.getId() : fallbackStudentId;
+    public List<EnrollmentResponse> getMyEnrollments(Long studentId) {
         if (studentId == null) {
             throw new RuntimeException("Student profile not found for authenticated user");
         }
