@@ -5,6 +5,7 @@ import com.collegeerp.Backend.result.dto.OverallResultResponse;
 import com.collegeerp.Backend.result.dto.SemesterResultResponse;
 import com.collegeerp.Backend.result.service.ResultService;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +16,11 @@ public class ResultController {
     private static final String STUDENT_ROLE = "STUDENT";
 
     private final ResultService resultService;
+    private final StudentIdentityService studentIdentityService;
 
-    public ResultController(ResultService resultService) {
+    public ResultController(ResultService resultService, StudentIdentityService studentIdentityService) {
         this.resultService = resultService;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @GetMapping("/student/{studentId}/semester")
@@ -37,13 +40,13 @@ public class ResultController {
 
     /**
      * ADMIN/TEACHER may look up any student's results; a STUDENT may only look up their
-     * own - {@code #studentId} isn't validated against the caller anywhere else, so
-     * without this a student token could read a classmate's grades just by changing the
-     * path variable.
+     * own domain Student record. UserPrincipal.id is the authenticated User id and must
+     * never be compared directly with Student.id.
      */
     private void requireSelfOrStaff(Authentication authentication, Long studentId) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        if (STUDENT_ROLE.equals(principal.getRole()) && !studentId.equals(principal.getId())) {
+        if (STUDENT_ROLE.equalsIgnoreCase(principal.getRole())
+                && !studentId.equals(studentIdentityService.requireStudentId(principal))) {
             throw new ForbiddenException("You can only view your own results");
         }
     }
