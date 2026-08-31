@@ -218,7 +218,7 @@ public class SchoolClassService {
     }
 
     static void requireTeacher(String role) {
-        if (!TEACHER_ROLE.equals(role)) {
+        if (!TEACHER_ROLE.equalsIgnoreCase(role)) {
             throw new ForbiddenException("Only teachers can manage classes");
         }
     }
@@ -233,7 +233,7 @@ public class SchoolClassService {
         if (ADMIN_ROLE.equalsIgnoreCase(role) || SUPER_ADMIN_ROLE.equalsIgnoreCase(role)) {
             return;
         }
-        if (!TEACHER_ROLE.equals(role) || !schoolClass.getTeacher().getId().equals(principalId)) {
+        if (!TEACHER_ROLE.equalsIgnoreCase(role) || !schoolClass.getTeacher().getId().equals(principalId)) {
             throw new ForbiddenException("You do not have access to this class");
         }
     }
