@@ -366,17 +366,7 @@ public class AttendanceService {
     }
 
     private Long resolveStudentId(UserPrincipal principal) {
-        // Student accounts are authenticated through the common JWT user principal.
-        // Resolve the domain Student by email first; older/demo tokens may carry the
-        // Student id directly, so keep the principal id as a safe compatibility fallback.
-        if (principal.getEmail() != null) {
-            Student student = studentRepository.findByEmail(principal.getEmail()).orElse(null);
-            if (student != null) return student.getId();
-        }
-        if (principal.getId() != null && studentRepository.existsById(principal.getId())) {
-            return principal.getId();
-        }
-        throw new ResourceNotFoundException("Student profile not found for authenticated user");
+        return studentIdentityService.requireStudentId(principal);
     }
 
     private boolean isStudentRole(UserPrincipal principal) {
