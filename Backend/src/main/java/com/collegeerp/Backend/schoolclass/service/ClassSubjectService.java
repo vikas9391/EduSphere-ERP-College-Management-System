@@ -129,6 +129,9 @@ public class ClassSubjectService {
     public List<ClassSubjectResponse> getSubjects(Long classId, Long principalId, String role) {
         SchoolClass schoolClass = schoolClassService.findClassOrThrow(classId);
         SchoolClassService.requireTeacherOrAdmin(role);
+        if ("TEACHER".equalsIgnoreCase(role)) {
+            SchoolClassService.requireOwnerOrAdmin(schoolClass, principalId, role);
+        }
         return classSubjectRepository.findAllByClassId(classId).stream().map(this::map).toList();
     }
 
@@ -231,6 +234,9 @@ public class ClassSubjectService {
     public List<ClassEnrollmentResponse> getEnrollments(Long subjectId, Long principalId, String role) {
         ClassSubject subject = findSubjectOrThrow(subjectId);
         SchoolClassService.requireTeacherOrAdmin(role);
+        if ("TEACHER".equalsIgnoreCase(role)) {
+            SchoolClassService.requireOwnerOrAdmin(subject.getSchoolClass(), principalId, role);
+        }
         return classEnrollmentRepository.findAllByClassSubjectId(subjectId).stream()
                 .map(this::mapEnrollment)
                 .toList();
