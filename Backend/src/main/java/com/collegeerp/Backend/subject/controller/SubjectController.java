@@ -22,7 +22,7 @@ public class SubjectController {
         this.subjectService = subjectService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<SubjectResponse> create(@Valid @RequestBody SubjectRequest request) {
@@ -47,7 +47,7 @@ public class SubjectController {
         return ApiResponse.success(subjectService.getSubject(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ApiResponse<SubjectResponse> update(
             @PathVariable Long id,
@@ -55,7 +55,7 @@ public class SubjectController {
         return ApiResponse.success("Subject updated", subjectService.updateSubject(id, request));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
