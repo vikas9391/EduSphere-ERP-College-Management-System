@@ -43,7 +43,7 @@ public class EnrollmentController {
     @PreAuthorize("hasRole('STUDENT')")
     public List<EnrollmentResponse> getMyEnrollments(Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return enrollmentService.getMyEnrollments(principal.getEmail(), studentIdentityService.requireStudentId(principal));
+        return enrollmentService.getMyEnrollments(studentIdentityService.requireStudentId(principal));
     }
 
     @GetMapping("/{id}")
