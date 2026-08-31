@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import org.springframework.security.core.Authentication;
 
 @RestController
@@ -15,9 +16,11 @@ import org.springframework.security.core.Authentication;
 public class EnrollmentController {
 
     private final EnrollmentService enrollmentService;
+    private final StudentIdentityService studentIdentityService;
 
-    public EnrollmentController(EnrollmentService enrollmentService) {
+    public EnrollmentController(EnrollmentService enrollmentService, StudentIdentityService studentIdentityService) {
         this.enrollmentService = enrollmentService;
+        this.studentIdentityService = studentIdentityService;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -40,7 +43,7 @@ public class EnrollmentController {
     @PreAuthorize("hasRole('STUDENT')")
     public List<EnrollmentResponse> getMyEnrollments(Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return enrollmentService.getMyEnrollments(principal.getEmail(), principal.getId());
+        return enrollmentService.getMyEnrollments(principal.getEmail(), studentIdentityService.requireStudentId(principal));
     }
 
     @GetMapping("/{id}")
