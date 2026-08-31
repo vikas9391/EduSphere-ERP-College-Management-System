@@ -26,7 +26,7 @@ public class AttendanceController {
     @GetMapping("/me")
     public List<AttendanceResponse> getMyAttendance() { return attendanceService.getMyAttendance(); }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','STUDENT')")
     @GetMapping("/me/summary")
     public com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse getMyAttendanceSummary() {
         return attendanceService.getMyAttendanceSummary();
@@ -40,7 +40,7 @@ public class AttendanceController {
     @GetMapping("/{id}")
     public AttendanceResponse getAttendance(@PathVariable Long id) { return attendanceService.getAttendance(id); }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @PutMapping("/{id}")
     public AttendanceResponse updateAttendance(@PathVariable Long id, @RequestBody AttendanceRequest request) { return attendanceService.updateAttendance(id, request); }
 
