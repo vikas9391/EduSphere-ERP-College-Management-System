@@ -15,6 +15,7 @@ import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,13 +35,15 @@ public class AttendanceService {
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
+    private final StudentIdentityService studentIdentityService;
 
     public AttendanceService(AttendanceRepository attendanceRepository, EnrollmentRepository enrollmentRepository,
-                             StudentRepository studentRepository, ClassEnrollmentRepository classEnrollmentRepository) {
+                             StudentRepository studentRepository, ClassEnrollmentRepository classEnrollmentRepository, StudentIdentityService studentIdentityService) {
         this.attendanceRepository = attendanceRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
+        this.studentIdentityService = studentIdentityService;
     }
 
     public AttendanceResponse createAttendance(AttendanceRequest request) {
@@ -92,7 +95,7 @@ public class AttendanceService {
         UserPrincipal principal = currentPrincipal();
         if (isAdmin(principal)) return findStudentAttendanceRecords(studentId).stream().map(this::map).toList();
         if (isStudentRole(principal)) {
-            Long actualStudentId = resolveStudentId(principal);
+            Long actualStudentId = studentIdentityService.requireStudentId(principal);
             if (!actualStudentId.equals(studentId)) throw new AccessDeniedException("Students can only view their own attendance");
             return findStudentAttendanceRecords(actualStudentId).stream().map(this::map).toList();
         }
