@@ -14,7 +14,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
     public AttendanceController(AttendanceService attendanceService) { this.attendanceService = attendanceService; }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @PostMapping
     public AttendanceResponse createAttendance(@RequestBody AttendanceRequest request) { return attendanceService.createAttendance(request); }
 
@@ -22,7 +22,7 @@ public class AttendanceController {
     @GetMapping
     public List<AttendanceResponse> getAllAttendance() { return attendanceService.getAllAttendance(); }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER','STUDENT')")
     @GetMapping("/me")
     public List<AttendanceResponse> getMyAttendance() { return attendanceService.getMyAttendance(); }
 
