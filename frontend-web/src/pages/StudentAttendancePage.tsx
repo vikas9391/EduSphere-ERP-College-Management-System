@@ -37,9 +37,9 @@ export function StudentAttendancePage() {
           const summary = await getMyAttendanceSummary()
           if (mounted) setAttendance(summary)
         } catch {
-          // Compatibility fallback: older/local backends may not have the summary
-          // endpoint yet. Build the same view from the existing attendance + class
-          // APIs so the page remains usable instead of showing a false error.
+          // Compatibility fallback for an older/local backend. Keep the same subject
+          // identity rules as the backend summary: a formal Subject uses its formal
+          // id; an informal class subject uses its ClassSubject id.
           const [records, classes, enrollments] = await Promise.all([
             getMyAttendance(),
             getMyClassesAsStudent(),
@@ -50,8 +50,13 @@ export function StudentAttendancePage() {
           )).flat()
 
           const subjects = new Map<string, StudentAttendanceSummary['bySubject'][number]>()
+          const classSubjectKey = new Map<number, string>()
+
           for (const s of classSubjects.filter((x) => x.enrolledByMe)) {
-            const key = String(s.linkedSubjectId ?? s.id)
+            const key = s.linkedSubjectId != null
+              ? `SUBJECT:${s.linkedSubjectId}`
+              : `CLASS_SUBJECT:${s.id}`
+            classSubjectKey.set(s.id, key)
             subjects.set(key, {
               subjectId: s.linkedSubjectId ?? s.id,
               subjectCode: s.subjectCode,
@@ -64,16 +69,20 @@ export function StudentAttendancePage() {
           }
 
           const enrollmentSubjectKey = new Map(
-            enrollments.map((e) => [e.id, String(e.classSubjectId)])
+            enrollments.map((e) => [
+              e.id,
+              classSubjectKey.get(e.classSubjectId) ?? `CLASS_SUBJECT:${e.classSubjectId}`,
+            ])
           )
 
           let attended = 0
           for (const record of records) {
-            const key = String(
-              record.classEnrollmentId != null
-                ? (enrollmentSubjectKey.get(record.classEnrollmentId) ?? record.classEnrollmentId)
-                : (record.subjectId ?? record.enrollmentId)
-            )
+            const key = record.classEnrollmentId != null
+              ? (enrollmentSubjectKey.get(record.classEnrollmentId) ?? `CLASS_ENROLLMENT:${record.classEnrollmentId}`)
+              : (record.subjectId != null
+                  ? `SUBJECT:${record.subjectId}`
+                  : `LEGACY_ENROLLMENT:${record.enrollmentId}`)
+
             const current = subjects.get(key) ?? {
               subjectId: record.subjectId,
               subjectCode: '',
@@ -166,7 +175,7 @@ export function StudentAttendancePage() {
               </tr></thead>
               <tbody>
                 {overall.bySubject.map((s) => (
-                  <tr key={s.subjectId ?? s.subjectName} className="border-b border-border/60">
+                  <tr key={`${s.subjectId ?? 'unknown'}:${s.subjectCode}:${s.subjectName}`} className="border-b border-border/60">
                     <td className="px-3 py-4">
                       <div className="font-medium text-text">{s.subjectName}</div>
                       <div className="text-xs text-muted">{s.subjectCode}</div>
