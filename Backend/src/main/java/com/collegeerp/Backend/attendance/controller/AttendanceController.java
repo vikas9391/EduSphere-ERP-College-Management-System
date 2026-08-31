@@ -18,7 +18,7 @@ public class AttendanceController {
     @PostMapping
     public AttendanceResponse createAttendance(@RequestBody AttendanceRequest request) { return attendanceService.createAttendance(request); }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @GetMapping
     public List<AttendanceResponse> getAllAttendance() { return attendanceService.getAllAttendance(); }
 
@@ -32,10 +32,11 @@ public class AttendanceController {
         return attendanceService.getMyAttendanceSummary();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @GetMapping("/student/{studentId}")
     public List<AttendanceResponse> getStudentAttendance(@PathVariable Long studentId) { return attendanceService.getStudentAttendance(studentId); }
 
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @GetMapping("/{id}")
     public AttendanceResponse getAttendance(@PathVariable Long id) { return attendanceService.getAttendance(id); }
 
