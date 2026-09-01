@@ -110,35 +110,25 @@ public class AssignmentService {
 
     private ClassSubject resolveClassSubject(
             AssignmentRequest request, User teacher, UserPrincipal principal) {
-        if (request.getClassSubjectId() != null) {
-            ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
-                    .orElseThrow(() -> new RuntimeException("Class subject not found"));
-            if (classSubject.getSubject() == null
-                    || !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
-                throw new IllegalArgumentException("Class subject does not belong to the selected subject");
-            }
-            return classSubject;
-        }
-
-        if (isAdmin(principal)) {
-            return null;
-        }
-
-        requireTeacher(principal);
-        List<ClassSubject> candidates = classSubjectRepository.findAllByTeacherId(teacher.getId()).stream()
-                .filter(cs -> cs.getSubject() != null)
-                .filter(cs -> Objects.equals(cs.getSubject().getId(), request.getSubjectId()))
-                .toList();
-
-        if (candidates.size() == 1) {
-            return candidates.get(0);
-        }
-        if (candidates.isEmpty()) {
+        if (request.getClassSubjectId() == null) {
             throw new IllegalArgumentException(
-                    "This subject is not linked to a class subject taught by the selected teacher");
+                    "Class subject is required; select the exact class subject for this assignment");
         }
-        throw new IllegalArgumentException(
-                "This subject is taught in multiple classes; select the exact class subject");
+
+        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
+                .orElseThrow(() -> new RuntimeException("Class subject not found"));
+
+        if (classSubject.getSubject() == null
+                || !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
+            throw new IllegalArgumentException("Class subject does not belong to the selected subject");
+        }
+
+        if (classSubject.getTeacher() == null
+                || !Objects.equals(classSubject.getTeacher().getId(), teacher.getId())) {
+            throw new IllegalArgumentException("The selected teacher does not teach this class subject");
+        }
+
+        return classSubject;
     }
 
     private void requireTeacherCanManage(
