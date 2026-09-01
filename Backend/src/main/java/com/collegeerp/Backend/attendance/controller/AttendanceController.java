@@ -3,6 +3,7 @@ package com.collegeerp.Backend.attendance.controller;
 import com.collegeerp.Backend.attendance.dto.AttendanceRequest;
 import com.collegeerp.Backend.attendance.dto.AttendanceResponse;
 import com.collegeerp.Backend.attendance.service.AttendanceService;
+import com.collegeerp.Backend.attendance.service.StudentAttendanceSummaryQueryService;
 import com.collegeerp.Backend.attendance.service.TeacherAttendanceQueryService;
 import com.collegeerp.Backend.security.UserPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,12 +17,15 @@ import java.util.List;
 public class AttendanceController {
     private final AttendanceService attendanceService;
     private final TeacherAttendanceQueryService teacherAttendanceQueryService;
+    private final StudentAttendanceSummaryQueryService studentAttendanceSummaryQueryService;
 
     public AttendanceController(
             AttendanceService attendanceService,
-            TeacherAttendanceQueryService teacherAttendanceQueryService) {
+            TeacherAttendanceQueryService teacherAttendanceQueryService,
+            StudentAttendanceSummaryQueryService studentAttendanceSummaryQueryService) {
         this.attendanceService = attendanceService;
         this.teacherAttendanceQueryService = teacherAttendanceQueryService;
+        this.studentAttendanceSummaryQueryService = studentAttendanceSummaryQueryService;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
@@ -48,8 +52,9 @@ public class AttendanceController {
 
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/me/summary")
-    public com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse getMyAttendanceSummary() {
-        return attendanceService.getMyAttendanceSummary();
+    public com.collegeerp.Backend.attendance.dto.StudentAttendanceSummaryResponse getMyAttendanceSummary(
+            Authentication authentication) {
+        return studentAttendanceSummaryQueryService.getSummary((UserPrincipal) authentication.getPrincipal());
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
