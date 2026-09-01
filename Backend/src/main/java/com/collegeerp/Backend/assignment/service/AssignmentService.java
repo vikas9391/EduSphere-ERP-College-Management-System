@@ -61,13 +61,18 @@ public class AssignmentService {
         return map(assignmentRepository.save(assignment));
     }
 
-    public List<AssignmentResponse> getAllAssignments() {
-        return assignmentRepository.findAll().stream().map(this::map).toList();
+    public List<AssignmentResponse> getAllAssignments(UserPrincipal principal) {
+        if (isAdmin(principal)) {
+            return assignmentRepository.findAll().stream().map(this::map).toList();
+        }
+        requireTeacher(principal);
+        return assignmentRepository.findByTeacherId(principal.getId()).stream().map(this::map).toList();
     }
 
-    public AssignmentResponse getAssignment(Long id) {
+    public AssignmentResponse getAssignment(Long id, UserPrincipal principal) {
         Assignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        requireAssignmentOwner(assignment, principal);
         return map(assignment);
     }
 
@@ -133,8 +138,8 @@ public class AssignmentService {
             return;
         }
 
-        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
-                || !Objects.equals(principal.getId(), teacher.getId())
+        requireTeacher(principal);
+        if (!Objects.equals(principal.getId(), teacher.getId())
                 || (classSubject != null
                     ? classSubject.getTeacher() == null || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())
                     : subject.getTeacher() == null || !Objects.equals(subject.getTeacher().getId(), principal.getId()))) {
@@ -146,10 +151,16 @@ public class AssignmentService {
         if (isAdmin(principal)) {
             return;
         }
-        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
-                || assignment.getTeacher() == null
+        requireTeacher(principal);
+        if (assignment.getTeacher() == null
                 || !Objects.equals(assignment.getTeacher().getId(), principal.getId())) {
-            throw new AccessDeniedException("You can modify only your own assignments");
+            throw new AccessDeniedException("You can access only your own assignments");
+        }
+    }
+
+    private void requireTeacher(UserPrincipal principal) {
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())) {
+            throw new AccessDeniedException("Only teachers or admins can access assignment administration");
         }
     }
 
