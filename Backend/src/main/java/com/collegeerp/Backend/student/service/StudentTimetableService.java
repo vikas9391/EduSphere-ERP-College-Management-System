@@ -1,39 +1,27 @@
 package com.collegeerp.Backend.student.service;
 
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.student.dto.StudentTimetableResponse;
 import com.collegeerp.Backend.student.dto.TimetableEntryResponse;
-import com.collegeerp.Backend.subject.entity.Subject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * <b>PLACEHOLDER / MOCK DATA.</b>
- * <p>
- * There is no {@code Timetable} or {@code Period} entity anywhere in this schema - the ERP has
- * no concept of scheduled weekly class periods (only {@code ExamSchedule} for exams). Building
- * a real timetable requires a new data model (day of week, period number, room, recurring
- * schedule) that is out of scope for "implement the Student module using the existing
- * architecture" - it would be a new module/entity, which this session was explicitly told not
- * to introduce for other areas (Teacher/Admin) and which doesn't exist for this area either.
- * <p>
- * To still return a structurally useful, stable response, this service deterministically
- * distributes the student's real enrolled subjects across a fixed Mon-Fri / 4-slots-per-day
- * grid. The subject/teacher names are real; the day, time, and room assignment are NOT read
- * from any actual schedule and must not be treated as authoritative. The response is flagged
- * with {@code placeholder=true} and a human-readable {@code note} for exactly this reason.
- * Replace this class's body with a real repository-backed query once a Timetable module exists.
+ * Placeholder timetable service. The schema still has no Timetable/Period model, so the
+ * day/time/room values remain non-authoritative. Subject and teacher data now come from the
+ * student's authoritative ClassEnrollment -> ClassSubject relationship.
  */
 @Service
 @Transactional(readOnly = true)
 public class StudentTimetableService {
 
-    private static final List<String> DAYS = List.of("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY");
+    private static final List<String> DAYS = List.of(
+            "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY");
     private static final List<String[]> SLOTS = List.of(
             new String[]{"09:00", "10:00"},
             new String[]{"10:15", "11:15"},
@@ -41,37 +29,46 @@ public class StudentTimetableService {
             new String[]{"13:30", "14:30"}
     );
 
-    private final EnrollmentRepository enrollmentRepository;
+    private final com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository classEnrollmentRepository;
 
-    public StudentTimetableService(EnrollmentRepository enrollmentRepository) {
-        this.enrollmentRepository = enrollmentRepository;
+    public StudentTimetableService(
+            com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository classEnrollmentRepository) {
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public StudentTimetableResponse getTimetable(Long studentId) {
-
-        List<Subject> subjects = enrollmentRepository.findByStudentIdWithDetails(studentId)
-                .stream()
-                .map(Enrollment::getSubject)
-                .distinct()
-                .toList();
+        List<ClassEnrollment> enrollments = classEnrollmentRepository.findAllByStudentId(studentId);
 
         Map<String, List<TimetableEntryResponse>> schedule = new LinkedHashMap<>();
         for (String day : DAYS) {
-            schedule.put(day, new java.util.ArrayList<>());
+            schedule.put(day, new ArrayList<>());
         }
 
         int slotCursor = 0;
-        for (Subject subject : subjects) {
+        for (ClassEnrollment enrollment : enrollments) {
+            var classSubject = enrollment.getClassSubject();
+            if (classSubject == null) {
+                continue;
+            }
+
             int dayIndex = slotCursor % DAYS.size();
             int slotIndex = (slotCursor / DAYS.size()) % SLOTS.size();
             String[] slot = SLOTS.get(slotIndex);
 
+            String subjectName = classSubject.getSubjectName();
+            String teacherName = classSubject.getTeacher() == null
+                    ? null
+                    : classSubject.getTeacher().getFirstName() + " " +
+                      (classSubject.getTeacher().getLastName() != null
+                              ? classSubject.getTeacher().getLastName() : "");
+
             schedule.get(DAYS.get(dayIndex)).add(TimetableEntryResponse.builder()
                     .startTime(slot[0])
                     .endTime(slot[1])
-                    .subjectId(subject.getId())
-                    .subjectName(subject.getSubjectName())
-                    .teacherName(subject.getTeacher().getFirstName() + " " + subject.getTeacher().getLastName())
+                    .subjectId(classSubject.getSubject() != null
+                            ? classSubject.getSubject().getId() : classSubject.getId())
+                    .subjectName(subjectName)
+                    .teacherName(teacherName)
                     .room("TBD")
                     .build());
 
