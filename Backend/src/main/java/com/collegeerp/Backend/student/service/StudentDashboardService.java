@@ -7,9 +7,7 @@ import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
-import com.collegeerp.Backend.schoolclass.entity.ClassStudent;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
-import com.collegeerp.Backend.schoolclass.repository.ClassStudentRepository;
 import com.collegeerp.Backend.student.dto.StudentDashboardResponse;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
@@ -24,10 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Student dashboard reads operational student participation from ClassStudent/ClassEnrollment.
- * Legacy Enrollment is intentionally not used to derive subject counts or attendance metrics.
- */
+/** Student dashboard derives operational data from ClassEnrollment/ClassSubject. */
 @Service
 @Transactional(readOnly = true)
 public class StudentDashboardService {
@@ -35,7 +30,6 @@ public class StudentDashboardService {
     private static final Logger log = LoggerFactory.getLogger(StudentDashboardService.class);
 
     private final StudentRepository studentRepository;
-    private final ClassStudentRepository classStudentRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
     private final AttendanceRepository attendanceRepository;
     private final AssignmentRepository assignmentRepository;
@@ -46,7 +40,6 @@ public class StudentDashboardService {
 
     public StudentDashboardService(
             StudentRepository studentRepository,
-            ClassStudentRepository classStudentRepository,
             ClassEnrollmentRepository classEnrollmentRepository,
             AttendanceRepository attendanceRepository,
             AssignmentRepository assignmentRepository,
@@ -54,9 +47,7 @@ public class StudentDashboardService {
             ExamScheduleRepository examScheduleRepository,
             StudentResultService studentResultService,
             StudentNotificationService studentNotificationService) {
-
         this.studentRepository = studentRepository;
-        this.classStudentRepository = classStudentRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
         this.attendanceRepository = attendanceRepository;
         this.assignmentRepository = assignmentRepository;
@@ -72,7 +63,6 @@ public class StudentDashboardService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Student", studentId));
 
-        List<ClassStudent> memberships = classStudentRepository.findAllByStudentId(studentId);
         List<ClassEnrollment> classEnrollments = classEnrollmentRepository.findAllByStudentId(studentId);
         List<Subject> subjects = classEnrollments.stream()
                 .map(ClassEnrollment::getClassSubject)
@@ -84,7 +74,8 @@ public class StudentDashboardService {
 
         return StudentDashboardResponse.builder()
                 .studentId(student.getId())
-                .studentName(student.getFirstName() + " " + (student.getLastName() != null ? student.getLastName() : ""))
+                .studentName(student.getFirstName() + " " +
+                        (student.getLastName() != null ? student.getLastName() : ""))
                 .rollNumber(student.getRollNumber())
                 .department(resolveDepartment(student, subjects))
                 .course(resolveCourse(student, subjects))
@@ -92,8 +83,8 @@ public class StudentDashboardService {
                 .cgpa(studentResultService.getResults(studentId).getCgpa())
                 .attendancePercentage(attendancePercentage(studentId))
                 .totalSubjects(subjects.size())
-                .pendingAssignments(countPendingAssignments(studentId, subjects))
-                .upcomingExams(countUpcomingExams(subjects))
+                .pendingAssignments(countPendingAssignments(studentId, classEnrollments))
+                .upcomingExams(countUpcomingExams(classEnrollments))
                 .notificationsCount((int) studentNotificationService.getUnreadCount(studentId))
                 .build();
     }
@@ -137,23 +128,39 @@ public class StudentDashboardService {
     }
 
     private double attendancePercentage(Long studentId) {
-        List<?> records = attendanceRepository.findClassAttendanceByStudentId(studentId);
+        var records = attendanceRepository.findClassAttendanceByStudentId(studentId);
         if (records.isEmpty()) {
             return 0.0;
         }
         long attended = records.stream()
-                .map(r -> (com.collegeerp.Backend.attendance.entity.Attendance) r)
                 .filter(a -> "PRESENT".equalsIgnoreCase(a.getStatus()))
                 .count();
         return Math.round((attended * 10000.0) / records.size()) / 100.0;
     }
 
-    private int countPendingAssignments(Long studentId, List<Subject> subjects) {
-        List<Long> subjectIds = subjects.stream().map(Subject::getId).toList();
-        if (subjectIds.isEmpty()) {
+    private int countPendingAssignments(Long studentId, List<ClassEnrollment> enrollments) {
+        List<Long> classSubjectIds = enrollments.stream()
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(cs -> cs.getId())
+                .distinct()
+                .toList();
+        List<Long> subjectIds = enrollments.stream()
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(cs -> cs.getSubject())
+                .filter(java.util.Objects::nonNull)
+                .map(Subject::getId)
+                .distinct()
+                .toList();
+
+        if (classSubjectIds.isEmpty() && subjectIds.isEmpty()) {
             return 0;
         }
-        List<Assignment> assignments = assignmentRepository.findBySubjectIdIn(subjectIds);
+
+        List<Assignment> assignments = assignmentRepository.findForStudentClassSubjects(
+                classSubjectIds.isEmpty() ? List.of(-1L) : classSubjectIds,
+                subjectIds.isEmpty() ? List.of(-1L) : subjectIds);
         Set<Long> submittedAssignmentIds = submissionRepository.findByStudentId(studentId).stream()
                 .map(s -> s.getAssignment().getId())
                 .collect(java.util.stream.Collectors.toSet());
@@ -162,11 +169,28 @@ public class StudentDashboardService {
                 .count();
     }
 
-    private int countUpcomingExams(List<Subject> subjects) {
-        List<Long> subjectIds = subjects.stream().map(Subject::getId).toList();
-        if (subjectIds.isEmpty()) {
+    private int countUpcomingExams(List<ClassEnrollment> enrollments) {
+        List<Long> classSubjectIds = enrollments.stream()
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(cs -> cs.getId())
+                .distinct()
+                .toList();
+        List<Long> subjectIds = enrollments.stream()
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(cs -> cs.getSubject())
+                .filter(java.util.Objects::nonNull)
+                .map(Subject::getId)
+                .distinct()
+                .toList();
+
+        if (classSubjectIds.isEmpty() && subjectIds.isEmpty()) {
             return 0;
         }
-        return examScheduleRepository.findUpcomingBySubjectIds(subjectIds, LocalDate.now()).size();
+        return examScheduleRepository.findUpcomingForStudent(
+                classSubjectIds.isEmpty() ? List.of(-1L) : classSubjectIds,
+                subjectIds.isEmpty() ? List.of(-1L) : subjectIds,
+                LocalDate.now()).size();
     }
 }
