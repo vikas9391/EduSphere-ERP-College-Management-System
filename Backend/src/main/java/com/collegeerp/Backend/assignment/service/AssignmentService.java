@@ -63,21 +63,21 @@ public class AssignmentService {
 
     public List<AssignmentResponse> getAllAssignments(UserPrincipal principal) {
         if (isAdmin(principal)) {
-            return assignmentRepository.findAll().stream().map(this::map).toList();
+            return assignmentRepository.findAllWithDetails().stream().map(this::map).toList();
         }
         requireTeacher(principal);
         return assignmentRepository.findByTeacherId(principal.getId()).stream().map(this::map).toList();
     }
 
     public AssignmentResponse getAssignment(Long id, UserPrincipal principal) {
-        Assignment assignment = assignmentRepository.findById(id)
+        Assignment assignment = assignmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
         requireAssignmentOwner(assignment, principal);
         return map(assignment);
     }
 
     public AssignmentResponse updateAssignment(Long id, AssignmentRequest request, UserPrincipal principal) {
-        Assignment assignment = assignmentRepository.findById(id)
+        Assignment assignment = assignmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
@@ -102,7 +102,7 @@ public class AssignmentService {
     }
 
     public void deleteAssignment(Long id, UserPrincipal principal) {
-        Assignment assignment = assignmentRepository.findById(id)
+        Assignment assignment = assignmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
         requireAssignmentOwner(assignment, principal);
         assignmentRepository.delete(assignment);
@@ -143,7 +143,6 @@ public class AssignmentService {
 
     private void requireTeacherCanManage(
             Subject subject, User teacher, ClassSubject classSubject, UserPrincipal principal) {
-
         if (classSubject != null
                 && classSubject.getTeacher() != null
                 && !Objects.equals(classSubject.getTeacher().getId(), teacher.getId())) {
