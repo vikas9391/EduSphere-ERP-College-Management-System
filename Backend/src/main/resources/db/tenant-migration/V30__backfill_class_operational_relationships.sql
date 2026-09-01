@@ -82,6 +82,20 @@ WHERE m.exam_schedule_id = es.id
   AND es.class_subject_id IS NOT NULL
   AND m.class_enrollment_id IS NULL;
 
+-- Legacy formal enrollments: report records for which no class-scoped
+-- participation relationship can be found. Do not guess a class.
+INSERT INTO academic_relationship_migration_audit(entity_type, entity_id, reason)
+SELECT 'ENROLLMENT', e.id, 'No matching ClassEnrollment for student and subject'
+FROM enrollments e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM class_enrollments ce
+    JOIN class_subjects cs ON cs.id = ce.class_subject_id
+    WHERE ce.student_id = e.student_id
+      AND cs.subject_id = e.subject_id
+)
+ON CONFLICT DO NOTHING;
+
 -- Record anything still requiring manual reconciliation. No data is deleted.
 INSERT INTO academic_relationship_migration_audit(entity_type, entity_id, reason)
 SELECT 'ATTENDANCE', a.id, 'No unique ClassEnrollment mapping or migrated row already exists'
