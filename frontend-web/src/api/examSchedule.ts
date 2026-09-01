@@ -12,6 +12,12 @@ export interface ExamSchedule {
 
   subjectName:string
 
+  classSubjectId?:number | null
+
+  classId?:number | null
+
+  className?:string | null
+
   invigilatorId?:number
 
   invigilatorName?:string
@@ -33,6 +39,8 @@ export interface ExamSchedulePayload{
   examId:number
 
   subjectId:number
+
+  classSubjectId?:number | null
 
   invigilatorId?:number | null
 
