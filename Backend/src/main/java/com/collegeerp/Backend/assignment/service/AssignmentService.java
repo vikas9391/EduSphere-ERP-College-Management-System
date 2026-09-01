@@ -4,11 +4,13 @@ import com.collegeerp.Backend.assignment.dto.AssignmentRequest;
 import com.collegeerp.Backend.assignment.dto.AssignmentResponse;
 import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
-import com.collegeerp.Backend.subject.entity.Subject;
-import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.UserRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.subject.entity.Subject;
+import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -21,31 +23,33 @@ public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final SubjectRepository subjectRepository;
+    private final ClassSubjectRepository classSubjectRepository;
     private final UserRepository userRepository;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
             SubjectRepository subjectRepository,
+            ClassSubjectRepository classSubjectRepository,
             UserRepository userRepository) {
         this.assignmentRepository = assignmentRepository;
         this.subjectRepository = subjectRepository;
+        this.classSubjectRepository = classSubjectRepository;
         this.userRepository = userRepository;
     }
 
-    public AssignmentResponse createAssignment(
-            AssignmentRequest request, UserPrincipal principal) {
-
+    public AssignmentResponse createAssignment(AssignmentRequest request, UserPrincipal principal) {
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
-
         User teacher = userRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found));
 
         validateAssignmentValues(request);
-        requireTeacherCanManage(subject, teacher, principal);
+        ClassSubject classSubject = resolveClassSubject(request);
+        requireTeacherCanManage(subject, teacher, classSubject, principal);
 
         Assignment assignment = Assignment.builder()
                 .subject(subject)
+                .classSubject(classSubject)
                 .teacher(teacher)
                 .title(request.getTitle().trim())
                 .description(request.getDescription())
@@ -67,23 +71,22 @@ public class AssignmentService {
         return map(assignment);
     }
 
-    public AssignmentResponse updateAssignment(
-            Long id, AssignmentRequest request, UserPrincipal principal) {
-
+    public AssignmentResponse updateAssignment(Long id, AssignmentRequest request, UserPrincipal principal) {
         Assignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
-
         User teacher = userRepository.findById(request.getTeacherId())
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
         validateAssignmentValues(request);
+        ClassSubject classSubject = resolveClassSubject(request);
         requireAssignmentOwner(assignment, principal);
-        requireTeacherCanManage(subject, teacher, principal);
+        requireTeacherCanManage(subject, teacher, classSubject, principal);
 
         assignment.setSubject(subject);
+        assignment.setClassSubject(classSubject);
         assignment.setTeacher(teacher);
         assignment.setTitle(request.getTitle().trim());
         assignment.setDescription(request.getDescription());
@@ -100,12 +103,31 @@ public class AssignmentService {
         assignmentRepository.delete(assignment);
     }
 
+    private ClassSubject resolveClassSubject(AssignmentRequest request) {
+        if (request.getClassSubjectId() == null) {
+            return null;
+        }
+        ClassSubject classSubject = classSubjectRepository.findById(request.getClassSubjectId())
+                .orElseThrow(() -> new RuntimeException("Class subject not found"));
+        if (classSubject.getSubject() != null
+                && !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
+            throw new IllegalArgumentException("Class subject does not belong to the selected subject");
+        }
+        return classSubject;
+    }
+
     private void requireTeacherCanManage(
-            Subject subject, User teacher, UserPrincipal principal) {
+            Subject subject, User teacher, ClassSubject classSubject, UserPrincipal principal) {
+
+        if (classSubject != null
+                && classSubject.getTeacher() != null
+                && !Objects.equals(classSubject.getTeacher().getId(), teacher.getId())) {
+            throw new IllegalArgumentException("The selected teacher does not teach this class subject");
+        }
 
         if (isAdmin(principal)) {
-            // Even admins cannot attach an assignment to a teacher who does not own the subject.
-            if (!Objects.equals(subject.getTeacher().getId(), teacher.getId())) {
+            if (subject.getTeacher() != null && !Objects.equals(subject.getTeacher().getId(), teacher.getId())
+                    && classSubject == null) {
                 throw new IllegalArgumentException("The selected teacher is not assigned to this subject");
             }
             return;
@@ -113,8 +135,9 @@ public class AssignmentService {
 
         if (!"TEACHER".equalsIgnoreCase(principal.getRole())
                 || !Objects.equals(principal.getId(), teacher.getId())
-                || subject.getTeacher() == null
-                || !Objects.equals(subject.getTeacher().getId(), principal.getId())) {
+                || (classSubject != null
+                    ? classSubject.getTeacher() == null || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())
+                    : subject.getTeacher() == null || !Objects.equals(subject.getTeacher().getId(), principal.getId()))) {
             throw new AccessDeniedException("You can manage assignments only for subjects assigned to you");
         }
     }
