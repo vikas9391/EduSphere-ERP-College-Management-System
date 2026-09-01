@@ -6,7 +6,6 @@ import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.entity.AssignmentSubmission;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
@@ -24,14 +23,12 @@ public class AssignmentSubmissionService {
     private final AssignmentSubmissionRepository submissionRepository;
     private final AssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
-    private final EnrollmentRepository enrollmentRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
 
     public AssignmentSubmissionService(
             AssignmentSubmissionRepository submissionRepository,
             AssignmentRepository assignmentRepository,
             StudentRepository studentRepository,
-            EnrollmentRepository enrollmentRepository,
             ClassEnrollmentRepository classEnrollmentRepository) {
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
@@ -105,19 +102,15 @@ public class AssignmentSubmissionService {
     }
 
     private void requireEligibleStudent(Assignment assignment, Long studentId) {
-        if (assignment.getClassSubject() != null) {
-            if (!classEnrollmentRepository.existsByClassSubjectIdAndStudentId(
-                    assignment.getClassSubject().getId(), studentId)) {
-                throw new AccessDeniedException("You are not enrolled in the class subject for this assignment");
-            }
-            return;
+        if (assignment.getClassSubject() == null) {
+            throw new AccessDeniedException(
+                    "This assignment is not class-scoped and cannot accept new submissions");
         }
 
-        // Legacy compatibility: old Subject-only assignments are visible only to students who
-        // have an explicit formal Enrollment for that Subject. Course membership alone is not
-        // sufficient operational participation.
-        if (!enrollmentRepository.existsByStudentIdAndSubjectId(studentId, assignment.getSubject().getId())) {
-            throw new AccessDeniedException("You are not enrolled in the subject for this assignment");
+        if (!classEnrollmentRepository.existsByClassSubjectIdAndStudentId(
+                assignment.getClassSubject().getId(), studentId)) {
+            throw new AccessDeniedException(
+                    "You are not enrolled in the class subject for this assignment");
         }
     }
 
