@@ -61,18 +61,11 @@ public class AttendanceService {
                     .createdAt(LocalDateTime.now()).build();
             return map(attendanceRepository.save(attendance));
         }
-        if (request.getEnrollmentId() == null) throw new BadRequestException("Enrollment or class enrollment is required");
-        Enrollment enrollment = enrollmentRepository.findById(request.getEnrollmentId())
-                .orElseThrow(() -> ResourceNotFoundException.of("Enrollment", request.getEnrollmentId()));
-        requireCanManageSubject(enrollment);
-        if (attendanceRepository.existsByEnrollmentIdAndAttendanceDate(enrollment.getId(), request.getAttendanceDate())) {
-            throw new DuplicateResourceException("Attendance has already been marked for this student and subject on " + request.getAttendanceDate());
-        }
-        Attendance attendance = Attendance.builder()
-                .enrollment(enrollment).attendanceDate(request.getAttendanceDate())
-                .status(normalizeStatus(request.getStatus())).remarks(normalizeRemarks(request.getRemarks()))
-                .createdAt(LocalDateTime.now()).build();
-        return map(attendanceRepository.save(attendance));
+        // New attendance must always be tied to the exact class-scoped
+        // student/subject relationship. Legacy Enrollment attendance is read-only
+        // compatibility data and must be migrated/backfilled rather than extended.
+        throw new BadRequestException(
+                "Class enrollment is required; legacy subject-only attendance cannot be created");
     }
 
     @Transactional(readOnly = true)
