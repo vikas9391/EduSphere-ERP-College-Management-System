@@ -1,12 +1,9 @@
-// src/pages/student/StudentAssignmentsPage.tsx
 import { useEffect, useMemo, useState } from 'react'
 import { Layout } from '@/components/Layout'
 import { Modal } from '@/components/Modal'
 import { Field, inputClass } from '@/components/FormField'
 import { StampGrid, StampItem } from '@/components/motion'
 import { StatCard, STAT_SHADES } from '@/components/PageBits'
-import { useAuthStore } from '@/store/authStore'
-import { getMyProfile, type StudentProfile } from '@/api/studentProfile'
 import { getMyAssignments, type MyAssignment } from '@/api/studentPortal'
 import { submitAssignment } from '@/api/assignment'
 import {
@@ -43,9 +40,7 @@ const bucketMeta: Record<Bucket, { label: string; classes: string }> = {
 }
 
 export function StudentAssignmentsPage() {
-  const { user } = useAuthStore()
   const [assignments, setAssignments] = useState<MyAssignment[]>([])
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,9 +53,7 @@ export function StudentAssignmentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [profile, assignmentRows] = await Promise.all([getMyProfile(), getMyAssignments()])
-      setStudentProfile(profile)
-      setAssignments(assignmentRows)
+      setAssignments(await getMyAssignments())
     } catch {
       setError('Failed to load your assignments. Please try again.')
     } finally {
@@ -70,8 +63,7 @@ export function StudentAssignmentsPage() {
 
   useEffect(() => {
     loadAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }, [])
 
   const rows: AssignmentRow[] = useMemo(() => {
     return assignments.map((assignment) => {
@@ -104,7 +96,7 @@ export function StudentAssignmentsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!activeRow || !studentProfile?.id) return
+    if (!activeRow) return
     if (!submissionUrl.trim()) {
       setSubmitError('Please provide a link to your submission.')
       return
@@ -114,7 +106,6 @@ export function StudentAssignmentsPage() {
     try {
       await submitAssignment({
         assignmentId: activeRow.assignment.assignmentId,
-        studentId: studentProfile.id,
         submissionUrl: submissionUrl.trim(),
       })
       closeDetails()
@@ -170,9 +161,7 @@ export function StudentAssignmentsPage() {
         <div className="flex items-center gap-2">
           <Icon size={18} className="text-primary" />
           <h2 className="font-heading text-base font-medium text-text">{title}</h2>
-          <span className="rounded-full bg-border/50 px-2 py-0.5 text-xs text-muted">
-            {sectionRows.length}
-          </span>
+          <span className="rounded-full bg-border/50 px-2 py-0.5 text-xs text-muted">{sectionRows.length}</span>
         </div>
 
         {sectionRows.length === 0 ? (
@@ -243,9 +232,7 @@ export function StudentAssignmentsPage() {
 
             {activeRow.assignment.submissionStatus !== 'NOT_SUBMITTED' ? (
               <div className="rounded-lg border border-border p-4">
-                <p className="text-sm text-muted">
-                  Submitted {activeRow.assignment.submittedAt?.slice(0, 10) ?? '—'}
-                </p>
+                <p className="text-sm text-muted">Submitted {activeRow.assignment.submittedAt?.slice(0, 10) ?? '—'}</p>
                 {activeRow.assignment.submissionUrl && (
                   <a
                     href={activeRow.assignment.submissionUrl}
@@ -267,9 +254,7 @@ export function StudentAssignmentsPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="mt-3 border-t border-border pt-3 text-sm text-muted">
-                    Awaiting evaluation.
-                  </p>
+                  <p className="mt-3 border-t border-border pt-3 text-sm text-muted">Awaiting evaluation.</p>
                 )}
               </div>
             ) : (
@@ -284,11 +269,7 @@ export function StudentAssignmentsPage() {
                 </Field>
                 {submitError && <p className="text-sm text-red-600">{submitError}</p>}
                 <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={closeDetails}
-                    className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text"
-                  >
+                  <button type="button" onClick={closeDetails} className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary hover:text-text">
                     Cancel
                   </button>
                   <button
