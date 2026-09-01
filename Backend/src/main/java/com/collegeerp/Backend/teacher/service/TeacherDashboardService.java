@@ -89,7 +89,7 @@ public class TeacherDashboardService {
                 .attendancePendingToday(countAttendancePendingToday(subjects, attendanceRecords))
                 .upcomingClassesCount(todaysSchedule.size())
                 .assignmentsPerSubject(assignmentsPerSubject(assignments))
-                .attendanceTrend(attendanceRecords)
+                .attendanceTrend(attendanceTrend(attendanceRecords))
                 .recentAssignments(recentAssignments(assignments))
                 .todaysSchedule(todaysSchedule)
                 .schedulePlaceholder(false)
