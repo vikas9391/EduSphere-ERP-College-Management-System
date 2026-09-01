@@ -23,6 +23,7 @@ const studentNavItems = [
   { to: '/student/profile', label: 'My Profile', icon: UserCircle },
   { to: '/student/classes', label: 'My Classes', icon: Users },
   { to: '/student/enrollments', label: 'My Enrollments', icon: BookMarked },
+  { to: '/student/timetable', label: 'My Timetable', icon: CalendarDays },
   { to: '/student/attendance', label: 'My Attendance', icon: CalendarCheck },
   { to: '/student/assignments', label: 'My Assignments', icon: ClipboardList },
   { to: '/announcements', label: 'Announcements', icon: Megaphone },
