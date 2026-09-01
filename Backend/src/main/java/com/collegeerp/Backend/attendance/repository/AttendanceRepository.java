@@ -16,9 +16,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     boolean existsByEnrollmentIdAndAttendanceDateAndIdNot(Long enrollmentId, java.time.LocalDate attendanceDate, Long id);
 
-    /**
-     * Fetches class-based attendance through the authoritative ClassEnrollment relationship.
-     */
     @Query("""
            SELECT a
            FROM Attendance a
@@ -33,7 +30,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
            """)
     List<Attendance> findClassAttendanceByStudentId(Long studentId);
 
-    /** Legacy attendance retained only for records that have not yet been migrated. */
     @Query("""
            SELECT a
            FROM Attendance a
@@ -45,13 +41,27 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
            """)
     List<Attendance> findLegacyAttendanceByStudentId(Long studentId);
 
-    /**
-     * Legacy teacher query retained for compatibility with attendance records not yet migrated.
-     */
+    /** Class-based attendance for the exact class subjects taught by a teacher. */
+    @Query("""
+           SELECT a
+           FROM Attendance a
+           JOIN FETCH a.classEnrollment ce
+           JOIN FETCH ce.student st
+           JOIN FETCH ce.classSubject cs
+           LEFT JOIN FETCH cs.subject
+           JOIN FETCH cs.schoolClass
+           JOIN FETCH cs.teacher t
+           WHERE t.id = :teacherId
+           ORDER BY a.attendanceDate DESC
+           """)
+    List<Attendance> findClassAttendanceByTeacherId(Long teacherId);
+
+    /** Legacy teacher query retained for compatibility with unmigrated rows. */
     @Query("""
            SELECT a
            FROM Attendance a
            JOIN FETCH a.enrollment e
+           JOIN FETCH e.student st
            JOIN FETCH e.subject s
            WHERE s.teacher.id = :teacherId
            ORDER BY a.attendanceDate DESC
