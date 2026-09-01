@@ -33,7 +33,6 @@ public class AssignmentSubmissionService {
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
         this.studentRepository = studentRepository;
-        this.enrollmentRepository = enrollmentRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
