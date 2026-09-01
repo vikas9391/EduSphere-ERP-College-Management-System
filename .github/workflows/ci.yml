@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend:
-    name: Backend build and focused tests
+    name: Backend build and relationship tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,7 +28,7 @@ jobs:
         run: bash ./mvnw clean -DskipTests package
 
       - name: Run relationship isolation tests
-        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest test
+        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest,MarksServiceClassScopeTest,ResultServiceTest test
 
   frontend:
     name: Frontend build
