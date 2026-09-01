@@ -28,8 +28,10 @@ public interface MarksRepository extends JpaRepository<Marks, Long> {
            JOIN FETCH m.examSchedule es
            JOIN FETCH es.exam ex
            JOIN FETCH es.subject
+           JOIN FETCH es.classSubject cs
            JOIN FETCH m.student
            WHERE m.student.id = :studentId
+             AND cs.id IN (SELECT ce.classSubject.id FROM ClassEnrollment ce WHERE ce.student.id = :studentId)
              AND ex.semester = :semester
              AND ex.academicYear = :academicYear
              AND m.status = 'PUBLISHED'
@@ -42,8 +44,10 @@ public interface MarksRepository extends JpaRepository<Marks, Long> {
            JOIN FETCH m.examSchedule es
            JOIN FETCH es.exam ex
            JOIN FETCH es.subject
+           JOIN FETCH es.classSubject cs
            JOIN FETCH m.student
            WHERE m.student.id = :studentId
+             AND cs.id IN (SELECT ce.classSubject.id FROM ClassEnrollment ce WHERE ce.student.id = :studentId)
              AND m.status = 'PUBLISHED'
            """)
     List<Marks> findAllPublishedByStudent(Long studentId);
