@@ -1,6 +1,7 @@
 package com.collegeerp.Backend.marks.entity;
 
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,6 +31,11 @@ public class Marks {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
+
+    /** Exact operational participation for new class-scoped marks; nullable for legacy rows. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_enrollment_id")
+    private ClassEnrollment classEnrollment;
 
     @Column(nullable = false)
     private Integer internalMarks;
