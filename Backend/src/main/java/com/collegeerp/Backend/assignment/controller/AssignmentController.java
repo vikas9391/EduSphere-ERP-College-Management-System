@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/assignments")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
@@ -20,7 +21,6 @@ public class AssignmentController {
         this.assignmentService = assignmentService;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @PostMapping
     public AssignmentResponse createAssignment(
             Authentication authentication,
@@ -28,6 +28,10 @@ public class AssignmentController {
         return assignmentService.createAssignment(request, principal(authentication));
     }
 
+    /**
+     * Generic assignment administration is teacher/admin only. Students must use the
+     * authenticated /api/student/assignments endpoint, which is ClassEnrollment-scoped.
+     */
     @GetMapping
     public List<AssignmentResponse> getAllAssignments() {
         return assignmentService.getAllAssignments();
@@ -38,7 +42,6 @@ public class AssignmentController {
         return assignmentService.getAssignment(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @PutMapping("/{id}")
     public AssignmentResponse updateAssignment(
             Authentication authentication,
@@ -47,7 +50,6 @@ public class AssignmentController {
         return assignmentService.updateAssignment(id, request, principal(authentication));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
     @DeleteMapping("/{id}")
     public void deleteAssignment(
             Authentication authentication,
