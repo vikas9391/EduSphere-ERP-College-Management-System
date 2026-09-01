@@ -3,8 +3,6 @@ package com.collegeerp.Backend.marks.service;
 import com.collegeerp.Backend.common.exception.BadRequestException;
 import com.collegeerp.Backend.common.exception.DuplicateResourceException;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.marks.dto.EligibleStudentResponse;
@@ -33,27 +31,23 @@ import java.util.List;
 public class MarksService {
 
     private static final String SOURCE_CLASS_ROSTER = "CLASS_ROSTER";
-    private static final String SOURCE_FORMAL_ENROLLMENT = "FORMAL_ENROLLMENT";
 
     private final MarksRepository marksRepository;
     private final ExamScheduleRepository examScheduleRepository;
     private final StudentRepository studentRepository;
     private final ClassSubjectRepository classSubjectRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
-    private final EnrollmentRepository enrollmentRepository;
 
     public MarksService(MarksRepository marksRepository,
                         ExamScheduleRepository examScheduleRepository,
                         StudentRepository studentRepository,
                         ClassSubjectRepository classSubjectRepository,
-                        ClassEnrollmentRepository classEnrollmentRepository,
-                        EnrollmentRepository enrollmentRepository) {
+                        ClassEnrollmentRepository classEnrollmentRepository) {
         this.marksRepository = marksRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.studentRepository = studentRepository;
         this.classSubjectRepository = classSubjectRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
-        this.enrollmentRepository = enrollmentRepository;
     }
 
     public MarksResponse enterMarks(MarksRequest request) {
@@ -206,12 +200,10 @@ public class MarksService {
             throw new AccessDeniedException("Only the assigned teacher or a college admin can manage marks");
         }
 
-        Long assignedTeacherId = examSchedule.getClassSubject() != null
-                && examSchedule.getClassSubject().getTeacher() != null
-                ? examSchedule.getClassSubject().getTeacher().getId()
-                : examSchedule.getSubject().getTeacher() != null
-                    ? examSchedule.getSubject().getTeacher().getId()
-                    : null;
+        ClassSubject classSubject = requireClassSubject(examSchedule);
+        Long assignedTeacherId = classSubject.getTeacher() != null
+                ? classSubject.getTeacher().getId()
+                : null;
 
         if (assignedTeacherId == null || !principal.getId().equals(assignedTeacherId)) {
             throw new AccessDeniedException("Teachers can only manage marks for their assigned class subject");
