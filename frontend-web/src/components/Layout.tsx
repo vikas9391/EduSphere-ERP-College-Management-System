@@ -5,12 +5,13 @@ import { useAuthStore } from '@/store/authStore'
 import { PageIn } from '@/components/motion'
 import { LeafDivider } from '@/components/LeafDivider'
 import { navModulesForRole } from '@/config/staffModules'
-import { LayoutDashboard, Layers, Award, CalendarCheck, ClipboardList, Upload, UserCircle, Building2, BookMarked, Users, Menu, X, Sprout, Megaphone } from 'lucide-react'
+import { LayoutDashboard, Layers, Award, CalendarCheck, CalendarDays, ClipboardList, Upload, UserCircle, Building2, BookMarked, Users, Menu, X, Sprout, Megaphone } from 'lucide-react'
 
 const superAdminNavItems = [{ to: '/colleges', label: 'Colleges', icon: Building2 }]
 const teacherNavItems = [
   { to: '/teacher/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/teacher/classes', label: 'Classes', icon: Layers },
+  { to: '/teacher/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
   { to: '/assignments', label: 'Assignments', icon: ClipboardList },
   { to: '/submissions', label: 'Submissions', icon: Upload },
