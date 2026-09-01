@@ -5,7 +5,7 @@ export interface Attendance {
   enrollmentId: number | null
   studentId: number
   studentName: string
-  subjectId: number | null
+  subjectId: number
   subjectName: string
   classEnrollmentId?: number | null
   attendanceDate: string
