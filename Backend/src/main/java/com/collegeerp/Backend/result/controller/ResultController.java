@@ -4,6 +4,7 @@ import com.collegeerp.Backend.common.exception.ForbiddenException;
 import com.collegeerp.Backend.result.dto.OverallResultResponse;
 import com.collegeerp.Backend.result.dto.SemesterResultResponse;
 import com.collegeerp.Backend.result.service.ResultService;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.service.StudentIdentityService;
 import org.springframework.security.core.Authentication;
@@ -13,14 +14,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/results")
 public class ResultController {
 
-    private static final String STUDENT_ROLE = "STUDENT";
-
     private final ResultService resultService;
     private final StudentIdentityService studentIdentityService;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
 
-    public ResultController(ResultService resultService, StudentIdentityService studentIdentityService) {
+    public ResultController(
+            ResultService resultService,
+            StudentIdentityService studentIdentityService,
+            ClassEnrollmentRepository classEnrollmentRepository) {
         this.resultService = resultService;
         this.studentIdentityService = studentIdentityService;
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     @GetMapping("/student/{studentId}/semester")
@@ -28,26 +32,39 @@ public class ResultController {
                                                       @PathVariable Long studentId,
                                                       @RequestParam Integer semester,
                                                       @RequestParam String academicYear) {
-        requireSelfOrStaff(authentication, studentId);
+        requireAuthorized(authentication, studentId);
         return resultService.getSemesterResult(studentId, semester, academicYear);
     }
 
     @GetMapping("/student/{studentId}/overall")
     public OverallResultResponse getOverallResult(Authentication authentication, @PathVariable Long studentId) {
-        requireSelfOrStaff(authentication, studentId);
+        requireAuthorized(authentication, studentId);
         return resultService.getOverallResult(studentId);
     }
 
     /**
-     * ADMIN/TEACHER may look up any student's results; a STUDENT may only look up their
-     * own domain Student record. UserPrincipal.id is the authenticated User id and must
-     * never be compared directly with Student.id.
+     * Students may read only their own domain Student record. Teachers may read results only
+     * for students enrolled in a ClassSubject they actually teach. College admins may read all.
      */
-    private void requireSelfOrStaff(Authentication authentication, Long studentId) {
+    private void requireAuthorized(Authentication authentication, Long studentId) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        if (STUDENT_ROLE.equalsIgnoreCase(principal.getRole())
-                && !studentId.equals(studentIdentityService.requireStudentId(principal))) {
-            throw new ForbiddenException("You can only view your own results");
+        String role = principal.getRole() == null ? "" : principal.getRole().trim();
+
+        if ("ADMIN".equalsIgnoreCase(role) || "SUPER_ADMIN".equalsIgnoreCase(role)) {
+            return;
         }
+        if ("STUDENT".equalsIgnoreCase(role)) {
+            if (!studentId.equals(studentIdentityService.requireStudentId(principal))) {
+                throw new ForbiddenException("You can only view your own results");
+            }
+            return;
+        }
+        if ("TEACHER".equalsIgnoreCase(role)) {
+            if (!classEnrollmentRepository.existsByStudentIdAndClassSubjectTeacherId(studentId, principal.getId())) {
+                throw new ForbiddenException("You can only view results for students you teach");
+            }
+            return;
+        }
+        throw new ForbiddenException("You are not allowed to view student results");
     }
 }
