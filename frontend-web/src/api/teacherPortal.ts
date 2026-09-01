@@ -31,15 +31,7 @@ export interface TeacherDashboardAssignment {
   pendingReviewCount?: number
 }
 
-/**
- * PLACEHOLDER on the backend for todaysSchedule/announcements: no Timetable or
- * Announcement entity exists in the schema yet. Subjects are real; day/time/room
- * assignments and announcement content are not read from any real schedule or
- * announcements system. See the backend's TeacherScheduleService /
- * TeacherAnnouncementService for the full explanation. `schedulePlaceholder` /
- * `announcementsPlaceholder` are how the backend flags this - surface it in the
- * UI, don't hide it.
- */
+/** Today's schedule is backed by ClassSubject timetable entries. */
 export interface TeacherScheduleEntry {
   subjectId: number
   subjectName: string
@@ -67,6 +59,7 @@ export interface TeacherDashboardSummary {
   attendanceTrend: AttendanceTrendPoint[]
   recentAssignments: TeacherDashboardAssignment[]
   todaysSchedule: TeacherScheduleEntry[]
+  /** Retained for compatibility; false for the repository-backed timetable. */
   schedulePlaceholder: boolean
   announcements: TeacherAnnouncement[]
   announcementsPlaceholder: boolean
