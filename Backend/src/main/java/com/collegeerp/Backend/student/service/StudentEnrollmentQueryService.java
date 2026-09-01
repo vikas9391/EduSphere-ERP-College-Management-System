@@ -1,51 +1,59 @@
 package com.collegeerp.Backend.student.service;
 
 import com.collegeerp.Backend.enrollment.dto.EnrollmentResponse;
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Read-only, student-scoped view over {@link Enrollment}. Deliberately reuses
- * {@link EnrollmentResponse} (the same DTO the admin {@code EnrollmentController} returns)
- * rather than inventing a parallel DTO, since the shape a student needs to see their own
- * enrollment is identical to what an admin sees for one row.
+ * Student self-service enrollment view backed by the authoritative ClassEnrollment model.
+ * Legacy Enrollment is intentionally not used for the current student subject list.
  */
 @Service
 @Transactional(readOnly = true)
 public class StudentEnrollmentQueryService {
 
-    private final EnrollmentRepository enrollmentRepository;
+    private final com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository classEnrollmentRepository;
 
-    public StudentEnrollmentQueryService(EnrollmentRepository enrollmentRepository) {
-        this.enrollmentRepository = enrollmentRepository;
+    public StudentEnrollmentQueryService(
+            com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository classEnrollmentRepository) {
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public List<EnrollmentResponse> getEnrollments(Long studentId) {
-        return enrollmentRepository.findByStudentIdWithDetails(studentId)
-                .stream()
+        return classEnrollmentRepository.findAllByStudentId(studentId).stream()
                 .map(this::map)
                 .toList();
     }
 
-    private EnrollmentResponse map(Enrollment e) {
+    private EnrollmentResponse map(ClassEnrollment enrollment) {
+        ClassSubject classSubject = enrollment.getClassSubject();
+        var student = enrollment.getStudent();
+        var subject = classSubject.getSubject();
+
         return EnrollmentResponse.builder()
-                .id(e.getId())
-                .studentId(e.getStudent().getId())
-                .studentName(e.getStudent().getFirstName() + " " + e.getStudent().getLastName())
-                .admissionNo(e.getStudent().getAdmissionNo())
-                .subjectId(e.getSubject().getId())
-                .subjectName(e.getSubject().getSubjectName())
-                .subjectCode(e.getSubject().getSubjectCode())
-                .courseName(e.getSubject().getCourse().getCourseName())
-                .teacherName(e.getSubject().getTeacher().getFirstName() + " " + e.getSubject().getTeacher().getLastName())
-                .academicYear(e.getAcademicYear())
-                .semester(e.getSemester())
-                .enrollmentDate(e.getEnrollmentDate())
-                .status(e.getStatus())
+                .id(enrollment.getId())
+                .studentId(student.getId())
+                .studentName(student.getFirstName() + " " + (student.getLastName() != null ? student.getLastName() : ""))
+                .admissionNo(student.getAdmissionNo())
+                .subjectId(subject != null ? subject.getId() : null)
+                .subjectName(subject != null ? subject.getSubjectName() : classSubject.getSubjectName())
+                .subjectCode(subject != null ? subject.getSubjectCode() : classSubject.getSubjectCode())
+                .courseName(subject != null && subject.getCourse() != null
+                        ? subject.getCourse().getCourseName() : null)
+                .teacherName(classSubject.getTeacher() != null
+                        ? classSubject.getTeacher().getFirstName() + " " +
+                          (classSubject.getTeacher().getLastName() != null ? classSubject.getTeacher().getLastName() : "")
+                        : null)
+                .academicYear(classSubject.getSchoolClass().getAcademicYear())
+                .semester(classSubject.getSchoolClass().getSemester())
+                .enrollmentDate(enrollment.getEnrolledAt() != null
+                        ? enrollment.getEnrolledAt().toLocalDate() : LocalDate.now())
+                .status("ACTIVE")
                 .build();
     }
 }
