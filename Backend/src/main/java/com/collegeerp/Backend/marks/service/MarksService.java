@@ -168,29 +168,11 @@ public class MarksService {
         ExamSchedule examSchedule = findExamSchedule(examScheduleId);
         requireCanManageSubject(examSchedule);
 
-        if (examSchedule.getClassSubject() != null) {
-            return classEnrollmentRepository.findAllByClassSubjectId(examSchedule.getClassSubject().getId()).stream()
-                    .map(ClassEnrollment::getStudent)
-                    .distinct()
-                    .map(s -> eligibleStudent(examScheduleId, s, SOURCE_CLASS_ROSTER))
-                    .toList();
-        }
-
-        Long subjectId = examSchedule.getSubject().getId();
-        List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
-        if (!linkedClassSubjects.isEmpty()) {
-            return linkedClassSubjects.stream()
-                    .flatMap(cs -> classEnrollmentRepository.findAllByClassSubjectId(cs.getId()).stream())
-                    .map(ClassEnrollment::getStudent)
-                    .distinct()
-                    .map(s -> eligibleStudent(examScheduleId, s, SOURCE_CLASS_ROSTER))
-                    .toList();
-        }
-
-        return enrollmentRepository.findBySubjectIdWithStudent(subjectId).stream()
-                .map(Enrollment::getStudent)
+        ClassSubject classSubject = requireClassSubject(examSchedule);
+        return classEnrollmentRepository.findAllByClassSubjectId(classSubject.getId()).stream()
+                .map(ClassEnrollment::getStudent)
                 .distinct()
-                .map(s -> eligibleStudent(examScheduleId, s, SOURCE_FORMAL_ENROLLMENT))
+                .map(s -> eligibleStudent(examScheduleId, s, SOURCE_CLASS_ROSTER))
                 .toList();
     }
 
@@ -237,31 +219,19 @@ public class MarksService {
     }
 
     private ClassEnrollment requireEligibleParticipation(ExamSchedule examSchedule, Long studentId) {
-        if (examSchedule.getClassSubject() != null) {
-            return classEnrollmentRepository
-                    .findByClassSubjectIdAndStudentId(examSchedule.getClassSubject().getId(), studentId)
-                    .orElseThrow(() -> new BadRequestException(
-                            "Student is not enrolled in the class subject for this exam schedule"));
-        }
+        ClassSubject classSubject = requireClassSubject(examSchedule);
+        return classEnrollmentRepository
+                .findByClassSubjectIdAndStudentId(classSubject.getId(), studentId)
+                .orElseThrow(() -> new BadRequestException(
+                        "Student is not enrolled in the class subject for this exam schedule"));
+    }
 
-        Long subjectId = examSchedule.getSubject().getId();
-        List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
-        for (ClassSubject classSubject : linkedClassSubjects) {
-            var enrollment = classEnrollmentRepository.findByClassSubjectIdAndStudentId(classSubject.getId(), studentId);
-            if (enrollment.isPresent()) {
-                return enrollment.get();
-            }
-        }
-
-        if (!linkedClassSubjects.isEmpty()) {
+    private ClassSubject requireClassSubject(ExamSchedule examSchedule) {
+        if (examSchedule.getClassSubject() == null) {
             throw new BadRequestException(
-                    "This subject is linked to class rosters and the student is not enrolled in any matching class");
+                    "This exam schedule is not class-scoped; migrate the schedule before managing marks");
         }
-
-        if (!enrollmentRepository.existsByStudentIdAndSubjectId(studentId, subjectId)) {
-            throw new BadRequestException("Student is not enrolled in this subject");
-        }
-        return null;
+        return examSchedule.getClassSubject();
     }
 
     private void validateMarks(MarksRequest request, ExamSchedule examSchedule) {
