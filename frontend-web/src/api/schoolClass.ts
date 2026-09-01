@@ -32,6 +32,9 @@ export interface ClassStudent {
 export interface ClassSubject {
   id: number
   schoolClassId: number
+  schoolClassName?: string | null
+  academicYear?: string | null
+  semester?: number | null
   subjectCode: string
   subjectName: string
   credits: number
@@ -118,7 +121,7 @@ export async function getClassSubjects(classId: number): Promise<ClassSubject[]>
   return res.data
 }
 
-/** Exact ClassSubjects taught by the authenticated teacher across all classes. */
+/** Exact ClassSubject offerings visible to the authenticated staff member. */
 export async function getMyTeachingClassSubjects(): Promise<ClassSubject[]> {
   const res = await api.get<ClassSubject[]>('/classes/subjects/mine-teaching')
   return res.data
