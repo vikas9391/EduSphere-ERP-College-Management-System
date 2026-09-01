@@ -41,7 +41,7 @@ public class AssignmentService {
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
         User teacher = userRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher not found));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
         validateAssignmentValues(request);
         ClassSubject classSubject = resolveClassSubject(request);
@@ -107,7 +107,7 @@ public class AssignmentService {
         if (request.getClassSubjectId() == null) {
             return null;
         }
-        ClassSubject classSubject = classSubjectRepository.findById(request.getClassSubjectId())
+        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
                 .orElseThrow(() -> new RuntimeException("Class subject not found"));
         if (classSubject.getSubject() != null
                 && !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
