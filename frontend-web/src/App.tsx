@@ -33,6 +33,7 @@ const AssignmentsPage = lazy(() => import("@/pages/AssignmentsPage").then((m) =>
 const SubmissionsPage = lazy(() => import("@/pages/Submissionspage").then((m) => ({ default: m.SubmissionsPage })));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage").then((m) => ({ default: m.AnnouncementsPage })));
 const TeacherDashboard = lazy(() => import("@/pages/Teacherdashboard").then((m) => ({ default: m.TeacherDashboard })));
+const TeacherTimetablePage = lazy(() => import("@/pages/TeacherTimetablePage").then((m) => ({ default: m.TeacherTimetablePage })));
 const ClassesPage = lazy(() => import("@/pages/ClassesPage").then((m) => ({ default: m.ClassesPage })));
 const ClassDetailPage = lazy(() => import("@/pages/ClassDetailPage").then((m) => ({ default: m.ClassDetailPage })));
 const StudentDashboard = lazy(() => import("@/pages/StudentDashboard").then((m) => ({ default: m.StudentDashboard })));
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/teacher/dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/classes" element={<ProtectedRoute role="TEACHER"><ClassesPage /></ProtectedRoute>} />
           <Route path="/teacher/classes/:id" element={<ProtectedRoute role="TEACHER"><ClassDetailPage /></ProtectedRoute>} />
+          <Route path="/teacher/timetable" element={<ProtectedRoute role="TEACHER"><TeacherTimetablePage /></ProtectedRoute>} />
 
           <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/classes" element={<ProtectedRoute role="STUDENT"><StudentClassesPage /></ProtectedRoute>} />
