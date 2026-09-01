@@ -118,17 +118,8 @@ public class ExamScheduleService {
             return classSubject;
         }
 
-        // Transitional convenience for existing admin screens: infer only when the mapping is
-        // unambiguous. Never fan a Subject-only schedule out across multiple classes silently.
-        List<ClassSubject> candidates = classSubjectRepository.findBySubjectId(subject.getId());
-        if (candidates.size() == 1) {
-            return candidates.get(0);
-        }
-        if (candidates.size() > 1) {
-            throw new IllegalArgumentException(
-                    "This subject is taught in multiple classes; select the exact class subject");
-        }
-        return null;
+        throw new IllegalArgumentException(
+                "Class subject is required; select the exact class subject for this exam schedule");
     }
 
     private void validateUniqueSchedule(Long examId, Long subjectId,
