@@ -1,7 +1,8 @@
 package com.collegeerp.Backend.examination.entity;
 
-import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.subject.entity.Subject;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,10 +11,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "exam_schedules",
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"exam_id", "subject_id"})
-       })
+@Table(name = "exam_schedules")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,6 +30,14 @@ public class ExamSchedule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
+
+    /**
+     * Exact taught subject instance for new class-scoped exam schedules. Kept nullable while
+     * legacy Subject-only schedules are reconciled.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_subject_id")
+    private ClassSubject classSubject;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invigilator_id")
