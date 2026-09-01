@@ -7,6 +7,7 @@ import com.collegeerp.Backend.assignment.entity.AssignmentSubmission;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
 import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
@@ -24,16 +25,19 @@ public class AssignmentSubmissionService {
     private final AssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
 
     public AssignmentSubmissionService(
             AssignmentSubmissionRepository submissionRepository,
             AssignmentRepository assignmentRepository,
             StudentRepository studentRepository,
-            EnrollmentRepository enrollmentRepository) {
+            EnrollmentRepository enrollmentRepository,
+            ClassEnrollmentRepository classEnrollmentRepository) {
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public AssignmentSubmissionResponse submitAssignment(AssignmentSubmissionRequest request) {
@@ -46,15 +50,8 @@ public class AssignmentSubmissionService {
             throw new RuntimeException("Assignment already submitted.");
         }
 
-        boolean formallyEnrolled = enrollmentRepository.existsByStudentIdAndSubjectId(
-                student.getId(), assignment.getSubject().getId());
-        boolean sameCourse = student.getCourse() != null
-                && assignment.getSubject().getCourse() != null
-                && Objects.equals(student.getCourse().getId(), assignment.getSubject().getCourse().getId());
+        requireEligibleStudent(assignment, student.getId());
 
-        if (!formallyEnrolled && !sameCourse) {
-            throw new AccessDeniedException("You are not enrolled in the course or subject for this assignment");
-        }
         if (request.getSubmissionUrl() == null || request.getSubmissionUrl().isBlank()) {
             throw new IllegalArgumentException("Submission URL is required");
         }
@@ -105,6 +102,23 @@ public class AssignmentSubmissionService {
         submission.setStatus("EVALUATED");
 
         return map(submissionRepository.save(submission));
+    }
+
+    private void requireEligibleStudent(Assignment assignment, Long studentId) {
+        if (assignment.getClassSubject() != null) {
+            if (!classEnrollmentRepository.existsByClassSubjectIdAndStudentId(
+                    assignment.getClassSubject().getId(), studentId)) {
+                throw new AccessDeniedException("You are not enrolled in the class subject for this assignment");
+            }
+            return;
+        }
+
+        // Legacy compatibility: old Subject-only assignments are visible only to students who
+        // have an explicit formal Enrollment for that Subject. Course membership alone is not
+        // sufficient operational participation.
+        if (!enrollmentRepository.existsByStudentIdAndSubjectId(studentId, assignment.getSubject().getId())) {
+            throw new AccessDeniedException("You are not enrolled in the subject for this assignment");
+        }
     }
 
     private void requireAssignmentOwner(Assignment assignment, UserPrincipal principal) {
