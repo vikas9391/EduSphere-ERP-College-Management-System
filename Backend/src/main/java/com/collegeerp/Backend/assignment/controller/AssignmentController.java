@@ -28,18 +28,14 @@ public class AssignmentController {
         return assignmentService.createAssignment(request, principal(authentication));
     }
 
-    /**
-     * Generic assignment administration is teacher/admin only. Students must use the
-     * authenticated /api/student/assignments endpoint, which is ClassEnrollment-scoped.
-     */
     @GetMapping
-    public List<AssignmentResponse> getAllAssignments() {
-        return assignmentService.getAllAssignments();
+    public List<AssignmentResponse> getAllAssignments(Authentication authentication) {
+        return assignmentService.getAllAssignments(principal(authentication));
     }
 
     @GetMapping("/{id}")
-    public AssignmentResponse getAssignment(@PathVariable Long id) {
-        return assignmentService.getAssignment(id);
+    public AssignmentResponse getAssignment(Authentication authentication, @PathVariable Long id) {
+        return assignmentService.getAssignment(id, principal(authentication));
     }
 
     @PutMapping("/{id}")
