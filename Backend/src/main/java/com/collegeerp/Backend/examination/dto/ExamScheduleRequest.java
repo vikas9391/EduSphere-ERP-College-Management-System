@@ -16,6 +16,9 @@ public class ExamScheduleRequest {
 
     private Long subjectId;
 
+    /** Optional for legacy clients; new schedules should target the exact class subject. */
+    private Long classSubjectId;
+
     private Long invigilatorId;
 
     private LocalDate examDate;
@@ -27,5 +30,4 @@ public class ExamScheduleRequest {
     private String room;
 
     private Integer maxMarks;
-
 }
