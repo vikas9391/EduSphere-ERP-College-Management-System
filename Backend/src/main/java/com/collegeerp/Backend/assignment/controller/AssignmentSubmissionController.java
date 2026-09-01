@@ -4,6 +4,7 @@ import com.collegeerp.Backend.assignment.dto.AssignmentSubmissionRequest;
 import com.collegeerp.Backend.assignment.dto.AssignmentSubmissionResponse;
 import com.collegeerp.Backend.assignment.service.AssignmentSubmissionService;
 import com.collegeerp.Backend.security.UserPrincipal;
+import com.collegeerp.Backend.student.service.StudentIdentityService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,19 +16,23 @@ import java.util.List;
 public class AssignmentSubmissionController {
 
     private final AssignmentSubmissionService service;
+    private final StudentIdentityService studentIdentityService;
 
-    public AssignmentSubmissionController(AssignmentSubmissionService service) {
+    public AssignmentSubmissionController(
+            AssignmentSubmissionService service,
+            StudentIdentityService studentIdentityService) {
         this.service = service;
+        this.studentIdentityService = studentIdentityService;
     }
 
-    /** Students can submit only under their own authenticated student id. */
+    /** Students can submit only under their own resolved domain Student id. */
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping
     public AssignmentSubmissionResponse submitAssignment(
             Authentication authentication,
             @RequestBody AssignmentSubmissionRequest request) {
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        request.setStudentId(principal.getId());
+        UserPrincipal principal = principal(authentication);
+        request.setStudentId(studentIdentityService.requireStudentId(principal));
         return service.submitAssignment(request);
     }
 
