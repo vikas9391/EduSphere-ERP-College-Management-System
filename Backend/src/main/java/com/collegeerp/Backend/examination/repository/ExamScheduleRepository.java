@@ -9,13 +9,17 @@ import java.util.Optional;
 
 public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long> {
 
-    boolean existsByExamIdAndSubjectId(Long examId, Long subjectId);
+    boolean existsByExamIdAndSubjectIdAndClassSubjectIsNull(Long examId, Long subjectId);
+
+    boolean existsByExamIdAndClassSubjectId(Long examId, Long classSubjectId);
 
     @Query("""
            SELECT es
            FROM ExamSchedule es
            JOIN FETCH es.exam
            JOIN FETCH es.subject
+           LEFT JOIN FETCH es.classSubject cs
+           LEFT JOIN FETCH cs.schoolClass
            LEFT JOIN FETCH es.invigilator
            WHERE es.exam.id = :examId
            """)
@@ -26,15 +30,33 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
            FROM ExamSchedule es
            JOIN FETCH es.exam
            JOIN FETCH es.subject
+           LEFT JOIN FETCH es.classSubject cs
+           LEFT JOIN FETCH cs.schoolClass
            LEFT JOIN FETCH es.invigilator
            WHERE es.id = :id
            """)
     Optional<ExamSchedule> findByIdWithDetails(Long id);
 
     /**
-     * Used by the student self-service dashboard/timetable views: all exam schedules for
-     * a given set of subjects (the student's enrolled subjects) on or after {@code fromDate}.
+     * Current class-scoped schedules win. Subject-only schedules are legacy compatibility rows.
      */
+    @Query("""
+           SELECT DISTINCT es
+           FROM ExamSchedule es
+           JOIN FETCH es.exam
+           JOIN FETCH es.subject
+           LEFT JOIN FETCH es.classSubject cs
+           WHERE ((cs.id IN :classSubjectIds)
+               OR (cs IS NULL AND es.subject.id IN :subjectIds))
+             AND es.examDate >= :fromDate
+           ORDER BY es.examDate ASC, es.startTime ASC
+           """)
+    List<ExamSchedule> findUpcomingForStudent(
+            List<Long> classSubjectIds,
+            List<Long> subjectIds,
+            java.time.LocalDate fromDate);
+
+    /** Legacy compatibility query retained for older callers during migration. */
     @Query("""
            SELECT es
            FROM ExamSchedule es
