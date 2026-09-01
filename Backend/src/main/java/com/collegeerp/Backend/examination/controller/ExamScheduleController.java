@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/exam-schedules")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
 public class ExamScheduleController {
 
     private final ExamScheduleService examScheduleService;
