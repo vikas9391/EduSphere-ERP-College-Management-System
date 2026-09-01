@@ -121,7 +121,6 @@ public class AssignmentService {
         }
 
         if (isAdmin(principal)) {
-            // Admin compatibility path while historical Subject-only assignments are reconciled.
             return null;
         }
 
@@ -206,10 +205,16 @@ public class AssignmentService {
     }
 
     private AssignmentResponse map(Assignment a) {
+        ClassSubject classSubject = a.getClassSubject();
         return AssignmentResponse.builder()
                 .id(a.getId())
                 .subjectId(a.getSubject().getId())
                 .subjectName(a.getSubject().getSubjectName())
+                .classSubjectId(classSubject != null ? classSubject.getId() : null)
+                .classId(classSubject != null && classSubject.getSchoolClass() != null
+                        ? classSubject.getSchoolClass().getId() : null)
+                .className(classSubject != null && classSubject.getSchoolClass() != null
+                        ? classSubject.getSchoolClass().getName() : null)
                 .teacherId(a.getTeacher().getId())
                 .teacherName(a.getTeacher().getFirstName() + " " + a.getTeacher().getLastName())
                 .title(a.getTitle())
