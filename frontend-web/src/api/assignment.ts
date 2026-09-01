@@ -12,6 +12,12 @@ export interface Assignment {
 
   subjectName:string
 
+  classSubjectId?:number | null
+
+  classId?:number | null
+
+  className?:string | null
+
   teacherId:number
 
   teacherName:string
@@ -29,6 +35,8 @@ export interface Assignment {
 export interface AssignmentPayload{
 
   subjectId:number
+
+  classSubjectId?:number | null
 
   teacherId:number
 
