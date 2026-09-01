@@ -25,6 +25,18 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     @Query("""
             SELECT e FROM ClassEnrollment e
+            JOIN FETCH e.student
+            JOIN FETCH e.classSubject cs
+            LEFT JOIN FETCH cs.subject
+            JOIN FETCH cs.schoolClass
+            JOIN FETCH cs.teacher t
+            WHERE t.id = :teacherId
+            ORDER BY cs.schoolClass.academicYear DESC, cs.schoolClass.semester, cs.id, e.student.id
+            """)
+    List<ClassEnrollment> findAllByTeacherId(Long teacherId);
+
+    @Query("""
+            SELECT e FROM ClassEnrollment e
             JOIN FETCH e.classSubject cs
             JOIN FETCH cs.teacher
             WHERE e.student.id = :studentId AND cs.schoolClass.id = :schoolClassId
