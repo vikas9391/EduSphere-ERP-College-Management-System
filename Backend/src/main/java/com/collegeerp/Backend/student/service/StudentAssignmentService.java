@@ -44,22 +44,11 @@ public class StudentAssignmentService {
                 .distinct()
                 .toList();
 
-        List<Long> subjectIds = enrollments.stream()
-                .map(ClassEnrollment::getClassSubject)
-                .filter(java.util.Objects::nonNull)
-                .map(cs -> cs.getSubject())
-                .filter(java.util.Objects::nonNull)
-                .map(s -> s.getId())
-                .distinct()
-                .toList();
-
-        if (classSubjectIds.isEmpty() && subjectIds.isEmpty()) {
+        if (classSubjectIds.isEmpty()) {
             return List.of();
         }
 
-        List<Assignment> assignments = assignmentRepository.findForStudentClassSubjects(
-                classSubjectIds.isEmpty() ? List.of(-1L) : classSubjectIds,
-                subjectIds.isEmpty() ? List.of(-1L) : subjectIds);
+        List<Assignment> assignments = assignmentRepository.findForStudentClassSubjects(classSubjectIds);
 
         Map<Long, AssignmentSubmission> submissionsByAssignmentId = submissionRepository.findByStudentId(studentId)
                 .stream()
