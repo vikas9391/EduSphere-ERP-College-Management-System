@@ -14,6 +14,7 @@ import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
+import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.teacher.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,7 @@ public class TeacherDashboardService {
         List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
         List<Attendance> attendanceRecords = attendanceRepository.findClassAttendanceByTeacherId(teacherId);
         List<TeacherScheduleEntryResponse> todaysSchedule = scheduleService.getTodaysSchedule(teacherId);
+        UserPrincipal teacherPrincipal = new UserPrincipal(teacher.getId(), teacher.getEmail(), "TEACHER");
 
         return TeacherDashboardResponse.builder()
                 .teacherId(teacher.getId())
@@ -95,8 +97,8 @@ public class TeacherDashboardService {
                 .recentAssignments(recentAssignments(assignments))
                 .todaysSchedule(todaysSchedule)
                 .schedulePlaceholder(false)
-                .announcements(announcementService.getAnnouncements())
-                .announcementsPlaceholder(true)
+                .announcements(announcementService.getAnnouncements(teacherPrincipal))
+                .announcementsPlaceholder(false)
                 .build();
     }
 
