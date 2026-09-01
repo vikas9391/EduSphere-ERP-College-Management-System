@@ -2,11 +2,7 @@ package com.collegeerp.Backend.teacher.dto;
 
 import lombok.*;
 
-/**
- * A single entry in the teacher's "today's schedule" panel.
- * <b>See {@link com.collegeerp.Backend.teacher.service.TeacherScheduleService} - the
- * time slot and room are placeholder data, not read from any real timetable.</b>
- */
+/** A single real timetable entry in the teacher's "today's schedule" panel. */
 @Getter
 @Setter
 @NoArgsConstructor
