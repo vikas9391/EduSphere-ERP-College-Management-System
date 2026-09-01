@@ -42,6 +42,7 @@ const StudentEnrollmentsPage = lazy(() => import("@/pages/student/Studentenrollm
 const StudentAssignmentsPage = lazy(() => import("@/pages/student/StudentAssignmentsPage").then((m) => ({ default: m.StudentAssignmentsPage })));
 const StudentAttendancePage = lazy(() => import("@/pages/StudentAttendancePage.tsx").then((m) => ({ default: m.StudentAttendancePage })));
 const StudentClassesPage = lazy(() => import("@/pages/student/StudentClassesPage").then((m) => ({ default: m.StudentClassesPage })));
+const StudentTimetablePage = lazy(() => import("@/pages/student/StudentTimetablePage").then((m) => ({ default: m.StudentTimetablePage })));
 
 function RouteFallback() {
   return <div className="flex min-h-screen w-full items-center justify-center bg-bg"><Loader2 className="animate-spin text-primary" size={28} /></div>;
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/student/enrollments" element={<ProtectedRoute><StudentEnrollmentsPage /></ProtectedRoute>} />
           <Route path="/student/attendance" element={<ProtectedRoute><StudentAttendancePage /></ProtectedRoute>} />
           <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignmentsPage /></ProtectedRoute>} />
+          <Route path="/student/timetable" element={<ProtectedRoute role="STUDENT"><StudentTimetablePage /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
