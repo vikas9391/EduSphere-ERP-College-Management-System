@@ -16,6 +16,7 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
     @Query("""
             SELECT s FROM ClassSubject s
             JOIN FETCH s.teacher
+            LEFT JOIN FETCH s.subject
             WHERE s.schoolClass.id = :schoolClassId
             ORDER BY s.id
             """)
@@ -25,14 +26,18 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             SELECT s FROM ClassSubject s
             JOIN FETCH s.teacher
             JOIN FETCH s.schoolClass
+            LEFT JOIN FETCH s.subject
             WHERE s.id = :id
             """)
     Optional<ClassSubject> findByIdWithRelations(Long id);
 
-    /**
-     * Every class-subject linked to a given formal curriculum Subject, across every
-     * class it's taught in. Used by {@code MarksService} to scope marks-entry
-     * eligibility to real class rosters wherever such a link exists.
-     */
+    /** Every class-subject linked to a given formal curriculum Subject. */
+    @Query("""
+            SELECT s FROM ClassSubject s
+            JOIN FETCH s.teacher
+            JOIN FETCH s.schoolClass
+            LEFT JOIN FETCH s.subject
+            WHERE s.subject.id = :subjectId
+            """)
     List<ClassSubject> findBySubjectId(Long subjectId);
 }
