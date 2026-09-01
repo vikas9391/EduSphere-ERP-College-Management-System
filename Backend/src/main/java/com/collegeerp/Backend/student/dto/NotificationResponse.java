@@ -4,10 +4,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * A single notification item returned by the placeholder notifications endpoint.
- * <b>See {@code StudentNotificationService} for why this is mock data.</b>
- */
+/** A persisted notification item currently backed by received announcements. */
 @Getter
 @Setter
 @NoArgsConstructor
