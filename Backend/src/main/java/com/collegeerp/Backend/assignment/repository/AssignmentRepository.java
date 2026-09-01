@@ -14,13 +14,12 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
            FROM Assignment a
            JOIN FETCH a.subject
            JOIN FETCH a.teacher
-           LEFT JOIN FETCH a.classSubject cs
+           JOIN FETCH a.classSubject cs
            LEFT JOIN FETCH cs.schoolClass
-           WHERE (cs.id IN :classSubjectIds)
-              OR (cs IS NULL AND a.subject.id IN :subjectIds)
+           WHERE cs.id IN :classSubjectIds
            ORDER BY a.dueDate ASC
            """)
-    List<Assignment> findForStudentClassSubjects(List<Long> classSubjectIds, List<Long> subjectIds);
+    List<Assignment> findForStudentClassSubjects(List<Long> classSubjectIds);
 
     @Query("""
            SELECT a
