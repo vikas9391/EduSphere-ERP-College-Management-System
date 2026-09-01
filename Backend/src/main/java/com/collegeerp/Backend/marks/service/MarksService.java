@@ -12,6 +12,7 @@ import com.collegeerp.Backend.marks.dto.MarksRequest;
 import com.collegeerp.Backend.marks.dto.MarksResponse;
 import com.collegeerp.Backend.marks.entity.Marks;
 import com.collegeerp.Backend.marks.repository.MarksRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
@@ -42,11 +43,11 @@ public class MarksService {
     private final EnrollmentRepository enrollmentRepository;
 
     public MarksService(MarksRepository marksRepository,
-                         ExamScheduleRepository examScheduleRepository,
-                         StudentRepository studentRepository,
-                         ClassSubjectRepository classSubjectRepository,
-                         ClassEnrollmentRepository classEnrollmentRepository,
-                         EnrollmentRepository enrollmentRepository) {
+                        ExamScheduleRepository examScheduleRepository,
+                        StudentRepository studentRepository,
+                        ClassSubjectRepository classSubjectRepository,
+                        ClassEnrollmentRepository classEnrollmentRepository,
+                        EnrollmentRepository enrollmentRepository) {
         this.marksRepository = marksRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.studentRepository = studentRepository;
@@ -66,7 +67,7 @@ public class MarksService {
             throw new DuplicateResourceException("Marks already entered for this student in this exam schedule");
         }
 
-        validateEligibility(examSchedule.getSubject().getId(), student.getId());
+        ClassEnrollment classEnrollment = requireEligibleParticipation(examSchedule, student.getId());
         validateMarks(request, examSchedule);
 
         int total = request.getInternalMarks() + request.getExternalMarks();
@@ -76,6 +77,7 @@ public class MarksService {
         Marks marks = Marks.builder()
                 .examSchedule(examSchedule)
                 .student(student)
+                .classEnrollment(classEnrollment)
                 .internalMarks(request.getInternalMarks())
                 .externalMarks(request.getExternalMarks())
                 .totalMarks(total)
@@ -163,41 +165,43 @@ public class MarksService {
     public List<EligibleStudentResponse> getEligibleStudents(Long examScheduleId) {
         ExamSchedule examSchedule = findExamSchedule(examScheduleId);
         requireCanManageSubject(examSchedule);
-        Long subjectId = examSchedule.getSubject().getId();
-        List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
 
-        List<Student> eligibleStudents;
-        String source;
-
-        if (!linkedClassSubjects.isEmpty()) {
-            eligibleStudents = linkedClassSubjects.stream()
-                    .flatMap(cs -> classEnrollmentRepository.findAllByClassSubjectId(cs.getId()).stream())
-                    .map(ce -> ce.getStudent())
+        if (examSchedule.getClassSubject() != null) {
+            return classEnrollmentRepository.findAllByClassSubjectId(examSchedule.getClassSubject().getId()).stream()
+                    .map(ClassEnrollment::getStudent)
                     .distinct()
+                    .map(s -> eligibleStudent(examScheduleId, s, SOURCE_CLASS_ROSTER))
                     .toList();
-            source = SOURCE_CLASS_ROSTER;
-        } else {
-            eligibleStudents = enrollmentRepository.findBySubjectIdWithStudent(subjectId).stream()
-                    .map(Enrollment::getStudent)
-                    .distinct()
-                    .toList();
-            source = SOURCE_FORMAL_ENROLLMENT;
         }
 
-        return eligibleStudents.stream()
-                .map(s -> EligibleStudentResponse.builder()
-                        .studentId(s.getId())
-                        .studentName(s.getFirstName() + " " + (s.getLastName() != null ? s.getLastName() : ""))
-                        .source(source)
-                        .alreadyGraded(marksRepository.existsByExamScheduleIdAndStudentId(examScheduleId, s.getId()))
-                        .build())
+        Long subjectId = examSchedule.getSubject().getId();
+        List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
+        if (!linkedClassSubjects.isEmpty()) {
+            return linkedClassSubjects.stream()
+                    .flatMap(cs -> classEnrollmentRepository.findAllByClassSubjectId(cs.getId()).stream())
+                    .map(ClassEnrollment::getStudent)
+                    .distinct()
+                    .map(s -> eligibleStudent(examScheduleId, s, SOURCE_CLASS_ROSTER))
+                    .toList();
+        }
+
+        return enrollmentRepository.findBySubjectIdWithStudent(subjectId).stream()
+                .map(Enrollment::getStudent)
+                .distinct()
+                .map(s -> eligibleStudent(examScheduleId, s, SOURCE_FORMAL_ENROLLMENT))
                 .toList();
     }
 
-    /**
-     * Teachers may only manage marks for subjects assigned to their own user account.
-     * College admins retain the existing unrestricted administrative path.
-     */
+    private EligibleStudentResponse eligibleStudent(Long examScheduleId, Student student, String source) {
+        return EligibleStudentResponse.builder()
+                .studentId(student.getId())
+                .studentName(student.getFirstName() + " " +
+                        (student.getLastName() != null ? student.getLastName() : ""))
+                .source(source)
+                .alreadyGraded(marksRepository.existsByExamScheduleIdAndStudentId(examScheduleId, student.getId()))
+                .build();
+    }
+
     private void requireCanManageSubject(ExamSchedule examSchedule) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -218,25 +222,49 @@ public class MarksService {
             throw new AccessDeniedException("Only the assigned teacher or a college admin can manage marks");
         }
 
-        if (examSchedule.getSubject().getTeacher() == null
-                || !principal.getId().equals(examSchedule.getSubject().getTeacher().getId())) {
-            throw new AccessDeniedException("Teachers can only manage marks for their assigned subjects");
+        Long assignedTeacherId = examSchedule.getClassSubject() != null
+                && examSchedule.getClassSubject().getTeacher() != null
+                ? examSchedule.getClassSubject().getTeacher().getId()
+                : examSchedule.getSubject().getTeacher() != null
+                    ? examSchedule.getSubject().getTeacher().getId()
+                    : null;
+
+        if (assignedTeacherId == null || !principal.getId().equals(assignedTeacherId)) {
+            throw new AccessDeniedException("Teachers can only manage marks for their assigned class subject");
         }
     }
 
-    private void validateEligibility(Long subjectId, Long studentId) {
+    /**
+     * Returns the exact ClassEnrollment for class-scoped schedules. Legacy schedules retain
+     * their compatibility behavior, but still require either a class enrollment or a formal
+     * Enrollment before marks can be entered.
+     */
+    private ClassEnrollment requireEligibleParticipation(ExamSchedule examSchedule, Long studentId) {
+        if (examSchedule.getClassSubject() != null) {
+            return classEnrollmentRepository
+                    .findByClassSubjectIdAndStudentId(examSchedule.getClassSubject().getId(), studentId)
+                    .orElseThrow(() -> new BadRequestException(
+                            "Student is not enrolled in the class subject for this exam schedule"));
+        }
+
+        Long subjectId = examSchedule.getSubject().getId();
         List<ClassSubject> linkedClassSubjects = classSubjectRepository.findBySubjectId(subjectId);
-        if (linkedClassSubjects.isEmpty()) {
-            return;
+        for (ClassSubject classSubject : linkedClassSubjects) {
+            var enrollment = classEnrollmentRepository.findByClassSubjectIdAndStudentId(classSubject.getId(), studentId);
+            if (enrollment.isPresent()) {
+                return enrollment.get();
+            }
         }
 
-        boolean onAnyRoster = linkedClassSubjects.stream()
-                .anyMatch(cs -> classEnrollmentRepository.existsByClassSubjectIdAndStudentId(cs.getId(), studentId));
-
-        if (!onAnyRoster) {
+        if (!linkedClassSubjects.isEmpty()) {
             throw new BadRequestException(
-                    "This subject is linked to a class roster and the student is not enrolled in that class");
+                    "This subject is linked to class rosters and the student is not enrolled in any matching class");
         }
+
+        if (!enrollmentRepository.existsByStudentIdAndSubjectId(studentId, subjectId)) {
+            throw new BadRequestException("Student is not enrolled in this subject");
+        }
+        return null;
     }
 
     private void validateMarks(MarksRequest request, ExamSchedule examSchedule) {
@@ -257,7 +285,7 @@ public class MarksService {
     }
 
     private ExamSchedule findExamSchedule(Long id) {
-        return examScheduleRepository.findById(id)
+        return examScheduleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Exam schedule", id));
     }
 
