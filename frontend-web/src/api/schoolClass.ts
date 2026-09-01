@@ -40,12 +40,6 @@ export interface ClassSubject {
   enrollmentMode: EnrollmentMode
   enrolledCount: number
   enrolledByMe?: boolean | null
-  /**
-   * Null unless this class-subject is linked to a formal curriculum Subject (see
-   * ClassSubject#subject on the backend). When present, marks entered against that
-   * Subject's exams are scoped to this class's roster - see MarksEntryPage /
-   * getEligibleStudents.
-   */
   linkedSubjectId?: number | null
   linkedSubjectName?: string | null
 }
@@ -56,7 +50,6 @@ export interface ClassSubjectPayload {
   credits: number
   teacherId: number
   enrollmentMode: EnrollmentMode
-  /** Optional link to a formal curriculum Subject. Omit/null for a purely informal subject. */
   subjectId?: number | null
 }
 
@@ -76,8 +69,6 @@ export interface ClassEnrollment {
   source: EnrollmentSource
   enrolledAt: string
 }
-
-// ---- Classes (teacher-owned) ----
 
 export async function getMyClasses(): Promise<SchoolClass[]> {
   const res = await api.get<SchoolClass[]>('/classes/mine')
@@ -103,8 +94,6 @@ export async function deleteSchoolClass(id: number): Promise<void> {
   await api.delete(`/classes/${id}`)
 }
 
-// ---- Roster ----
-
 export async function getRoster(classId: number): Promise<ClassStudent[]> {
   const res = await api.get<ClassStudent[]>(`/classes/${classId}/students`)
   return res.data
@@ -119,16 +108,19 @@ export async function removeStudentFromClass(classId: number, studentId: number)
   await api.delete(`/classes/${classId}/students/${studentId}`)
 }
 
-/** Canonical authenticated student's class-based enrollments. */
 export async function getMyClassEnrollments(): Promise<ClassEnrollment[]> {
   const res = await api.get<ClassEnrollment[]>('/classes/enrollments/mine')
   return res.data
 }
 
-// ---- Subjects ----
-
 export async function getClassSubjects(classId: number): Promise<ClassSubject[]> {
   const res = await api.get<ClassSubject[]>(`/classes/${classId}/subjects`)
+  return res.data
+}
+
+/** Exact ClassSubjects taught by the authenticated teacher across all classes. */
+export async function getMyTeachingClassSubjects(): Promise<ClassSubject[]> {
+  const res = await api.get<ClassSubject[]>('/classes/subjects/mine-teaching')
   return res.data
 }
 
