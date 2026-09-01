@@ -44,7 +44,7 @@ public class AssignmentService {
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
         validateAssignmentValues(request);
-        ClassSubject classSubject = resolveClassSubject(request);
+        ClassSubject classSubject = resolveClassSubject(request, teacher, principal);
         requireTeacherCanManage(subject, teacher, classSubject, principal);
 
         Assignment assignment = Assignment.builder()
@@ -86,8 +86,8 @@ public class AssignmentService {
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
         validateAssignmentValues(request);
-        ClassSubject classSubject = resolveClassSubject(request);
         requireAssignmentOwner(assignment, principal);
+        ClassSubject classSubject = resolveClassSubject(request, teacher, principal);
         requireTeacherCanManage(subject, teacher, classSubject, principal);
 
         assignment.setSubject(subject);
@@ -108,17 +108,38 @@ public class AssignmentService {
         assignmentRepository.delete(assignment);
     }
 
-    private ClassSubject resolveClassSubject(AssignmentRequest request) {
-        if (request.getClassSubjectId() == null) {
+    private ClassSubject resolveClassSubject(
+            AssignmentRequest request, User teacher, UserPrincipal principal) {
+        if (request.getClassSubjectId() != null) {
+            ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
+                    .orElseThrow(() -> new RuntimeException("Class subject not found"));
+            if (classSubject.getSubject() == null
+                    || !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
+                throw new IllegalArgumentException("Class subject does not belong to the selected subject");
+            }
+            return classSubject;
+        }
+
+        if (isAdmin(principal)) {
+            // Admin compatibility path while historical Subject-only assignments are reconciled.
             return null;
         }
-        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
-                .orElseThrow(() -> new RuntimeException("Class subject not found"));
-        if (classSubject.getSubject() != null
-                && !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
-            throw new IllegalArgumentException("Class subject does not belong to the selected subject");
+
+        requireTeacher(principal);
+        List<ClassSubject> candidates = classSubjectRepository.findAllByTeacherId(teacher.getId()).stream()
+                .filter(cs -> cs.getSubject() != null)
+                .filter(cs -> Objects.equals(cs.getSubject().getId(), request.getSubjectId()))
+                .toList();
+
+        if (candidates.size() == 1) {
+            return candidates.get(0);
         }
-        return classSubject;
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "This subject is not linked to a class subject taught by the selected teacher");
+        }
+        throw new IllegalArgumentException(
+                "This subject is taught in multiple classes; select the exact class subject");
     }
 
     private void requireTeacherCanManage(
@@ -131,8 +152,8 @@ public class AssignmentService {
         }
 
         if (isAdmin(principal)) {
-            if (subject.getTeacher() != null && !Objects.equals(subject.getTeacher().getId(), teacher.getId())
-                    && classSubject == null) {
+            if (classSubject == null && subject.getTeacher() != null
+                    && !Objects.equals(subject.getTeacher().getId(), teacher.getId())) {
                 throw new IllegalArgumentException("The selected teacher is not assigned to this subject");
             }
             return;
@@ -140,10 +161,10 @@ public class AssignmentService {
 
         requireTeacher(principal);
         if (!Objects.equals(principal.getId(), teacher.getId())
-                || (classSubject != null
-                    ? classSubject.getTeacher() == null || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())
-                    : subject.getTeacher() == null || !Objects.equals(subject.getTeacher().getId(), principal.getId()))) {
-            throw new AccessDeniedException("You can manage assignments only for subjects assigned to you");
+                || classSubject == null
+                || classSubject.getTeacher() == null
+                || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())) {
+            throw new AccessDeniedException("You can manage assignments only for class subjects assigned to you");
         }
     }
 
