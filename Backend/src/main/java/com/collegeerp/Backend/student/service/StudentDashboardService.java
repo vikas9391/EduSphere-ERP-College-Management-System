@@ -4,6 +4,7 @@ import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
 import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
+import com.collegeerp.Backend.attendance.service.AttendanceStatusPolicy;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
@@ -129,13 +130,17 @@ public class StudentDashboardService {
 
     private double attendancePercentage(Long studentId) {
         var records = attendanceRepository.findClassAttendanceByStudentId(studentId);
-        if (records.isEmpty()) {
+        long total = records.stream()
+                .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                .count();
+        if (total == 0) {
             return 0.0;
         }
         long attended = records.stream()
-                .filter(a -> "PRESENT".equalsIgnoreCase(a.getStatus()))
+                .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                .filter(a -> AttendanceStatusPolicy.isAttended(a.getStatus()))
                 .count();
-        return Math.round((attended * 10000.0) / records.size()) / 100.0;
+        return Math.round((attended * 10000.0) / total) / 100.0;
     }
 
     private int countPendingAssignments(Long studentId, List<ClassEnrollment> enrollments) {
