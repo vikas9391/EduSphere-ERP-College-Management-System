@@ -67,6 +67,7 @@ export function StudentAssignmentsPage() {
     try {
       const [profile, a, s] = await Promise.all([getMyProfile(), getAssignments(), getSubmissions()])
       setStudentProfile(profile)
+      setAssignments(a)
       // Authentication user id and domain Student id are different identifiers.
       // Submission records use Student.id, so always filter/submit with the profile id.
       setSubmissions(s.filter((sub: AssignmentSubmission) => sub.studentId === profile.id))
