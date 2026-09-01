@@ -22,6 +22,12 @@ public class ExamScheduleResponse {
 
     private String subjectName;
 
+    private Long classSubjectId;
+
+    private Long classId;
+
+    private String className;
+
     private Long invigilatorId;
 
     private String invigilatorName;
@@ -35,5 +41,4 @@ public class ExamScheduleResponse {
     private String room;
 
     private Integer maxMarks;
-
 }
