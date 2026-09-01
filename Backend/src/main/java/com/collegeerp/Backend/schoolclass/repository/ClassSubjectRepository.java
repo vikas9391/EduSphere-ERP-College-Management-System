@@ -16,6 +16,7 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
     @Query("""
             SELECT s FROM ClassSubject s
             JOIN FETCH s.teacher
+            JOIN FETCH s.schoolClass
             LEFT JOIN FETCH s.subject
             WHERE s.schoolClass.id = :schoolClassId
             ORDER BY s.id
@@ -40,4 +41,15 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             WHERE s.subject.id = :subjectId
             """)
     List<ClassSubject> findBySubjectId(Long subjectId);
+
+    /** Exact teaching assignments for one teacher across classes. */
+    @Query("""
+            SELECT s FROM ClassSubject s
+            JOIN FETCH s.teacher t
+            JOIN FETCH s.schoolClass
+            LEFT JOIN FETCH s.subject
+            WHERE t.id = :teacherId
+            ORDER BY s.schoolClass.academicYear DESC, s.schoolClass.semester, s.subjectCode
+            """)
+    List<ClassSubject> findAllByTeacherId(Long teacherId);
 }
