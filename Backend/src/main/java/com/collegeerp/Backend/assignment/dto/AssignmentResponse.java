@@ -17,6 +17,12 @@ public class AssignmentResponse {
 
     private String subjectName;
 
+    private Long classSubjectId;
+
+    private Long classId;
+
+    private String className;
+
     private Long teacherId;
 
     private String teacherName;
