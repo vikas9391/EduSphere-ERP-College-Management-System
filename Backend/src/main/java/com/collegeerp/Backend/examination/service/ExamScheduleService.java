@@ -108,16 +108,27 @@ public class ExamScheduleService {
     }
 
     private ClassSubject resolveClassSubject(ExamScheduleRequest request, Subject subject) {
-        if (request.getClassSubjectId() == null) {
-            return null;
+        if (request.getClassSubjectId() != null) {
+            ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
+                    .orElseThrow(() -> new RuntimeException("Class subject not found"));
+            if (classSubject.getSubject() == null
+                    || !Objects.equals(classSubject.getSubject().getId(), subject.getId())) {
+                throw new IllegalArgumentException("Class subject does not belong to the selected formal subject");
+            }
+            return classSubject;
         }
-        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
-                .orElseThrow(() -> new RuntimeException("Class subject not found"));
-        if (classSubject.getSubject() == null
-                || !Objects.equals(classSubject.getSubject().getId(), subject.getId())) {
-            throw new IllegalArgumentException("Class subject does not belong to the selected formal subject");
+
+        // Transitional convenience for existing admin screens: infer only when the mapping is
+        // unambiguous. Never fan a Subject-only schedule out across multiple classes silently.
+        List<ClassSubject> candidates = classSubjectRepository.findBySubjectId(subject.getId());
+        if (candidates.size() == 1) {
+            return candidates.get(0);
         }
-        return classSubject;
+        if (candidates.size() > 1) {
+            throw new IllegalArgumentException(
+                    "This subject is taught in multiple classes; select the exact class subject");
+        }
+        return null;
     }
 
     private void validateUniqueSchedule(Long examId, Long subjectId,
