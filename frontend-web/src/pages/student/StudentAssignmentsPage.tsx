@@ -7,6 +7,8 @@ import { StampGrid, StampItem } from '@/components/motion'
 import { StatCard, STAT_SHADES } from '@/components/PageBits'
 import { useAuthStore } from '@/store/authStore'
 import { getMyProfile, type StudentProfile } from '@/api/studentProfile'
+import { getMyAssignments, type MyAssignment } from '@/api/studentPortal'
+import { submitAssignment } from '@/api/assignment'
 import {
   ClipboardList,
   Clock,
@@ -18,19 +20,11 @@ import {
   Upload,
   Link as LinkIcon,
 } from 'lucide-react'
-import {
-  getAssignments,
-  getSubmissions,
-  submitAssignment,
-  type Assignment,
-  type AssignmentSubmission,
-} from '@/api/assignment'
 
 type Bucket = 'pending' | 'submitted' | 'overdue'
 
 interface AssignmentRow {
-  assignment: Assignment
-  submission: AssignmentSubmission | null
+  assignment: MyAssignment
   bucket: Bucket
 }
 
@@ -50,8 +44,7 @@ const bucketMeta: Record<Bucket, { label: string; classes: string }> = {
 
 export function StudentAssignmentsPage() {
   const { user } = useAuthStore()
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
+  const [assignments, setAssignments] = useState<MyAssignment[]>([])
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,12 +58,9 @@ export function StudentAssignmentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [profile, a, s] = await Promise.all([getMyProfile(), getAssignments(), getSubmissions()])
+      const [profile, assignmentRows] = await Promise.all([getMyProfile(), getMyAssignments()])
       setStudentProfile(profile)
-      setAssignments(a)
-      // Authentication user id and domain Student id are different identifiers.
-      // Submission records use Student.id, so always filter/submit with the profile id.
-      setSubmissions(s.filter((sub: AssignmentSubmission) => sub.studentId === profile.id))
+      setAssignments(assignmentRows)
     } catch {
       setError('Failed to load your assignments. Please try again.')
     } finally {
@@ -85,13 +75,13 @@ export function StudentAssignmentsPage() {
 
   const rows: AssignmentRow[] = useMemo(() => {
     return assignments.map((assignment) => {
-      const submission = submissions.find((s) => s.assignmentId === assignment.id) ?? null
+      const hasSubmission = assignment.submissionStatus !== 'NOT_SUBMITTED'
       let bucket: Bucket = 'pending'
-      if (submission) bucket = 'submitted'
+      if (hasSubmission) bucket = 'submitted'
       else if (isOverdue(assignment.dueDate)) bucket = 'overdue'
-      return { assignment, submission, bucket }
+      return { assignment, bucket }
     })
-  }, [assignments, submissions])
+  }, [assignments])
 
   const stats = useMemo(() => {
     const pending = rows.filter((r) => r.bucket === 'pending').length
@@ -123,12 +113,12 @@ export function StudentAssignmentsPage() {
     setSubmitError(null)
     try {
       await submitAssignment({
-        assignmentId: activeRow.assignment.id,
+        assignmentId: activeRow.assignment.assignmentId,
         studentId: studentProfile.id,
         submissionUrl: submissionUrl.trim(),
       })
-      await loadAll()
       closeDetails()
+      await loadAll()
     } catch {
       setSubmitError('Failed to submit your assignment. Please try again.')
     } finally {
@@ -143,7 +133,7 @@ export function StudentAssignmentsPage() {
   function renderCard(row: AssignmentRow) {
     return (
       <StampItem
-        key={row.assignment.id}
+        key={row.assignment.assignmentId}
         className="cursor-pointer rounded-lg border border-border bg-white/60 p-4 text-left transition-colors hover:border-primary"
       >
         <button onClick={() => openDetails(row)} className="w-full text-left">
@@ -164,9 +154,9 @@ export function StudentAssignmentsPage() {
               {row.assignment.maxMarks} marks
             </span>
           </div>
-          {row.submission && row.submission.status === 'EVALUATED' && (
+          {row.assignment.submissionStatus === 'EVALUATED' && row.assignment.marksObtained != null && (
             <p className="mt-2 text-xs font-medium text-green-700">
-              Score: {row.submission.marks}/{row.assignment.maxMarks}
+              Score: {row.assignment.marksObtained}/{row.assignment.maxMarks}
             </p>
           )}
         </button>
@@ -199,7 +189,7 @@ export function StudentAssignmentsPage() {
   return (
     <Layout>
       <h1 className="font-heading text-2xl font-medium text-text">My Assignments</h1>
-      <p className="mt-1 text-sm text-muted">Track and submit your assignments across all subjects</p>
+      <p className="mt-1 text-sm text-muted">Track and submit assignments for your enrolled class subjects</p>
 
       <StampGrid className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard icon={ClipboardList} label="Total Assignments" value={stats.total} accent={STAT_SHADES[0]} />
@@ -216,7 +206,7 @@ export function StudentAssignmentsPage() {
         <div className="mt-10 flex flex-col items-center justify-center gap-2 p-12 text-center">
           <BookOpen size={32} className="text-muted/50" />
           <p className="font-heading text-base font-medium text-text">No assignments yet</p>
-          <p className="text-sm text-muted">Assignments from your subjects will appear here.</p>
+          <p className="text-sm text-muted">Assignments from your enrolled class subjects will appear here.</p>
         </div>
       ) : (
         <>
@@ -251,25 +241,29 @@ export function StudentAssignmentsPage() {
               <p className="whitespace-pre-wrap text-sm text-text">{activeRow.assignment.description}</p>
             )}
 
-            {activeRow.submission ? (
+            {activeRow.assignment.submissionStatus !== 'NOT_SUBMITTED' ? (
               <div className="rounded-lg border border-border p-4">
-                <p className="text-sm text-muted">Submitted {activeRow.submission.submittedAt.slice(0, 10)}</p>
-                <a
-                  href={activeRow.submission.submissionUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <LinkIcon size={14} />
-                  View submission
-                </a>
-                {activeRow.submission.status === 'EVALUATED' ? (
+                <p className="text-sm text-muted">
+                  Submitted {activeRow.assignment.submittedAt?.slice(0, 10) ?? '—'}
+                </p>
+                {activeRow.assignment.submissionUrl && (
+                  <a
+                    href={activeRow.assignment.submissionUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    <LinkIcon size={14} />
+                    View submission
+                  </a>
+                )}
+                {activeRow.assignment.submissionStatus === 'EVALUATED' ? (
                   <div className="mt-3 border-t border-border pt-3">
                     <p className="text-sm font-medium text-text">
-                      Score: {activeRow.submission.marks}/{activeRow.assignment.maxMarks}
+                      Score: {activeRow.assignment.marksObtained ?? 0}/{activeRow.assignment.maxMarks}
                     </p>
-                    {activeRow.submission.feedback && (
-                      <p className="mt-1 text-sm text-muted">{activeRow.submission.feedback}</p>
+                    {activeRow.assignment.feedback && (
+                      <p className="mt-1 text-sm text-muted">{activeRow.assignment.feedback}</p>
                     )}
                   </div>
                 ) : (
