@@ -6,13 +6,14 @@ import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
 import com.collegeerp.Backend.attendance.entity.Attendance;
 import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
+import com.collegeerp.Backend.attendance.service.AttendanceStatusPolicy;
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.common.exception.ResourceNotFoundException;
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
-import com.collegeerp.Backend.subject.entity.Subject;
-import com.collegeerp.Backend.subject.repository.SubjectRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
+import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.teacher.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,20 +26,20 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Aggregates teacher dashboard data from operational repositories. */
+/** Aggregates teacher dashboard data from authoritative class relationships. */
 @Service
 @Transactional(readOnly = true)
 public class TeacherDashboardService {
 
     private static final Logger log = LoggerFactory.getLogger(TeacherDashboardService.class);
-    private static final String PRESENT_STATUS = "PRESENT";
     private static final String EVALUATED_STATUS = "EVALUATED";
 
     private final UserRepository userRepository;
-    private final SubjectRepository subjectRepository;
-    private final EnrollmentRepository enrollmentRepository;
+    private final ClassSubjectRepository classSubjectRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
     private final AttendanceRepository attendanceRepository;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
@@ -47,16 +48,16 @@ public class TeacherDashboardService {
 
     public TeacherDashboardService(
             UserRepository userRepository,
-            SubjectRepository subjectRepository,
-            EnrollmentRepository enrollmentRepository,
+            ClassSubjectRepository classSubjectRepository,
+            ClassEnrollmentRepository classEnrollmentRepository,
             AttendanceRepository attendanceRepository,
             AssignmentRepository assignmentRepository,
             AssignmentSubmissionRepository submissionRepository,
             TeacherScheduleService scheduleService,
             TeacherAnnouncementService announcementService) {
         this.userRepository = userRepository;
-        this.subjectRepository = subjectRepository;
-        this.enrollmentRepository = enrollmentRepository;
+        this.classSubjectRepository = classSubjectRepository;
+        this.classEnrollmentRepository = classEnrollmentRepository;
         this.attendanceRepository = attendanceRepository;
         this.assignmentRepository = assignmentRepository;
         this.submissionRepository = submissionRepository;
@@ -65,28 +66,29 @@ public class TeacherDashboardService {
     }
 
     public TeacherDashboardResponse getDashboard(Long teacherId) {
-        log.debug("Building dashboard for teacher id={}", teacherId);
+        log.debug("Building class-scoped dashboard for teacher id={}", teacherId);
 
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
 
-        List<Subject> subjects = subjectRepository.findByTeacherIdWithRelations(teacherId);
-        List<Long> subjectIds = subjects.stream().map(Subject::getId).toList();
-
-        List<Enrollment> roster = enrollmentRepository.findBySubjectTeacherIdWithDetails(teacherId);
-        long totalStudents = roster.stream().map(e -> e.getStudent().getId()).distinct().count();
+        List<ClassSubject> classSubjects = classSubjectRepository.findAllByTeacherId(teacherId);
+        List<ClassEnrollment> classEnrollments = classEnrollmentRepository.findAllByTeacherId(teacherId);
+        long totalStudents = classEnrollments.stream()
+                .map(e -> e.getStudent().getId())
+                .distinct()
+                .count();
 
         List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
-        List<Attendance> attendanceRecords = attendanceRepository.findBySubjectTeacherId(teacherId);
+        List<Attendance> attendanceRecords = attendanceRepository.findClassAttendanceByTeacherId(teacherId);
         List<TeacherScheduleEntryResponse> todaysSchedule = scheduleService.getTodaysSchedule(teacherId);
 
         return TeacherDashboardResponse.builder()
                 .teacherId(teacher.getId())
                 .teacherName(teacher.getFirstName() + " " + (teacher.getLastName() != null ? teacher.getLastName() : ""))
-                .totalSubjects(subjectIds.size())
+                .totalSubjects(classSubjects.size())
                 .totalStudents((int) totalStudents)
                 .pendingReviewCount(countPendingReview(assignments))
-                .attendancePendingToday(countAttendancePendingToday(subjects, attendanceRecords))
+                .attendancePendingToday(countAttendancePendingToday(classSubjects, classEnrollments, attendanceRecords))
                 .upcomingClassesCount(todaysSchedule.size())
                 .assignmentsPerSubject(assignmentsPerSubject(assignments))
                 .attendanceTrend(attendanceTrend(attendanceRecords))
@@ -107,18 +109,32 @@ public class TeacherDashboardService {
                 .count();
     }
 
-    private int countAttendancePendingToday(List<Subject> subjects, List<Attendance> attendanceRecords) {
+    /** Only class subjects with an actual student roster require attendance today. */
+    private int countAttendancePendingToday(
+            List<ClassSubject> classSubjects,
+            List<ClassEnrollment> classEnrollments,
+            List<Attendance> attendanceRecords) {
         LocalDate today = LocalDate.now();
-        var markedToday = attendanceRecords.stream()
-                .filter(a -> a.getAttendanceDate().isEqual(today))
-                .map(a -> a.getEnrollment().getSubject().getId())
+        Set<Long> activeClassSubjectIds = classEnrollments.stream()
+                .map(e -> e.getClassSubject().getId())
                 .collect(Collectors.toSet());
-        return (int) subjects.stream().filter(s -> !markedToday.contains(s.getId())).count();
+        Set<Long> markedToday = attendanceRecords.stream()
+                .filter(a -> a.getAttendanceDate() != null && a.getAttendanceDate().isEqual(today))
+                .filter(a -> a.getClassEnrollment() != null && a.getClassEnrollment().getClassSubject() != null)
+                .map(a -> a.getClassEnrollment().getClassSubject().getId())
+                .collect(Collectors.toSet());
+        return (int) classSubjects.stream()
+                .map(ClassSubject::getId)
+                .filter(activeClassSubjectIds::contains)
+                .filter(id -> !markedToday.contains(id))
+                .count();
     }
 
     private List<SubjectAssignmentCountResponse> assignmentsPerSubject(List<Assignment> assignments) {
         Map<String, Long> counts = assignments.stream()
-                .collect(Collectors.groupingBy(a -> a.getSubject().getSubjectName(), Collectors.counting()));
+                .collect(Collectors.groupingBy(a -> a.getClassSubject() != null
+                        ? a.getClassSubject().getSubjectName()
+                        : a.getSubject().getSubjectName(), Collectors.counting()));
         return counts.entrySet().stream()
                 .map(entry -> SubjectAssignmentCountResponse.builder()
                         .subjectName(entry.getKey())
@@ -127,21 +143,24 @@ public class TeacherDashboardService {
                 .toList();
     }
 
+    /** Last seven days using the same PRESENT/LATE/EXCUSED policy as student attendance. */
     private List<AttendanceTrendPointResponse> attendanceTrend(List<Attendance> attendanceRecords) {
         Map<LocalDate, List<Attendance>> byDate = attendanceRecords.stream()
+                .filter(a -> a.getAttendanceDate() != null)
                 .collect(Collectors.groupingBy(Attendance::getAttendanceDate));
 
         List<AttendanceTrendPointResponse> trend = new java.util.ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
             List<Attendance> dayRecords = byDate.getOrDefault(date, List.of());
-            int rate = 0;
-            if (!dayRecords.isEmpty()) {
-                long present = dayRecords.stream()
-                        .filter(a -> PRESENT_STATUS.equalsIgnoreCase(a.getStatus()))
-                        .count();
-                rate = (int) Math.round((present * 100.0) / dayRecords.size());
-            }
+            long denominator = dayRecords.stream()
+                    .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                    .count();
+            long attended = dayRecords.stream()
+                    .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                    .filter(a -> AttendanceStatusPolicy.isAttended(a.getStatus()))
+                    .count();
+            int rate = denominator == 0 ? 0 : (int) Math.round((attended * 100.0) / denominator);
             trend.add(AttendanceTrendPointResponse.builder()
                     .label(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
                     .ratePercentage(rate)
@@ -158,7 +177,9 @@ public class TeacherDashboardService {
                         .assignmentId(a.getId())
                         .title(a.getTitle())
                         .subjectId(a.getSubject().getId())
-                        .subjectName(a.getSubject().getSubjectName())
+                        .subjectName(a.getClassSubject() != null
+                                ? a.getClassSubject().getSubjectName()
+                                : a.getSubject().getSubjectName())
                         .dueDate(a.getDueDate())
                         .maxMarks(a.getMaxMarks())
                         .build())
