@@ -27,15 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Aggregates data already owned by other packages ({@code subject}, {@code enrollment},
- * {@code attendance}, {@code assignment}, plus the placeholder {@link TeacherScheduleService}
- * and {@link TeacherAnnouncementService}) into a single dashboard summary for the logged-in
- * teacher. Deliberately does not duplicate any of those packages' business logic - it only
- * reads and combines. Mirrors {@code StudentDashboardService}; replaces the client-side
- * fetch-everything-and-filter approach the frontend used previously (see
- * README_PROGRESS.md, "Teacher/student dashboards still over-fetch").
- */
+/** Aggregates teacher dashboard data from operational repositories. */
 @Service
 @Transactional(readOnly = true)
 public class TeacherDashboardService {
@@ -73,7 +65,6 @@ public class TeacherDashboardService {
     }
 
     public TeacherDashboardResponse getDashboard(Long teacherId) {
-
         log.debug("Building dashboard for teacher id={}", teacherId);
 
         User teacher = userRepository.findById(teacherId)
@@ -87,8 +78,7 @@ public class TeacherDashboardService {
 
         List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
         List<Attendance> attendanceRecords = attendanceRepository.findBySubjectTeacherId(teacherId);
-
-        List<TeacherScheduleEntryResponse> todaysSchedule = scheduleService.getTodaysSchedule(subjects);
+        List<TeacherScheduleEntryResponse> todaysSchedule = scheduleService.getTodaysSchedule(teacherId);
 
         return TeacherDashboardResponse.builder()
                 .teacherId(teacher.getId())
@@ -99,20 +89,17 @@ public class TeacherDashboardService {
                 .attendancePendingToday(countAttendancePendingToday(subjects, attendanceRecords))
                 .upcomingClassesCount(todaysSchedule.size())
                 .assignmentsPerSubject(assignmentsPerSubject(assignments))
-                .attendanceTrend(attendanceTrend(attendanceRecords))
+                .attendanceTrend(attendanceRecords)
                 .recentAssignments(recentAssignments(assignments))
                 .todaysSchedule(todaysSchedule)
-                .schedulePlaceholder(true)
+                .schedulePlaceholder(false)
                 .announcements(announcementService.getAnnouncements())
                 .announcementsPlaceholder(true)
                 .build();
     }
 
-    /** Submitted but not yet evaluated, across every assignment this teacher owns. */
     private int countPendingReview(List<Assignment> assignments) {
-        if (assignments.isEmpty()) {
-            return 0;
-        }
+        if (assignments.isEmpty()) return 0;
         List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
         List<AssignmentSubmission> submissions = submissionRepository.findByAssignmentIdIn(assignmentIds);
         return (int) submissions.stream()
@@ -120,7 +107,6 @@ public class TeacherDashboardService {
                 .count();
     }
 
-    /** Subjects with no attendance record dated today. */
     private int countAttendancePendingToday(List<Subject> subjects, List<Attendance> attendanceRecords) {
         LocalDate today = LocalDate.now();
         var markedToday = attendanceRecords.stream()
@@ -141,7 +127,6 @@ public class TeacherDashboardService {
                 .toList();
     }
 
-    /** Last 7 days, oldest first, average attendance rate per day across this teacher's subjects. */
     private List<AttendanceTrendPointResponse> attendanceTrend(List<Attendance> attendanceRecords) {
         Map<LocalDate, List<Attendance>> byDate = attendanceRecords.stream()
                 .collect(Collectors.groupingBy(Attendance::getAttendanceDate));
@@ -165,7 +150,6 @@ public class TeacherDashboardService {
         return trend;
     }
 
-    /** Up to 5 most recently-due assignments this teacher owns. */
     private List<TeacherAssignmentResponse> recentAssignments(List<Assignment> assignments) {
         return assignments.stream()
                 .sorted(Comparator.comparing(Assignment::getDueDate).reversed())
