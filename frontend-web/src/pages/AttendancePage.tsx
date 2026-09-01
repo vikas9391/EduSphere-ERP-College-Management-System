@@ -130,20 +130,21 @@ export function AttendancePage() {
       setSaveSuccess(false)
       try {
         const selectedClassSubject = classSubjects.find(s => String(s.id) === markSubjectId)
+        if (!selectedClassSubject) {
+          throw new Error('Select an exact class subject before marking attendance.')
+        }
         const existingForDate = records.filter(r =>
-          (selectedClassSubject ? r.subjectName === selectedClassSubject.subjectName : String(r.subjectId) === markSubjectId)
-          && r.attendanceDate.slice(0, 10) === markDate
+          r.subjectName === selectedClassSubject.subjectName &&
+          r.attendanceDate.slice(0, 10) === markDate
         )
-        const classEnrolled = selectedClassSubject ? (classSubjectEnrollments[selectedClassSubject.id] ?? []) : []
-        const enrolled = selectedClassSubject
-          ? classEnrolled.map(e => ({ id:e.id, studentId:e.studentId, studentName:e.studentName, admissionNo:'' }))
-          : (await getEnrollments()).filter(e => String(e.subjectId) === markSubjectId)
+        const classEnrolled = classSubjectEnrollments[selectedClassSubject.id] ?? []
+        const enrolled = classEnrolled.map(e => ({ id:e.id, studentId:e.studentId, studentName:e.studentName, admissionNo:'' }))
         const rows: RosterRow[] = enrolled.map(e => {
           const existing = existingForDate.find(r => r.studentId === e.studentId)
           return {
             studentId: e.studentId,
-            enrollmentId: selectedClassSubject ? null : e.id,
-            classEnrollmentId: selectedClassSubject ? e.id : null,
+            enrollmentId: null,
+            classEnrollmentId: e.id,
             studentName: e.studentName,
             admissionNo: e.admissionNo,
             status: (existing?.status as AttendanceStatus) ?? 'PRESENT',
@@ -178,7 +179,6 @@ export function AttendancePage() {
       await Promise.all(
         roster.map(async (r) => {
           const payload: AttendancePayload = {
-            enrollmentId: r.enrollmentId,
             classEnrollmentId: r.classEnrollmentId,
             attendanceDate: markDate,
             status: r.status,
