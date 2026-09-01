@@ -92,6 +92,7 @@ public class StudentAssignmentService {
         return builder
                 .submissionStatus(submission.getStatus() != null ? submission.getStatus() : "SUBMITTED")
                 .submittedAt(submission.getSubmittedAt())
+                .submissionUrl(submission.getSubmissionUrl())
                 .marksObtained(submission.getMarks())
                 .feedback(submission.getFeedback())
                 .build();
