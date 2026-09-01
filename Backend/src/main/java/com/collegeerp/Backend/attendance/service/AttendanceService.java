@@ -295,8 +295,12 @@ public class AttendanceService {
     public AttendanceResponse updateAttendance(Long id, AttendanceRequest request) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Attendance", id));
-        if (attendance.getClassEnrollment() != null) requireCanManageClassEnrollment(attendance.getClassEnrollment());
-        else requireCanManageSubject(attendance.getEnrollment());
+        if (attendance.getClassEnrollment() != null) {
+            requireCanManageClassEnrollment(attendance.getClassEnrollment());
+        } else {
+            throw new BadRequestException(
+                    "Legacy subject-only attendance is read-only and must be migrated before it can be changed");
+        }
         if (request.getAttendanceDate() == null) throw new BadRequestException("Attendance date is required");
         String status = normalizeStatus(request.getStatus());
         if (attendance.getClassEnrollment() != null
