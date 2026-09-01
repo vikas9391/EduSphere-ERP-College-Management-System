@@ -23,10 +23,11 @@ public class StudentAssignmentResponse {
     private LocalDate dueDate;
     private Integer maxMarks;
 
-    /** One of NOT_SUBMITTED, SUBMITTED, or the submission's own status (e.g. GRADED) once evaluated. */
+    /** One of NOT_SUBMITTED, SUBMITTED, EVALUATED, etc. */
     private String submissionStatus;
 
     private LocalDateTime submittedAt;
+    private String submissionUrl;
 
     /** Null until the teacher has graded the submission. */
     private Integer marksObtained;
