@@ -12,3 +12,9 @@ ALTER TABLE attendance
 CREATE UNIQUE INDEX uk_attendance_class_enrollment_date
     ON attendance(class_enrollment_id, attendance_date)
     WHERE class_enrollment_id IS NOT NULL;
+
+
+-- Prevent duplicate attendance rows for the current class-based model.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_attendance_class_enrollment_date
+    ON attendance(class_enrollment_id, attendance_date)
+    WHERE class_enrollment_id IS NOT NULL;
