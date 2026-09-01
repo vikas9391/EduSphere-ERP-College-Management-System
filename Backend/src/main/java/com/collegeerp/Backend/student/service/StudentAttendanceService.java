@@ -2,73 +2,84 @@ package com.collegeerp.Backend.student.service;
 
 import com.collegeerp.Backend.attendance.entity.Attendance;
 import com.collegeerp.Backend.attendance.repository.AttendanceRepository;
+import com.collegeerp.Backend.attendance.service.AttendanceStatusPolicy;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.student.dto.StudentAttendanceResponse;
 import com.collegeerp.Backend.student.dto.SubjectAttendanceResponse;
-import com.collegeerp.Backend.subject.entity.Subject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Self-service attendance view for the logged-in student.
- *
- * ClassEnrollment is the authoritative operational student-subject relationship. Legacy
- * Enrollment-backed attendance is still included for compatibility while old data is being
- * reconciled, but every class-based attendance record is resolved through:
- * Attendance -> ClassEnrollment -> ClassSubject -> Subject.
+ * Self-service attendance view for the logged-in student. ClassEnrollment is authoritative;
+ * legacy Enrollment attendance is retained only when no migrated class record exists for the
+ * same student/subject/date.
  */
 @Service
 @Transactional(readOnly = true)
 public class StudentAttendanceService {
 
-    private static final String PRESENT_STATUS = "PRESENT";
-
     private final AttendanceRepository attendanceRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
 
-    public StudentAttendanceService(AttendanceRepository attendanceRepository) {
+    public StudentAttendanceService(
+            AttendanceRepository attendanceRepository,
+            ClassEnrollmentRepository classEnrollmentRepository) {
         this.attendanceRepository = attendanceRepository;
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public StudentAttendanceResponse getAttendance(Long studentId) {
-        // Class-based attendance is the canonical source. Legacy rows are retained only for
-        // compatibility with data that has not yet been migrated to ClassEnrollment.
-        List<Attendance> classRecords = attendanceRepository.findClassAttendanceByStudentId(studentId);
-        List<Attendance> legacyRecords = attendanceRepository.findLegacyAttendanceByStudentId(studentId);
+        List<ClassEnrollment> currentEnrollments = classEnrollmentRepository.findAllByStudentId(studentId);
+        List<Attendance> records = mergedAttendance(studentId);
 
-        List<Attendance> records = new ArrayList<>(classRecords.size() + legacyRecords.size());
-        records.addAll(classRecords);
-        records.addAll(legacyRecords);
-
-        long total = records.size();
-        long attended = records.stream().filter(this::isAttended).count();
+        long total = records.stream()
+                .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                .count();
+        long attended = records.stream()
+                .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
+                .filter(a -> AttendanceStatusPolicy.isAttended(a.getStatus()))
+                .count();
         long missed = total - attended;
 
-        // Start with every current class-enrollment subject, including subjects with zero
-        // attendance records, then add legacy-only subjects for compatibility.
-        Map<Long, SubjectAttendanceAccumulator> bySubject = new HashMap<>();
+        Map<String, SubjectAttendanceAccumulator> bySubject = new LinkedHashMap<>();
 
-        for (ClassEnrollment classEnrollment : getCurrentClassEnrollments(classRecords)) {
-            Subject subject = classEnrollment.getClassSubject().getSubject();
-            if (subject != null) {
-                bySubject.computeIfAbsent(subject.getId(), ignored -> new SubjectAttendanceAccumulator(subject));
+        // Seed every current ClassEnrollment so zero-attendance subjects still appear.
+        for (ClassEnrollment enrollment : currentEnrollments) {
+            if (enrollment.getClassSubject() == null) {
+                continue;
             }
+            var cs = enrollment.getClassSubject();
+            String key = subjectKey(cs.getId(), cs.getSubject() != null ? cs.getSubject().getId() : null);
+            bySubject.putIfAbsent(key, new SubjectAttendanceAccumulator(
+                    cs.getSubject() != null ? cs.getSubject().getId() : cs.getId(),
+                    cs.getSubject() != null ? cs.getSubject().getSubjectCode() : cs.getSubjectCode(),
+                    cs.getSubjectName()));
         }
 
+        // Add attendance counts, including legacy-only historical subjects during migration.
         for (Attendance attendance : records) {
-            Subject subject = resolveSubject(attendance);
+            ResolvedSubject subject = resolveSubject(attendance);
             if (subject == null) {
                 continue;
             }
-            SubjectAttendanceAccumulator accumulator =
-                    bySubject.computeIfAbsent(subject.getId(), ignored -> new SubjectAttendanceAccumulator(subject));
+            SubjectAttendanceAccumulator accumulator = bySubject.computeIfAbsent(
+                    subject.key(),
+                    ignored -> new SubjectAttendanceAccumulator(subject.id(), subject.code(), subject.name()));
+
+            if (!AttendanceStatusPolicy.countsTowardPercentage(attendance.getStatus())) {
+                continue;
+            }
             accumulator.total++;
-            if (isAttended(attendance)) {
+            if (AttendanceStatusPolicy.isAttended(attendance.getStatus())) {
                 accumulator.attended++;
             }
         }
@@ -89,63 +100,93 @@ public class StudentAttendanceService {
                 .build();
     }
 
-    private List<ClassEnrollment> getCurrentClassEnrollments(List<Attendance> classRecords) {
-        return classRecords.stream()
-                .map(Attendance::getClassEnrollment)
-                .filter(java.util.Objects::nonNull)
-                .filter(ce -> ce.getClassSubject() != null)
-                .distinct()
-                .toList();
+    private List<Attendance> mergedAttendance(Long studentId) {
+        List<Attendance> classRecords = attendanceRepository.findClassAttendanceByStudentId(studentId);
+        List<Attendance> legacyRecords = attendanceRepository.findLegacyAttendanceByStudentId(studentId);
+
+        Set<String> authoritativeKeys = classRecords.stream()
+                .map(this::studentSubjectDateKey)
+                .collect(Collectors.toSet());
+
+        List<Attendance> merged = new ArrayList<>(classRecords);
+        legacyRecords.stream()
+                .filter(a -> !authoritativeKeys.contains(studentSubjectDateKey(a)))
+                .forEach(merged::add);
+        return merged;
     }
 
-    private Subject resolveSubject(Attendance attendance) {
+    private String studentSubjectDateKey(Attendance attendance) {
+        ResolvedSubject subject = resolveSubject(attendance);
+        String subjectKey = subject != null ? subject.key() : "ATTENDANCE:" + attendance.getId();
+        return subjectKey + "|" + attendance.getAttendanceDate();
+    }
+
+    private ResolvedSubject resolveSubject(Attendance attendance) {
         if (attendance.getClassEnrollment() != null
                 && attendance.getClassEnrollment().getClassSubject() != null) {
-            return attendance.getClassEnrollment().getClassSubject().getSubject();
+            var cs = attendance.getClassEnrollment().getClassSubject();
+            if (cs.getSubject() != null) {
+                return new ResolvedSubject(
+                        subjectKey(cs.getId(), cs.getSubject().getId()),
+                        cs.getSubject().getId(),
+                        cs.getSubject().getSubjectCode(),
+                        cs.getSubjectName());
+            }
+            return new ResolvedSubject(
+                    subjectKey(cs.getId(), null),
+                    cs.getId(),
+                    cs.getSubjectCode(),
+                    cs.getSubjectName());
         }
-        if (attendance.getEnrollment() != null) {
-            return attendance.getEnrollment().getSubject();
+        if (attendance.getEnrollment() != null && attendance.getEnrollment().getSubject() != null) {
+            var subject = attendance.getEnrollment().getSubject();
+            return new ResolvedSubject(
+                    "SUBJECT:" + subject.getId(),
+                    subject.getId(),
+                    subject.getSubjectCode(),
+                    subject.getSubjectName());
         }
         return null;
     }
 
-    private boolean isAttended(Attendance attendance) {
-        return PRESENT_STATUS.equalsIgnoreCase(attendance.getStatus());
+    private String subjectKey(Long classSubjectId, Long formalSubjectId) {
+        return formalSubjectId != null
+                ? "SUBJECT:" + formalSubjectId
+                : "CLASS_SUBJECT:" + classSubjectId;
     }
 
-    private double percentage(long attended, long total) {
+    private static double percentage(long attended, long total) {
         if (total == 0) {
             return 0.0;
         }
         return Math.round((attended * 10000.0) / total) / 100.0;
     }
 
+    private record ResolvedSubject(String key, Long id, String code, String name) {}
+
     private static final class SubjectAttendanceAccumulator {
-        private final Subject subject;
+        private final Long id;
+        private final String code;
+        private final String name;
         private long total;
         private long attended;
 
-        private SubjectAttendanceAccumulator(Subject subject) {
-            this.subject = subject;
+        private SubjectAttendanceAccumulator(Long id, String code, String name) {
+            this.id = id;
+            this.code = code;
+            this.name = name;
         }
 
         private SubjectAttendanceResponse toResponse() {
             return SubjectAttendanceResponse.builder()
-                    .subjectId(subject.getId())
-                    .subjectCode(subject.getSubjectCode())
-                    .subjectName(subject.getSubjectName())
+                    .subjectId(id)
+                    .subjectCode(code)
+                    .subjectName(name)
                     .totalClasses(total)
                     .classesAttended(attended)
                     .classesMissed(total - attended)
                     .attendancePercentage(percentage(attended, total))
                     .build();
-        }
-
-        private static double percentage(long attended, long total) {
-            if (total == 0) {
-                return 0.0;
-            }
-            return Math.round((attended * 10000.0) / total) / 100.0;
         }
     }
 }
