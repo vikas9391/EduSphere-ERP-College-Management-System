@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/** Teacher-scoped read endpoint for the exact ClassSubjects they teach. */
+/** Staff-scoped read endpoint for exact ClassSubject offerings used by operational forms. */
 @RestController
 @RequestMapping("/api/classes/subjects")
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','TEACHER')")
 public class TeacherClassSubjectController {
 
     private final ClassSubjectRepository classSubjectRepository;
@@ -32,15 +32,19 @@ public class TeacherClassSubjectController {
     @GetMapping("/mine-teaching")
     public List<ClassSubjectResponse> mineTeaching(Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return classSubjectRepository.findAllByTeacherId(principal.getId()).stream()
-                .map(this::map)
-                .toList();
+        List<ClassSubject> subjects = "TEACHER".equalsIgnoreCase(principal.getRole())
+                ? classSubjectRepository.findAllByTeacherId(principal.getId())
+                : classSubjectRepository.findAllWithRelations();
+        return subjects.stream().map(this::map).toList();
     }
 
     private ClassSubjectResponse map(ClassSubject s) {
         return ClassSubjectResponse.builder()
                 .id(s.getId())
                 .schoolClassId(s.getSchoolClass().getId())
+                .schoolClassName(s.getSchoolClass().getName())
+                .academicYear(s.getSchoolClass().getAcademicYear())
+                .semester(s.getSchoolClass().getSemester())
                 .subjectCode(s.getSubjectCode())
                 .subjectName(s.getSubjectName())
                 .credits(s.getCredits())
