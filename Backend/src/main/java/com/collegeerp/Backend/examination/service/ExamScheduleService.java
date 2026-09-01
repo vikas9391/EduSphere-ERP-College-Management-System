@@ -1,15 +1,17 @@
 package com.collegeerp.Backend.examination.service;
 
+import com.collegeerp.Backend.common.User;
+import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.examination.dto.ExamScheduleRequest;
 import com.collegeerp.Backend.examination.dto.ExamScheduleResponse;
 import com.collegeerp.Backend.examination.entity.Exam;
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
 import com.collegeerp.Backend.examination.repository.ExamRepository;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
-import com.collegeerp.Backend.common.User;
-import com.collegeerp.Backend.common.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,15 +25,18 @@ public class ExamScheduleService {
     private final ExamScheduleRepository examScheduleRepository;
     private final ExamRepository examRepository;
     private final SubjectRepository subjectRepository;
+    private final ClassSubjectRepository classSubjectRepository;
     private final UserRepository userRepository;
 
     public ExamScheduleService(ExamScheduleRepository examScheduleRepository,
-                                ExamRepository examRepository,
-                                SubjectRepository subjectRepository,
-                                UserRepository userRepository) {
+                               ExamRepository examRepository,
+                               SubjectRepository subjectRepository,
+                               ClassSubjectRepository classSubjectRepository,
+                               UserRepository userRepository) {
         this.examScheduleRepository = examScheduleRepository;
         this.examRepository = examRepository;
         this.subjectRepository = subjectRepository;
+        this.classSubjectRepository = classSubjectRepository;
         this.userRepository = userRepository;
     }
 
@@ -40,18 +45,17 @@ public class ExamScheduleService {
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
+        ClassSubject classSubject = resolveClassSubject(request, subject);
 
         validateSchedule(request, exam, subject);
-
-        if (examScheduleRepository.existsByExamIdAndSubjectId(exam.getId(), subject.getId())) {
-            throw new RuntimeException("This subject is already scheduled for this exam");
-        }
+        validateUniqueSchedule(exam.getId(), subject.getId(), classSubject, null);
 
         User invigilator = findInvigilator(request.getInvigilatorId());
 
         ExamSchedule schedule = ExamSchedule.builder()
                 .exam(exam)
                 .subject(subject)
+                .classSubject(classSubject)
                 .invigilator(invigilator)
                 .examDate(request.getExamDate())
                 .startTime(request.getStartTime())
@@ -75,21 +79,18 @@ public class ExamScheduleService {
     }
 
     public ExamScheduleResponse updateSchedule(Long id, ExamScheduleRequest request) {
-        ExamSchedule schedule = examScheduleRepository.findById(id)
+        ExamSchedule schedule = examScheduleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
+        ClassSubject classSubject = resolveClassSubject(request, subject);
 
         validateSchedule(request, schedule.getExam(), subject);
-
-        boolean subjectChanged = !Objects.equals(schedule.getSubject().getId(), subject.getId());
-        if (subjectChanged && examScheduleRepository.existsByExamIdAndSubjectId(
-                schedule.getExam().getId(), subject.getId())) {
-            throw new RuntimeException("This subject is already scheduled for this exam");
-        }
+        validateUniqueSchedule(schedule.getExam().getId(), subject.getId(), classSubject, schedule);
 
         schedule.setSubject(subject);
+        schedule.setClassSubject(classSubject);
         schedule.setInvigilator(findInvigilator(request.getInvigilatorId()));
         schedule.setExamDate(request.getExamDate());
         schedule.setStartTime(request.getStartTime());
@@ -104,6 +105,40 @@ public class ExamScheduleService {
         ExamSchedule schedule = examScheduleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
         examScheduleRepository.delete(schedule);
+    }
+
+    private ClassSubject resolveClassSubject(ExamScheduleRequest request, Subject subject) {
+        if (request.getClassSubjectId() == null) {
+            return null;
+        }
+        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
+                .orElseThrow(() -> new RuntimeException("Class subject not found"));
+        if (classSubject.getSubject() == null
+                || !Objects.equals(classSubject.getSubject().getId(), subject.getId())) {
+            throw new IllegalArgumentException("Class subject does not belong to the selected formal subject");
+        }
+        return classSubject;
+    }
+
+    private void validateUniqueSchedule(Long examId, Long subjectId,
+                                        ClassSubject classSubject, ExamSchedule current) {
+        if (classSubject != null) {
+            boolean sameCurrent = current != null
+                    && current.getClassSubject() != null
+                    && Objects.equals(current.getClassSubject().getId(), classSubject.getId());
+            if (!sameCurrent && examScheduleRepository.existsByExamIdAndClassSubjectId(examId, classSubject.getId())) {
+                throw new RuntimeException("This class subject is already scheduled for this exam");
+            }
+            return;
+        }
+
+        boolean sameLegacyCurrent = current != null
+                && current.getClassSubject() == null
+                && Objects.equals(current.getSubject().getId(), subjectId);
+        if (!sameLegacyCurrent
+                && examScheduleRepository.existsByExamIdAndSubjectIdAndClassSubjectIsNull(examId, subjectId)) {
+            throw new RuntimeException("This subject is already scheduled for this exam");
+        }
     }
 
     private void validateSchedule(ExamScheduleRequest request, Exam exam, Subject subject) {
@@ -121,7 +156,6 @@ public class ExamScheduleService {
             throw new IllegalArgumentException("The scheduled subject must belong to the exam's course");
         }
 
-        // Exam startDate/endDate are already LocalDate values, so no conversion is needed.
         LocalDate startDate = exam.getStartDate();
         LocalDate endDate = exam.getEndDate();
         LocalDate examDate = request.getExamDate();
@@ -141,12 +175,18 @@ public class ExamScheduleService {
     }
 
     private ExamScheduleResponse map(ExamSchedule s) {
+        ClassSubject classSubject = s.getClassSubject();
         return ExamScheduleResponse.builder()
                 .id(s.getId())
                 .examId(s.getExam().getId())
                 .examName(s.getExam().getExamName())
                 .subjectId(s.getSubject().getId())
                 .subjectName(s.getSubject().getSubjectName())
+                .classSubjectId(classSubject != null ? classSubject.getId() : null)
+                .classId(classSubject != null && classSubject.getSchoolClass() != null
+                        ? classSubject.getSchoolClass().getId() : null)
+                .className(classSubject != null && classSubject.getSchoolClass() != null
+                        ? classSubject.getSchoolClass().getName() : null)
                 .invigilatorId(s.getInvigilator() != null ? s.getInvigilator().getId() : null)
                 .invigilatorName(s.getInvigilator() != null
                         ? s.getInvigilator().getFirstName() + " " + s.getInvigilator().getLastName() : null)
