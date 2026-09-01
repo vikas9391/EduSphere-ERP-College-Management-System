@@ -1,5 +1,6 @@
 package com.collegeerp.Backend.assignment.entity;
 
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.common.User;
 import jakarta.persistence.*;
@@ -24,6 +25,14 @@ public class Assignment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
+
+    /**
+     * Optional during migration. New class-scoped assignments should set this so an assignment
+     * created for one class does not leak to students taking the same formal Subject elsewhere.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_subject_id")
+    private ClassSubject classSubject;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
