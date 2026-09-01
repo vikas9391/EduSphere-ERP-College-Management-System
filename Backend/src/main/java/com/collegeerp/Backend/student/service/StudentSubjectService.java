@@ -1,7 +1,8 @@
 package com.collegeerp.Backend.student.service;
 
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.student.dto.StudentSubjectResponse;
 import com.collegeerp.Backend.subject.entity.Subject;
 import org.springframework.stereotype.Service;
@@ -10,21 +11,31 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Student's active subjects are derived from ClassEnrollment -> ClassSubject.
+ * The class-based relationship is authoritative for operational student participation.
+ */
 @Service
 @Transactional(readOnly = true)
 public class StudentSubjectService {
 
-    private final EnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
 
-    public StudentSubjectService(EnrollmentRepository enrollmentRepository) {
-        this.enrollmentRepository = enrollmentRepository;
+    public StudentSubjectService(ClassEnrollmentRepository classEnrollmentRepository) {
+        this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
     public List<StudentSubjectResponse> getSubjects(Long studentId) {
-        return enrollmentRepository.findByStudentIdWithDetails(studentId)
+        return classEnrollmentRepository.findAllByStudentId(studentId)
                 .stream()
-                .map(Enrollment::getSubject)
-                .sorted(Comparator.comparing(Subject::getSubjectCode))
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(ClassSubject::getSubject)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.comparing(
+                        Subject::getSubjectCode,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .map(this::map)
                 .toList();
     }
@@ -36,10 +47,12 @@ public class StudentSubjectService {
                 .subjectName(s.getSubjectName())
                 .credits(s.getCredits())
                 .semester(s.getSemester())
-                .courseId(s.getCourse().getId())
-                .courseName(s.getCourse().getCourseName())
-                .teacherId(s.getTeacher().getId())
-                .teacherName(s.getTeacher().getFirstName() + " " + s.getTeacher().getLastName())
+                .courseId(s.getCourse() != null ? s.getCourse().getId() : null)
+                .courseName(s.getCourse() != null ? s.getCourse().getCourseName() : null)
+                .teacherId(s.getTeacher() != null ? s.getTeacher().getId() : null)
+                .teacherName(s.getTeacher() == null
+                        ? null
+                        : s.getTeacher().getFirstName() + " " + s.getTeacher().getLastName())
                 .build();
     }
 }
