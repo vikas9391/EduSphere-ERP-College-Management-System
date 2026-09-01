@@ -125,7 +125,9 @@ public class MarksService {
 
     @Transactional(readOnly = true)
     public MarksResponse getMarks(Long id) {
-        return map(findMarks(id));
+        Marks marks = findMarks(id);
+        requireCanManageSubject(marks.getExamSchedule());
+        return map(marks);
     }
 
     public MarksResponse publishMarks(Long id) {
@@ -234,11 +236,6 @@ public class MarksService {
         }
     }
 
-    /**
-     * Returns the exact ClassEnrollment for class-scoped schedules. Legacy schedules retain
-     * their compatibility behavior, but still require either a class enrollment or a formal
-     * Enrollment before marks can be entered.
-     */
     private ClassEnrollment requireEligibleParticipation(ExamSchedule examSchedule, Long studentId) {
         if (examSchedule.getClassSubject() != null) {
             return classEnrollmentRepository
