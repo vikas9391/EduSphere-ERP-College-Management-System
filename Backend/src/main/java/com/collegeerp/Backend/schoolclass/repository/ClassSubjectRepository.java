@@ -32,7 +32,6 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             """)
     Optional<ClassSubject> findByIdWithRelations(Long id);
 
-    /** Every class-subject linked to a given formal curriculum Subject. */
     @Query("""
             SELECT s FROM ClassSubject s
             JOIN FETCH s.teacher
@@ -42,7 +41,6 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             """)
     List<ClassSubject> findBySubjectId(Long subjectId);
 
-    /** Exact teaching assignments for one teacher across classes. */
     @Query("""
             SELECT s FROM ClassSubject s
             JOIN FETCH s.teacher t
@@ -52,4 +50,13 @@ public interface ClassSubjectRepository extends JpaRepository<ClassSubject, Long
             ORDER BY s.schoolClass.academicYear DESC, s.schoolClass.semester, s.subjectCode
             """)
     List<ClassSubject> findAllByTeacherId(Long teacherId);
+
+    @Query("""
+            SELECT s FROM ClassSubject s
+            JOIN FETCH s.teacher
+            JOIN FETCH s.schoolClass
+            LEFT JOIN FETCH s.subject
+            ORDER BY s.schoolClass.academicYear DESC, s.schoolClass.semester, s.subjectCode
+            """)
+    List<ClassSubject> findAllWithRelations();
 }
