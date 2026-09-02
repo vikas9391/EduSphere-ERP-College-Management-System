@@ -170,21 +170,10 @@ public class StudentDashboardService {
                 .map(cs -> cs.getId())
                 .distinct()
                 .toList();
-        List<Long> subjectIds = enrollments.stream()
-                .map(ClassEnrollment::getClassSubject)
-                .filter(java.util.Objects::nonNull)
-                .map(cs -> cs.getSubject())
-                .filter(java.util.Objects::nonNull)
-                .map(Subject::getId)
-                .distinct()
-                .toList();
 
-        if (classSubjectIds.isEmpty() && subjectIds.isEmpty()) {
+        if (classSubjectIds.isEmpty()) {
             return 0;
         }
-        return examScheduleRepository.findUpcomingForStudent(
-                classSubjectIds.isEmpty() ? List.of(-1L) : classSubjectIds,
-                subjectIds.isEmpty() ? List.of(-1L) : subjectIds,
-                LocalDate.now()).size();
+        return examScheduleRepository.findUpcomingForStudent(classSubjectIds, LocalDate.now()).size();
     }
 }
