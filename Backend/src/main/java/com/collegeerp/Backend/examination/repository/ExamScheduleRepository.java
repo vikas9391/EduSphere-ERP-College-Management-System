@@ -37,26 +37,21 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
            """)
     Optional<ExamSchedule> findByIdWithDetails(Long id);
 
-    /**
-     * Current class-scoped schedules win. Subject-only schedules are legacy compatibility rows.
-     */
     @Query("""
            SELECT DISTINCT es
            FROM ExamSchedule es
            JOIN FETCH es.exam
            JOIN FETCH es.subject
-           LEFT JOIN FETCH es.classSubject cs
-           WHERE ((cs.id IN :classSubjectIds)
-               OR (cs IS NULL AND es.subject.id IN :subjectIds))
+           JOIN FETCH es.classSubject cs
+           WHERE cs.id IN :classSubjectIds
              AND es.examDate >= :fromDate
            ORDER BY es.examDate ASC, es.startTime ASC
            """)
     List<ExamSchedule> findUpcomingForStudent(
             List<Long> classSubjectIds,
-            List<Long> subjectIds,
             java.time.LocalDate fromDate);
 
-    /** Legacy compatibility query retained for older callers during migration. */
+    /** Legacy compatibility query retained only for migration/reporting callers. */
     @Query("""
            SELECT es
            FROM ExamSchedule es
