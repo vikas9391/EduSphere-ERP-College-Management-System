@@ -5,7 +5,6 @@ import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.entity.AssignmentSubmission;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
 import com.collegeerp.Backend.assignment.repository.AssignmentSubmissionRepository;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.student.entity.Student;
@@ -29,7 +28,6 @@ class AssignmentSubmissionServiceTest {
     @Mock private AssignmentSubmissionRepository submissionRepository;
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private StudentRepository studentRepository;
-    @Mock private EnrollmentRepository enrollmentRepository;
     @Mock private ClassEnrollmentRepository classEnrollmentRepository;
 
     @Test
@@ -95,7 +93,6 @@ class AssignmentSubmissionServiceTest {
                 submissionRepository,
                 assignmentRepository,
                 studentRepository,
-                enrollmentRepository,
                 classEnrollmentRepository);
     }
 }
