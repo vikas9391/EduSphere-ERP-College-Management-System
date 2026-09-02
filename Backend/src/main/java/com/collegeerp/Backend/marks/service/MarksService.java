@@ -13,7 +13,6 @@ import com.collegeerp.Backend.marks.repository.MarksRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
-import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
@@ -35,18 +34,15 @@ public class MarksService {
     private final MarksRepository marksRepository;
     private final ExamScheduleRepository examScheduleRepository;
     private final StudentRepository studentRepository;
-    private final ClassSubjectRepository classSubjectRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
 
     public MarksService(MarksRepository marksRepository,
                         ExamScheduleRepository examScheduleRepository,
                         StudentRepository studentRepository,
-                        ClassSubjectRepository classSubjectRepository,
                         ClassEnrollmentRepository classEnrollmentRepository) {
         this.marksRepository = marksRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.studentRepository = studentRepository;
-        this.classSubjectRepository = classSubjectRepository;
         this.classEnrollmentRepository = classEnrollmentRepository;
     }
 
