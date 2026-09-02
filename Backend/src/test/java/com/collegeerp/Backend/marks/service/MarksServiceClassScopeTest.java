@@ -2,7 +2,6 @@ package com.collegeerp.Backend.marks.service;
 
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.common.exception.BadRequestException;
-import com.collegeerp.Backend.enrollment.repository.EnrollmentRepository;
 import com.collegeerp.Backend.examination.entity.Exam;
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
@@ -10,7 +9,6 @@ import com.collegeerp.Backend.marks.dto.MarksRequest;
 import com.collegeerp.Backend.marks.repository.MarksRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
-import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.entity.Student;
 import com.collegeerp.Backend.student.repository.StudentRepository;
@@ -34,9 +32,7 @@ class MarksServiceClassScopeTest {
     @Mock private MarksRepository marksRepository;
     @Mock private ExamScheduleRepository examScheduleRepository;
     @Mock private StudentRepository studentRepository;
-    @Mock private ClassSubjectRepository classSubjectRepository;
     @Mock private ClassEnrollmentRepository classEnrollmentRepository;
-    @Mock private EnrollmentRepository enrollmentRepository;
 
     @AfterEach
     void clearSecurity() {
@@ -79,8 +75,6 @@ class MarksServiceClassScopeTest {
                 marksRepository,
                 examScheduleRepository,
                 studentRepository,
-                classSubjectRepository,
-                classEnrollmentRepository,
-                enrollmentRepository);
+                classEnrollmentRepository);
     }
 }
