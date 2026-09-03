@@ -3,7 +3,9 @@ package com.collegeerp.Backend.examination.controller;
 import com.collegeerp.Backend.examination.dto.ExamScheduleRequest;
 import com.collegeerp.Backend.examination.dto.ExamScheduleResponse;
 import com.collegeerp.Backend.examination.service.ExamScheduleService;
+import com.collegeerp.Backend.security.UserPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,13 +28,17 @@ public class ExamScheduleController {
     }
 
     @GetMapping("/exam/{examId}")
-    public List<ExamScheduleResponse> getScheduleByExam(@PathVariable Long examId) {
-        return examScheduleService.getScheduleByExam(examId);
+    public List<ExamScheduleResponse> getScheduleByExam(
+            Authentication authentication,
+            @PathVariable Long examId) {
+        return examScheduleService.getScheduleByExam(examId, principal(authentication));
     }
 
     @GetMapping("/{id}")
-    public ExamScheduleResponse getSchedule(@PathVariable Long id) {
-        return examScheduleService.getSchedule(id);
+    public ExamScheduleResponse getSchedule(
+            Authentication authentication,
+            @PathVariable Long id) {
+        return examScheduleService.getSchedule(id, principal(authentication));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
@@ -47,5 +53,9 @@ public class ExamScheduleController {
     public String deleteSchedule(@PathVariable Long id) {
         examScheduleService.deleteSchedule(id);
         return "Exam schedule deleted successfully.";
+    }
+
+    private UserPrincipal principal(Authentication authentication) {
+        return (UserPrincipal) authentication.getPrincipal();
     }
 }
