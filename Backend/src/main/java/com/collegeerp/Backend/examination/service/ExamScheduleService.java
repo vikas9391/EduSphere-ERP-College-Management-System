@@ -10,8 +10,10 @@ import com.collegeerp.Backend.examination.repository.ExamRepository;
 import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
+import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.subject.entity.Subject;
 import com.collegeerp.Backend.subject.repository.SubjectRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -68,14 +70,18 @@ public class ExamScheduleService {
         return map(examScheduleRepository.save(schedule));
     }
 
-    public List<ExamScheduleResponse> getScheduleByExam(Long examId) {
+    public List<ExamScheduleResponse> getScheduleByExam(Long examId, UserPrincipal principal) {
         return examScheduleRepository.findByExamIdWithDetails(examId).stream()
-                .map(this::map).toList();
+                .filter(schedule -> canView(schedule, principal))
+                .map(this::map)
+                .toList();
     }
 
-    public ExamScheduleResponse getSchedule(Long id) {
-        return map(examScheduleRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new RuntimeException("Exam schedule not found")));
+    public ExamScheduleResponse getSchedule(Long id, UserPrincipal principal) {
+        ExamSchedule schedule = examScheduleRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
+        requireCanView(schedule, principal);
+        return map(schedule);
     }
 
     public ExamScheduleResponse updateSchedule(Long id, ExamScheduleRequest request) {
@@ -105,6 +111,33 @@ public class ExamScheduleService {
         ExamSchedule schedule = examScheduleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exam schedule not found"));
         examScheduleRepository.delete(schedule);
+    }
+
+    private boolean canView(ExamSchedule schedule, UserPrincipal principal) {
+        if (principal == null) {
+            return false;
+        }
+        if (isAdmin(principal)) {
+            return true;
+        }
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole())) {
+            return false;
+        }
+        ClassSubject classSubject = schedule.getClassSubject();
+        return classSubject != null
+                && classSubject.getTeacher() != null
+                && Objects.equals(classSubject.getTeacher().getId(), principal.getId());
+    }
+
+    private void requireCanView(ExamSchedule schedule, UserPrincipal principal) {
+        if (!canView(schedule, principal)) {
+            throw new AccessDeniedException("You can only view exam schedules for your assigned class subjects");
+        }
+    }
+
+    private boolean isAdmin(UserPrincipal principal) {
+        return "ADMIN".equalsIgnoreCase(principal.getRole())
+                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
     }
 
     private ClassSubject resolveClassSubject(ExamScheduleRequest request, Subject subject) {
