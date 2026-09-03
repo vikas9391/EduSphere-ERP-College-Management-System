@@ -26,7 +26,6 @@ import {
   type Attendance,
   type AttendancePayload,
 } from '@/api/attendance'
-import { getEnrollments } from '@/api'
 import { getMySubjects, type Subject } from '@/api'
 import { getMyClasses, getClassSubjects, getClassSubjectEnrollments, type ClassSubject } from '@/api/schoolClass'
 
@@ -260,35 +259,10 @@ export function AttendancePage() {
 
       {/* Dashboard cards */}
       <StampGrid className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard
-          icon={CalendarDays}
-          label="Total Records"
-          value={stats.total}
-          accent={STAT_SHADES[0]}
-          failed={!!error}
-        />
-        <StatCard
-          icon={UserCheck}
-          label="Present Today"
-          value={stats.presentToday}
-          accent={STAT_SHADES[1]}
-          failed={!!error}
-        />
-        <StatCard
-          icon={UserX}
-          label="Absent Today"
-          value={stats.absentToday}
-          accent={STAT_SHADES[2]}
-          failed={!!error}
-        />
-        <StatCard
-          icon={Percent}
-          label="Overall Rate"
-          value={stats.rate}
-          suffix="%"
-          accent={STAT_SHADES[3]}
-          failed={!!error}
-        />
+        <StatCard icon={CalendarDays} label="Total Records" value={stats.total} accent={STAT_SHADES[0]} failed={!!error} />
+        <StatCard icon={UserCheck} label="Present Today" value={stats.presentToday} accent={STAT_SHADES[1]} failed={!!error} />
+        <StatCard icon={UserX} label="Absent Today" value={stats.absentToday} accent={STAT_SHADES[2]} failed={!!error} />
+        <StatCard icon={Percent} label="Overall Rate" value={stats.rate} suffix="%" accent={STAT_SHADES[3]} failed={!!error} />
       </StampGrid>
 
       {/* Mark Attendance panel */}
@@ -314,12 +288,7 @@ export function AttendancePage() {
           </Field>
 
           <Field label="Date">
-            <input
-              type="date"
-              value={markDate}
-              onChange={(e) => setMarkDate(e.target.value)}
-              className={inputClass}
-            />
+            <input type="date" value={markDate} onChange={(e) => setMarkDate(e.target.value)} className={inputClass} />
           </Field>
         </div>
 
@@ -334,16 +303,10 @@ export function AttendancePage() {
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm text-muted">{roster.length} student(s) enrolled</p>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => markAllAs('PRESENT')}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-text"
-                    >
+                    <button onClick={() => markAllAs('PRESENT')} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-text">
                       <Check size={12} /> Mark all present
                     </button>
-                    <button
-                      onClick={() => markAllAs('ABSENT')}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-text"
-                    >
+                    <button onClick={() => markAllAs('ABSENT')} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-text">
                       <X size={12} /> Mark all absent
                     </button>
                   </div>
@@ -366,26 +329,8 @@ export function AttendancePage() {
                             <td className="px-4 py-2 text-muted">{r.admissionNo}</td>
                             <td className="px-4 py-2">
                               <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => setRowStatus(r.studentId, 'PRESENT')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                                    r.status === 'PRESENT'
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-border/40 text-muted hover:bg-green-50 hover:text-green-700'
-                                  }`}
-                                >
-                                  Present
-                                </button>
-                                <button
-                                  onClick={() => setRowStatus(r.studentId, 'ABSENT')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                                    r.status === 'ABSENT'
-                                      ? 'bg-red-100 text-red-700'
-                                      : 'bg-border/40 text-muted hover:bg-red-50 hover:text-red-700'
-                                  }`}
-                                >
-                                  Absent
-                                </button>
+                                <button onClick={() => setRowStatus(r.studentId, 'PRESENT')} className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${r.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-border/40 text-muted hover:bg-green-50 hover:text-green-700'}`}>Present</button>
+                                <button onClick={() => setRowStatus(r.studentId, 'ABSENT')} className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${r.status === 'ABSENT' ? 'bg-red-100 text-red-700' : 'bg-border/40 text-muted hover:bg-red-50 hover:text-red-700'}`}>Absent</button>
                                 <button onClick={() => setRowStatus(r.studentId, 'LATE')} className="rounded-md bg-border/40 px-3 py-1 text-xs font-medium text-muted hover:text-amber-700">Late</button>
                                 <button onClick={() => setRowStatus(r.studentId, 'EXCUSED')} className="rounded-md bg-border/40 px-3 py-1 text-xs font-medium text-muted hover:text-blue-700">Excused</button>
                               </div>
@@ -401,11 +346,7 @@ export function AttendancePage() {
                 {saveSuccess && <p className="mt-3 text-sm text-green-700">Attendance saved successfully.</p>}
 
                 <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={handleSaveAttendance}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
-                  >
+                  <button onClick={handleSaveAttendance} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60">
                     <Save size={16} />
                     {saving ? 'Saving...' : 'Save Attendance'}
                   </button>
@@ -420,48 +361,22 @@ export function AttendancePage() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by student or subject..."
-            className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none"
-          />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by student or subject..." className="w-full rounded-lg border border-border bg-white/60 py-2 pl-9 pr-3 text-sm text-text placeholder:text-muted focus:border-primary focus:outline-none" />
         </div>
 
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-muted" />
-          <select
-            value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
-            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
-          >
+          <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none">
             <option value="">All Subjects</option>
-            {classSubjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.subjectName}</option>
-            ))}
-            {classSubjects.length === 0 && subjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.subjectName}</option>
-            ))}
+            {classSubjects.map((s) => <option key={s.id} value={s.id}>{s.subjectName}</option>)}
+            {classSubjects.length === 0 && subjects.map((s) => <option key={s.id} value={s.id}>{s.subjectName}</option>)}
           </select>
 
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
-          />
+          <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="rounded-lg border border-border bg-white/60 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none" />
 
           {hasFilters && (
-            <button
-              onClick={() => {
-                setSearch('')
-                setSubjectFilter('')
-                setDateFilter('')
-              }}
-              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-text"
-            >
-              <X size={14} />
-              Clear
+            <button onClick={() => { setSearch(''); setSubjectFilter(''); setDateFilter('') }} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-text">
+              <X size={14} /> Clear
             </button>
           )}
         </div>
@@ -472,68 +387,29 @@ export function AttendancePage() {
         {loading ? (
           <div className="p-10 text-center text-sm text-muted">Loading attendance...</div>
         ) : error ? (
-          <div className="p-10">
-            <PanelError message={error} />
-          </div>
+          <div className="p-10"><PanelError message={error} /></div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
             <Users size={32} className="text-muted/50" />
-            <p className="font-heading text-base font-medium text-text">
-              {hasFilters ? 'No records match your filters' : 'No attendance records yet'}
-            </p>
-            <p className="text-sm text-muted">
-              {hasFilters
-                ? 'Try adjusting your search or filters.'
-                : 'Mark attendance above to get started.'}
-            </p>
+            <p className="font-heading text-base font-medium text-text">{hasFilters ? 'No records match your filters' : 'No attendance records yet'}</p>
+            <p className="text-sm text-muted">{hasFilters ? 'Try adjusting your search or filters.' : 'Mark attendance above to get started.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-200 text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted">
-                  <th className="px-5 py-3 font-medium">Student</th>
-                  <th className="px-5 py-3 font-medium">Subject</th>
-                  <th className="px-5 py-3 font-medium">Course</th>
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
+              <thead><tr className="border-b border-border text-muted"><th className="px-5 py-3 font-medium">Student</th><th className="px-5 py-3 font-medium">Subject</th><th className="px-5 py-3 font-medium">Course</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium text-right">Actions</th></tr></thead>
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-border last:border-0 hover:bg-white/80">
                     <td className="px-5 py-3 text-text">{r.studentName}</td>
                     <td className="px-5 py-3 text-text">{r.subjectName}</td>
-                    <td className="px-5 py-3 text-muted">
-                      {courseNameForFilter.get(r.subjectId) || '—'}
-                    </td>
+                    <td className="px-5 py-3 text-muted">{courseNameForFilter.get(r.subjectId) || '—'}</td>
                     <td className="px-5 py-3 text-muted">{r.attendanceDate.slice(0, 10)}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          r.status === 'PRESENT' ? 'bg-green-100 text-green-700' : r.status === 'ABSENT' ? 'bg-red-100 text-red-700' : r.status === 'LATE' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                        }`}
-                      >
-                        {r.status.charAt(0) + r.status.slice(1).toLowerCase()}
-                      </span>
-                    </td>
+                    <td className="px-5 py-3"><span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status === 'PRESENT' ? 'bg-green-100 text-green-700' : r.status === 'ABSENT' ? 'bg-red-100 text-red-700' : r.status === 'LATE' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span></td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(r)}
-                          className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary"
-                          aria-label="Toggle status"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="rounded-md p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-                          aria-label="Delete record"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <button onClick={() => handleToggleStatus(r)} className="rounded-md p-1.5 text-muted hover:bg-border/50 hover:text-primary" aria-label="Toggle status"><Pencil size={16} /></button>
+                        <button onClick={() => handleDelete(r.id)} className="rounded-md p-1.5 text-muted hover:bg-red-50 hover:text-red-600" aria-label="Delete record"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -546,17 +422,3 @@ export function AttendancePage() {
     </Layout>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
