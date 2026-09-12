@@ -10,9 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "marks",
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"exam_schedule_id", "student_id"})
-       })
+       uniqueConstraints = @UniqueConstraint(columnNames = {"exam_schedule_id", "student_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,17 +22,16 @@ public class Marks {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "exam_schedule_id", nullable = false)
     private ExamSchedule examSchedule;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    /** Exact operational participation for new class-scoped marks; nullable for legacy rows. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_enrollment_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_enrollment_id", nullable = false)
     private ClassEnrollment classEnrollment;
 
     @Column(nullable = false)
@@ -56,6 +53,5 @@ public class Marks {
     private String status;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 }
