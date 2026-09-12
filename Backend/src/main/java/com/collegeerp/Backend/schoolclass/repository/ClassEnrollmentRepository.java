@@ -15,6 +15,8 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     Optional<ClassEnrollment> findByClassSubjectIdAndStudentId(Long classSubjectId, Long studentId);
 
+    void deleteAllByClassSubjectSchoolClassIdAndStudentId(Long schoolClassId, Long studentId);
+
     @Query("""
             SELECT e FROM ClassEnrollment e
             JOIN FETCH e.student
