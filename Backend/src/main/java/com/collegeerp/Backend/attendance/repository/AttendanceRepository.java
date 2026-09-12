@@ -4,17 +4,14 @@ import com.collegeerp.Backend.attendance.entity.Attendance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
-    boolean existsByClassEnrollmentIdAndAttendanceDate(Long classEnrollmentId, java.time.LocalDate attendanceDate);
+    boolean existsByClassEnrollmentIdAndAttendanceDate(Long classEnrollmentId, LocalDate attendanceDate);
 
-    boolean existsByClassEnrollmentIdAndAttendanceDateAndIdNot(Long classEnrollmentId, java.time.LocalDate attendanceDate, Long id);
-
-    boolean existsByEnrollmentIdAndAttendanceDate(Long enrollmentId, java.time.LocalDate attendanceDate);
-
-    boolean existsByEnrollmentIdAndAttendanceDateAndIdNot(Long enrollmentId, java.time.LocalDate attendanceDate, Long id);
+    boolean existsByClassEnrollmentIdAndAttendanceDateAndIdNot(Long classEnrollmentId, LocalDate attendanceDate, Long id);
 
     @Query("""
            SELECT a
@@ -33,18 +30,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     @Query("""
            SELECT a
            FROM Attendance a
-           JOIN FETCH a.enrollment e
-           JOIN FETCH e.student st
-           JOIN FETCH e.subject s
-           WHERE st.id = :studentId
-           ORDER BY a.attendanceDate DESC
-           """)
-    List<Attendance> findLegacyAttendanceByStudentId(Long studentId);
-
-    /** Class-based attendance for the exact class subjects taught by a teacher. */
-    @Query("""
-           SELECT a
-           FROM Attendance a
            JOIN FETCH a.classEnrollment ce
            JOIN FETCH ce.student st
            JOIN FETCH ce.classSubject cs
@@ -55,16 +40,4 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
            ORDER BY a.attendanceDate DESC
            """)
     List<Attendance> findClassAttendanceByTeacherId(Long teacherId);
-
-    /** Legacy teacher query retained for compatibility with unmigrated rows. */
-    @Query("""
-           SELECT a
-           FROM Attendance a
-           JOIN FETCH a.enrollment e
-           JOIN FETCH e.student st
-           JOIN FETCH e.subject s
-           WHERE s.teacher.id = :teacherId
-           ORDER BY a.attendanceDate DESC
-           """)
-    List<Attendance> findBySubjectTeacherId(Long teacherId);
 }
