@@ -2,7 +2,7 @@ CREATE TABLE attendance (
 
     id BIGSERIAL PRIMARY KEY,
 
-    enrollment_id BIGINT NOT NULL,
+    class_enrollment_id BIGINT NOT NULL,
 
     attendance_date DATE NOT NULL,
 
@@ -12,10 +12,11 @@ CREATE TABLE attendance (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_attendance_enrollment
-        FOREIGN KEY (enrollment_id)
-        REFERENCES enrollments(id),
+    CONSTRAINT fk_attendance_class_enrollment
+        FOREIGN KEY (class_enrollment_id)
+        REFERENCES class_enrollments(id)
+        ON DELETE CASCADE,
 
     CONSTRAINT uk_attendance
-        UNIQUE(enrollment_id, attendance_date)
+        UNIQUE(class_enrollment_id, attendance_date)
 );
