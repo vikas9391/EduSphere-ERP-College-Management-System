@@ -2,20 +2,14 @@ package com.collegeerp.Backend.attendance.service;
 
 import java.util.Locale;
 
-/**
- * Canonical attendance calculation policy.
- * PRESENT and LATE count as attended. ABSENT counts as missed. EXCUSED is excluded from the
- * attendance denominator. ATTENDED is accepted as a legacy alias for PRESENT during migration.
- */
+/** Canonical attendance calculation policy. */
 public final class AttendanceStatusPolicy {
 
     private AttendanceStatusPolicy() {}
 
     public static boolean isAttended(String status) {
         String normalized = normalize(status);
-        return "PRESENT".equals(normalized)
-                || "LATE".equals(normalized)
-                || "ATTENDED".equals(normalized);
+        return "PRESENT".equals(normalized) || "LATE".equals(normalized);
     }
 
     public static boolean countsTowardPercentage(String status) {
