@@ -12,10 +12,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("""
            SELECT DISTINCT a
            FROM Assignment a
-           JOIN FETCH a.subject
-           JOIN FETCH a.teacher
            JOIN FETCH a.classSubject cs
+           LEFT JOIN FETCH cs.subject
            LEFT JOIN FETCH cs.schoolClass
+           LEFT JOIN FETCH cs.teacher
            WHERE cs.id IN :classSubjectIds
            ORDER BY a.dueDate ASC
            """)
@@ -24,23 +24,11 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("""
            SELECT a
            FROM Assignment a
-           JOIN FETCH a.subject
-           JOIN FETCH a.teacher
-           LEFT JOIN FETCH a.classSubject cs
+           JOIN FETCH a.classSubject cs
+           LEFT JOIN FETCH cs.subject
            LEFT JOIN FETCH cs.schoolClass
-           WHERE a.subject.id IN :subjectIds
-           ORDER BY a.dueDate ASC
-           """)
-    List<Assignment> findBySubjectIdIn(List<Long> subjectIds);
-
-    @Query("""
-           SELECT a
-           FROM Assignment a
-           JOIN FETCH a.subject
-           JOIN FETCH a.teacher
-           LEFT JOIN FETCH a.classSubject cs
-           LEFT JOIN FETCH cs.schoolClass
-           WHERE a.teacher.id = :teacherId
+           LEFT JOIN FETCH cs.teacher t
+           WHERE t.id = :teacherId
            ORDER BY a.dueDate DESC
            """)
     List<Assignment> findByTeacherId(Long teacherId);
@@ -48,10 +36,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("""
            SELECT a
            FROM Assignment a
-           JOIN FETCH a.subject
-           JOIN FETCH a.teacher
-           LEFT JOIN FETCH a.classSubject cs
+           JOIN FETCH a.classSubject cs
+           LEFT JOIN FETCH cs.subject
            LEFT JOIN FETCH cs.schoolClass
+           LEFT JOIN FETCH cs.teacher
            ORDER BY a.dueDate DESC
            """)
     List<Assignment> findAllWithDetails();
@@ -59,10 +47,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("""
            SELECT a
            FROM Assignment a
-           JOIN FETCH a.subject
-           JOIN FETCH a.teacher
-           LEFT JOIN FETCH a.classSubject cs
+           JOIN FETCH a.classSubject cs
+           LEFT JOIN FETCH cs.subject
            LEFT JOIN FETCH cs.schoolClass
+           LEFT JOIN FETCH cs.teacher
            WHERE a.id = :id
            """)
     Optional<Assignment> findByIdWithDetails(Long id);
