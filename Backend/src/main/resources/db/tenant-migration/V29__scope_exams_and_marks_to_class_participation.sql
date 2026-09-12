@@ -1,8 +1,7 @@
--- Scope new exam schedules and marks to the exact taught class subject / student participation.
--- Existing rows remain valid with NULL compatibility columns until reconciliation is complete.
-
+-- Fresh-start exam and marks schema: schedules target the exact taught
+-- subject instance and marks target the student's exact class participation.
 ALTER TABLE exam_schedules
-    ADD COLUMN class_subject_id BIGINT;
+    ADD COLUMN class_subject_id BIGINT NOT NULL;
 
 ALTER TABLE exam_schedules
     ADD CONSTRAINT fk_exam_schedule_class_subject
@@ -13,18 +12,13 @@ ALTER TABLE exam_schedules
     DROP CONSTRAINT IF EXISTS uk_exam_subject;
 
 CREATE UNIQUE INDEX uq_exam_schedule_class_subject
-    ON exam_schedules(exam_id, class_subject_id)
-    WHERE class_subject_id IS NOT NULL;
-
-CREATE UNIQUE INDEX uq_exam_schedule_legacy_subject
-    ON exam_schedules(exam_id, subject_id)
-    WHERE class_subject_id IS NULL;
+    ON exam_schedules(exam_id, class_subject_id);
 
 CREATE INDEX idx_exam_schedule_class_subject
     ON exam_schedules(class_subject_id);
 
 ALTER TABLE marks
-    ADD COLUMN class_enrollment_id BIGINT;
+    ADD COLUMN class_enrollment_id BIGINT NOT NULL;
 
 ALTER TABLE marks
     ADD CONSTRAINT fk_marks_class_enrollment
