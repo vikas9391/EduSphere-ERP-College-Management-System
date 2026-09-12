@@ -3,14 +3,20 @@ import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardForRole, isRole, ROLES, type Role } from '@/constants/roles'
 
-/** Mirrors routeForRole() in LoginPage — kept in sync manually since there's no shared roles module yet. */
-
-/**   
- * `role` restricts the route to a specific JWT role (e.g. "SUPER_ADMIN"). Signed-in
- * users of any other role are bounced to their own dashboard rather than to /login,
- * since they do have a valid session — they just don't have access to this page.
+/**
+ * Protects authenticated frontend routes. Backend authorization remains the real
+ * security boundary; these checks keep users out of pages that are clearly intended
+ * for a different portal and avoid rendering unusable screens before an API call.
  */
-export function ProtectedRoute({ children, role }: { children: ReactNode; role?: Role }) {
+export function ProtectedRoute({
+  children,
+  role,
+  staffOnly = false,
+}: {
+  children: ReactNode
+  role?: Role
+  staffOnly?: boolean
+}) {
   const token = useAuthStore((s) => s.token)
   const userRole = useAuthStore((s) => s.user?.role)
 
@@ -19,6 +25,10 @@ export function ProtectedRoute({ children, role }: { children: ReactNode; role?:
   }
 
   if (role && !isRole(userRole, role)) {
+    return <Navigate to={dashboardForRole(userRole)} replace />
+  }
+
+  if (staffOnly && (isRole(userRole, ROLES.SUPER_ADMIN) || isRole(userRole, ROLES.TEACHER) || isRole(userRole, ROLES.STUDENT))) {
     return <Navigate to={dashboardForRole(userRole)} replace />
   }
 
