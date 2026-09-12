@@ -13,8 +13,7 @@ import java.time.LocalDate;
 @Builder
 public class AttendanceRequest {
 
-    private Long enrollmentId;
-
+    @NotNull(message = "Class enrollment is required")
     private Long classEnrollmentId;
 
     @NotNull(message = "Attendance date is required")
@@ -24,5 +23,4 @@ public class AttendanceRequest {
     private String status;
 
     private String remarks;
-
 }
