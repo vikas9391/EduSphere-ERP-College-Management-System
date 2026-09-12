@@ -2,7 +2,6 @@ package com.collegeerp.Backend.marks.entity;
 
 import com.collegeerp.Backend.examination.entity.ExamSchedule;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
-import com.collegeerp.Backend.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "marks",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"exam_schedule_id", "student_id"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"exam_schedule_id", "class_enrollment_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,10 +24,6 @@ public class Marks {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "exam_schedule_id", nullable = false)
     private ExamSchedule examSchedule;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "student_id", nullable = false)
-    private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "class_enrollment_id", nullable = false)
