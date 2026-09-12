@@ -23,20 +23,16 @@ public class ExamSchedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
 
-    /**
-     * Exact taught subject instance for new class-scoped exam schedules. Kept nullable while
-     * legacy Subject-only schedules are reconciled.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_subject_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_subject_id", nullable = false)
     private ClassSubject classSubject;
 
     @ManyToOne(fetch = FetchType.LAZY)
