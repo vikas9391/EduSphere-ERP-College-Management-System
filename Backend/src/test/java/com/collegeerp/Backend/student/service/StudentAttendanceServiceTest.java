@@ -38,7 +38,6 @@ class StudentAttendanceServiceTest {
 
         when(classEnrollmentRepository.findAllByStudentId(1L)).thenReturn(List.of(classEnrollment));
         when(attendanceRepository.findClassAttendanceByStudentId(1L)).thenReturn(List.of(present, absent));
-        when(attendanceRepository.findLegacyAttendanceByStudentId(1L)).thenReturn(List.of());
 
         StudentAttendanceResponse response = service().getAttendance(1L);
 
@@ -57,7 +56,6 @@ class StudentAttendanceServiceTest {
 
         when(classEnrollmentRepository.findAllByStudentId(1L)).thenReturn(List.of(classEnrollment));
         when(attendanceRepository.findClassAttendanceByStudentId(1L)).thenReturn(List.of());
-        when(attendanceRepository.findLegacyAttendanceByStudentId(1L)).thenReturn(List.of());
 
         StudentAttendanceResponse response = service().getAttendance(1L);
 
@@ -82,7 +80,6 @@ class StudentAttendanceServiceTest {
 
         when(classEnrollmentRepository.findAllByStudentId(1L)).thenReturn(List.of(classEnrollment));
         when(attendanceRepository.findClassAttendanceByStudentId(1L)).thenReturn(List.of(late, excused));
-        when(attendanceRepository.findLegacyAttendanceByStudentId(1L)).thenReturn(List.of());
 
         StudentAttendanceResponse response = service().getAttendance(1L);
 
@@ -90,51 +87,6 @@ class StudentAttendanceServiceTest {
         assertEquals(1, response.getClassesAttended());
         assertEquals(0, response.getClassesMissed());
         assertEquals(100.0, response.getOverallAttendancePercentage());
-    }
-
-    @Test
-    void migratedClassRowWinsOverMatchingLegacyRow() {
-        Subject subject = subject(14L, "DBMS", "DBMS");
-        ClassEnrollment classEnrollment = classEnrollment(34L, 24L, subject);
-        var legacyEnrollment = com.collegeerp.Backend.enrollment.entity.Enrollment.builder()
-                .id(50L).subject(subject).build();
-
-        Attendance classPresent = Attendance.builder()
-                .id(80L).classEnrollment(classEnrollment)
-                .attendanceDate(LocalDate.of(2026, 9, 1)).status("PRESENT").build();
-        Attendance legacyAbsent = Attendance.builder()
-                .id(81L).enrollment(legacyEnrollment)
-                .attendanceDate(LocalDate.of(2026, 9, 1)).status("ABSENT").build();
-
-        when(classEnrollmentRepository.findAllByStudentId(1L)).thenReturn(List.of(classEnrollment));
-        when(attendanceRepository.findClassAttendanceByStudentId(1L)).thenReturn(List.of(classPresent));
-        when(attendanceRepository.findLegacyAttendanceByStudentId(1L)).thenReturn(List.of(legacyAbsent));
-
-        StudentAttendanceResponse response = service().getAttendance(1L);
-
-        assertEquals(1, response.getTotalClasses());
-        assertEquals(1, response.getClassesAttended());
-        assertEquals(100.0, response.getOverallAttendancePercentage());
-    }
-
-    @Test
-    void legacyAttendanceStillWorksDuringMigration() {
-        Subject subject = subject(11L, "DBMS", "DBMS");
-        var enrollment = com.collegeerp.Backend.enrollment.entity.Enrollment.builder()
-                .id(50L).subject(subject).build();
-        Attendance present = Attendance.builder()
-                .id(60L).enrollment(enrollment)
-                .attendanceDate(LocalDate.of(2026, 9, 1)).status("PRESENT").build();
-
-        when(classEnrollmentRepository.findAllByStudentId(1L)).thenReturn(List.of());
-        when(attendanceRepository.findClassAttendanceByStudentId(1L)).thenReturn(List.of());
-        when(attendanceRepository.findLegacyAttendanceByStudentId(1L)).thenReturn(List.of(present));
-
-        StudentAttendanceResponse response = service().getAttendance(1L);
-
-        assertEquals(1, response.getTotalClasses());
-        assertEquals(1, response.getClassesAttended());
-        assertEquals("DBMS", response.getBySubject().get(0).getSubjectCode());
     }
 
     private StudentAttendanceService service() {
