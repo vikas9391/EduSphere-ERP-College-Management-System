@@ -1,14 +1,20 @@
-ALTER TABLE attendance ALTER COLUMN enrollment_id DROP NOT NULL;
-ALTER TABLE attendance ADD COLUMN class_enrollment_id BIGINT NULL;
+-- Fresh-start attendance schema: attendance belongs only to the exact
+-- student + taught-subject relationship represented by ClassEnrollment.
+ALTER TABLE attendance
+    DROP CONSTRAINT IF EXISTS uk_attendance;
+
+ALTER TABLE attendance
+    DROP CONSTRAINT IF EXISTS fk_attendance_enrollment;
+
+ALTER TABLE attendance
+    DROP COLUMN IF EXISTS enrollment_id;
+
+ALTER TABLE attendance
+    ADD COLUMN class_enrollment_id BIGINT NOT NULL;
 
 ALTER TABLE attendance
     ADD CONSTRAINT fk_attendance_class_enrollment
     FOREIGN KEY (class_enrollment_id) REFERENCES class_enrollments(id) ON DELETE CASCADE;
 
-ALTER TABLE attendance
-    ADD CONSTRAINT chk_attendance_enrollment_source
-    CHECK (enrollment_id IS NOT NULL OR class_enrollment_id IS NOT NULL);
-
 CREATE UNIQUE INDEX uk_attendance_class_enrollment_date
-    ON attendance(class_enrollment_id, attendance_date)
-    WHERE class_enrollment_id IS NOT NULL;
+    ON attendance(class_enrollment_id, attendance_date);
