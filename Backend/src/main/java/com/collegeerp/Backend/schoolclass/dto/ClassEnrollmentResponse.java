@@ -3,6 +3,7 @@ package com.collegeerp.Backend.schoolclass.dto;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -20,10 +21,15 @@ public class ClassEnrollmentResponse {
     private Integer semester;
     private Long teacherId;
     private String teacherName;
+    private Long subjectId;
     private String subjectCode;
     private String subjectName;
+    private String courseName;
     private Long studentId;
     private String studentName;
+    private String admissionNo;
     private ClassEnrollment.Source source;
     private LocalDateTime enrolledAt;
+    private LocalDate enrollmentDate;
+    private String status;
 }
