@@ -68,17 +68,11 @@ public class TeacherDashboardService {
 
     public TeacherDashboardResponse getDashboard(Long teacherId) {
         log.debug("Building class-scoped dashboard for teacher id={}", teacherId);
-
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
-
         List<ClassSubject> classSubjects = classSubjectRepository.findAllByTeacherId(teacherId);
         List<ClassEnrollment> classEnrollments = classEnrollmentRepository.findAllByTeacherId(teacherId);
-        long totalStudents = classEnrollments.stream()
-                .map(e -> e.getStudent().getId())
-                .distinct()
-                .count();
-
+        long totalStudents = classEnrollments.stream().map(e -> e.getStudent().getId()).distinct().count();
         List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
         List<Attendance> attendanceRecords = attendanceRepository.findClassAttendanceByTeacherId(teacherId);
         List<TeacherScheduleEntryResponse> todaysSchedule = scheduleService.getTodaysSchedule(teacherId);
@@ -106,67 +100,42 @@ public class TeacherDashboardService {
         if (assignments.isEmpty()) return 0;
         List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
         List<AssignmentSubmission> submissions = submissionRepository.findByAssignmentIdIn(assignmentIds);
-        return (int) submissions.stream()
-                .filter(s -> !EVALUATED_STATUS.equalsIgnoreCase(s.getStatus()))
-                .count();
+        return (int) submissions.stream().filter(s -> !EVALUATED_STATUS.equalsIgnoreCase(s.getStatus())).count();
     }
 
-    /** Only class subjects with an actual student roster require attendance today. */
-    private int countAttendancePendingToday(
-            List<ClassSubject> classSubjects,
-            List<ClassEnrollment> classEnrollments,
-            List<Attendance> attendanceRecords) {
+    private int countAttendancePendingToday(List<ClassSubject> classSubjects, List<ClassEnrollment> classEnrollments, List<Attendance> attendanceRecords) {
         LocalDate today = LocalDate.now();
-        Set<Long> activeClassSubjectIds = classEnrollments.stream()
-                .map(e -> e.getClassSubject().getId())
-                .collect(Collectors.toSet());
+        Set<Long> activeClassSubjectIds = classEnrollments.stream().map(e -> e.getClassSubject().getId()).collect(Collectors.toSet());
         Set<Long> markedToday = attendanceRecords.stream()
                 .filter(a -> a.getAttendanceDate() != null && a.getAttendanceDate().isEqual(today))
                 .filter(a -> a.getClassEnrollment() != null && a.getClassEnrollment().getClassSubject() != null)
                 .map(a -> a.getClassEnrollment().getClassSubject().getId())
                 .collect(Collectors.toSet());
-        return (int) classSubjects.stream()
-                .map(ClassSubject::getId)
-                .filter(activeClassSubjectIds::contains)
-                .filter(id -> !markedToday.contains(id))
-                .count();
+        return (int) classSubjects.stream().map(ClassSubject::getId).filter(activeClassSubjectIds::contains).filter(id -> !markedToday.contains(id)).count();
     }
 
     private List<SubjectAssignmentCountResponse> assignmentsPerSubject(List<Assignment> assignments) {
         Map<String, Long> counts = assignments.stream()
                 .collect(Collectors.groupingBy(a -> a.getClassSubject() != null
                         ? a.getClassSubject().getSubjectName()
-                        : a.getSubject().getSubjectName(), Collectors.counting()));
+                        : "Unassigned", Collectors.counting()));
         return counts.entrySet().stream()
-                .map(entry -> SubjectAssignmentCountResponse.builder()
-                        .subjectName(entry.getKey())
-                        .count(entry.getValue())
-                        .build())
+                .map(entry -> SubjectAssignmentCountResponse.builder().subjectName(entry.getKey()).count(entry.getValue()).build())
                 .toList();
     }
 
-    /** Last seven days using the same PRESENT/LATE/EXCUSED policy as student attendance. */
     private List<AttendanceTrendPointResponse> attendanceTrend(List<Attendance> attendanceRecords) {
         Map<LocalDate, List<Attendance>> byDate = attendanceRecords.stream()
                 .filter(a -> a.getAttendanceDate() != null)
                 .collect(Collectors.groupingBy(Attendance::getAttendanceDate));
-
         List<AttendanceTrendPointResponse> trend = new java.util.ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
             List<Attendance> dayRecords = byDate.getOrDefault(date, List.of());
-            long denominator = dayRecords.stream()
-                    .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
-                    .count();
-            long attended = dayRecords.stream()
-                    .filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus()))
-                    .filter(a -> AttendanceStatusPolicy.isAttended(a.getStatus()))
-                    .count();
+            long denominator = dayRecords.stream().filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus())).count();
+            long attended = dayRecords.stream().filter(a -> AttendanceStatusPolicy.countsTowardPercentage(a.getStatus())).filter(a -> AttendanceStatusPolicy.isAttended(a.getStatus())).count();
             int rate = denominator == 0 ? 0 : (int) Math.round((attended * 100.0) / denominator);
-            trend.add(AttendanceTrendPointResponse.builder()
-                    .label(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                    .ratePercentage(rate)
-                    .build());
+            trend.add(AttendanceTrendPointResponse.builder().label(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)).ratePercentage(rate).build());
         }
         return trend;
     }
@@ -175,16 +144,17 @@ public class TeacherDashboardService {
         return assignments.stream()
                 .sorted(Comparator.comparing(Assignment::getDueDate).reversed())
                 .limit(5)
-                .map(a -> TeacherAssignmentResponse.builder()
-                        .assignmentId(a.getId())
-                        .title(a.getTitle())
-                        .subjectId(a.getSubject().getId())
-                        .subjectName(a.getClassSubject() != null
-                                ? a.getClassSubject().getSubjectName()
-                                : a.getSubject().getSubjectName())
-                        .dueDate(a.getDueDate())
-                        .maxMarks(a.getMaxMarks())
-                        .build())
+                .map(a -> {
+                    ClassSubject cs = a.getClassSubject();
+                    return TeacherAssignmentResponse.builder()
+                            .assignmentId(a.getId())
+                            .title(a.getTitle())
+                            .subjectId(cs != null && cs.getSubject() != null ? cs.getSubject().getId() : cs != null ? cs.getId() : null)
+                            .subjectName(cs != null ? cs.getSubjectName() : "Unassigned")
+                            .dueDate(a.getDueDate())
+                            .maxMarks(a.getMaxMarks())
+                            .build();
+                })
                 .toList();
     }
 }
