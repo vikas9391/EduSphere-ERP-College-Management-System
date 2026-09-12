@@ -63,7 +63,7 @@ export default function App() {
           <Route path="/colleges/:tenantId" element={<ProtectedRoute role="SUPER_ADMIN"><CollegeDetailPage /></ProtectedRoute>} />
 
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
           <Route path="/subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
@@ -81,17 +81,17 @@ export default function App() {
           <Route path="/submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
           <Route path="/announcements" element={<ProtectedRoute><AnnouncementsPage /></ProtectedRoute>} />
 
-          <Route path="/teacher/dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher/dashboard" element={<ProtectedRoute role="TEACHER"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/classes" element={<ProtectedRoute role="TEACHER"><ClassesPage /></ProtectedRoute>} />
           <Route path="/teacher/classes/:id" element={<ProtectedRoute role="TEACHER"><ClassDetailPage /></ProtectedRoute>} />
           <Route path="/teacher/timetable" element={<ProtectedRoute role="TEACHER"><TeacherTimetablePage /></ProtectedRoute>} />
 
-          <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/dashboard" element={<ProtectedRoute role="STUDENT"><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/classes" element={<ProtectedRoute role="STUDENT"><StudentClassesPage /></ProtectedRoute>} />
-          <Route path="/student/profile" element={<ProtectedRoute><StudentProfilePage /></ProtectedRoute>} />
-          <Route path="/student/enrollments" element={<ProtectedRoute><StudentEnrollmentsPage /></ProtectedRoute>} />
-          <Route path="/student/attendance" element={<ProtectedRoute><StudentAttendancePage /></ProtectedRoute>} />
-          <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignmentsPage /></ProtectedRoute>} />
+          <Route path="/student/profile" element={<ProtectedRoute role="STUDENT"><StudentProfilePage /></ProtectedRoute>} />
+          <Route path="/student/enrollments" element={<ProtectedRoute role="STUDENT"><StudentEnrollmentsPage /></ProtectedRoute>} />
+          <Route path="/student/attendance" element={<ProtectedRoute role="STUDENT"><StudentAttendancePage /></ProtectedRoute>} />
+          <Route path="/student/assignments" element={<ProtectedRoute role="STUDENT"><StudentAssignmentsPage /></ProtectedRoute>} />
           <Route path="/student/timetable" element={<ProtectedRoute role="STUDENT"><StudentTimetablePage /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
