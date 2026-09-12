@@ -1,7 +1,6 @@
 package com.collegeerp.Backend.student.entity;
 
 import com.collegeerp.Backend.course.entity.Course;
-import com.collegeerp.Backend.enrollment.entity.Enrollment;
 import com.collegeerp.Backend.marks.entity.Marks;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.entity.ClassStudent;
@@ -67,11 +66,6 @@ public class Student {
     @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ClassEnrollment> classEnrollments = new HashSet<>();
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<Enrollment> enrollments = new HashSet<>();
 
     /** Exam results are represented by marks -> exam schedule -> exam. */
     @JsonIgnore
