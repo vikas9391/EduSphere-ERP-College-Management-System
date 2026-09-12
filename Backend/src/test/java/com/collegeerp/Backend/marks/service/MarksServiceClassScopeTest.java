@@ -10,9 +10,6 @@ import com.collegeerp.Backend.marks.repository.MarksRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
-import com.collegeerp.Backend.student.entity.Student;
-import com.collegeerp.Backend.student.repository.StudentRepository;
-import com.collegeerp.Backend.subject.entity.Subject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +28,6 @@ class MarksServiceClassScopeTest {
 
     @Mock private MarksRepository marksRepository;
     @Mock private ExamScheduleRepository examScheduleRepository;
-    @Mock private StudentRepository studentRepository;
     @Mock private ClassEnrollmentRepository classEnrollmentRepository;
 
     @AfterEach
@@ -42,17 +38,13 @@ class MarksServiceClassScopeTest {
     @Test
     void rejectsMarksForStudentOutsideExactClassSubject() {
         User teacher = User.builder().id(7L).firstName("Teacher").lastName("A").build();
-        Subject subject = Subject.builder()
-                .id(10L).subjectCode("JAVA").subjectName("Java").credits(4).teacher(teacher).build();
         ClassSubject classSubject = ClassSubject.builder()
-                .id(20L).subject(subject).subjectCode("JAVA").subjectName("Java").teacher(teacher).build();
+                .id(20L).subjectCode("JAVA").subjectName("Java").teacher(teacher).build();
         Exam exam = Exam.builder().id(30L).examName("Midterm").semester(1).academicYear("2026-27").build();
         ExamSchedule schedule = ExamSchedule.builder()
                 .id(40L).exam(exam).classSubject(classSubject).maxMarks(100).build();
-        Student student = Student.builder().id(50L).firstName("Rahul").lastName("B").build();
 
         when(examScheduleRepository.findByIdWithDetails(40L)).thenReturn(Optional.of(schedule));
-        when(studentRepository.findById(50L)).thenReturn(Optional.of(student));
         when(classEnrollmentRepository.findByClassSubjectIdAndStudentId(20L, 50L)).thenReturn(Optional.empty());
 
         UserPrincipal principal = new UserPrincipal(7L, "teacher@example.com", "TEACHER");
@@ -70,10 +62,6 @@ class MarksServiceClassScopeTest {
     }
 
     private MarksService service() {
-        return new MarksService(
-                marksRepository,
-                examScheduleRepository,
-                studentRepository,
-                classEnrollmentRepository);
+        return new MarksService(marksRepository, examScheduleRepository, classEnrollmentRepository);
     }
 }
