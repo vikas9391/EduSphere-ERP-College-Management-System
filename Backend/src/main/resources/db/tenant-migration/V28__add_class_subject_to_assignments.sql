@@ -10,3 +10,12 @@ ALTER TABLE assignments
 
 CREATE INDEX idx_assignment_class_subject
     ON assignments(class_subject_id);
+
+ALTER TABLE assignments
+    DROP CONSTRAINT IF EXISTS fk_assignment_subject;
+
+ALTER TABLE assignments
+    DROP COLUMN IF EXISTS subject_id;
+
+ALTER TABLE assignments
+    DROP COLUMN IF EXISTS teacher_id;
