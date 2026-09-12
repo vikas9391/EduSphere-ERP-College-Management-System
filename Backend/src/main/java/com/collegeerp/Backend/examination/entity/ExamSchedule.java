@@ -2,7 +2,6 @@ package com.collegeerp.Backend.examination.entity;
 
 import com.collegeerp.Backend.common.User;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
-import com.collegeerp.Backend.subject.entity.Subject;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,10 +25,6 @@ public class ExamSchedule {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subject_id", nullable = false)
-    private Subject subject;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "class_subject_id", nullable = false)
