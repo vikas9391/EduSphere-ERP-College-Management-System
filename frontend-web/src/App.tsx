@@ -62,7 +62,7 @@ export default function App() {
           <Route path="/colleges" element={<ProtectedRoute role="SUPER_ADMIN"><CollegesPage /></ProtectedRoute>} />
           <Route path="/colleges/:tenantId" element={<ProtectedRoute role="SUPER_ADMIN"><CollegeDetailPage /></ProtectedRoute>} />
 
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute staffOnly><DashboardPage /></ProtectedRoute>} />
           <Route path="/admin/dashboard" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
