@@ -16,9 +16,6 @@ public class ExamScheduleRequest {
     @NotNull(message = "Exam is required")
     private Long examId;
 
-    @NotNull(message = "Subject is required")
-    private Long subjectId;
-
     @NotNull(message = "Class subject is required")
     private Long classSubjectId;
 
