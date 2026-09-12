@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, BookMarked, ShieldCheck, IdCard, Megaphone, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, ShieldCheck, IdCard, Megaphone, type LucideIcon } from 'lucide-react'
 
 export interface StaffModule { to: string; label: string; icon: LucideIcon; desc: string; permissions: string[] | null; category: 'administration' | 'operational' }
 
@@ -10,7 +10,6 @@ export const staffModules: StaffModule[] = [
   { to: '/subjects', label: 'Subjects', icon: Layers, desc: 'Subjects offered in each course', permissions: ['VIEW_SUBJECT'], category: 'operational' },
   { to: '/teachers', label: 'Teachers', icon: GraduationCap, desc: 'Faculty management', permissions: ['VIEW_TEACHER'], category: 'operational' },
   { to: '/students', label: 'Students', icon: Users, desc: 'Student records', permissions: ['VIEW_STUDENT'], category: 'operational' },
-  { to: '/enrollments', label: 'Enrollments', icon: BookMarked, desc: 'Student subject enrollment', permissions: ['VIEW_ENROLLMENT', 'MANAGE_ENROLLMENT'], category: 'operational' },
   { to: '/attendance', label: 'Attendance', icon: CalendarCheck, desc: 'Track daily attendance', permissions: ['VIEW_ATTENDANCE_REPORTS', 'MANAGE_ATTENDANCE'], category: 'operational' },
   { to: '/assignments', label: 'Assignments', icon: ClipboardList, desc: 'Manage assignments', permissions: ['VIEW_ASSIGNMENTS', 'MANAGE_ASSIGNMENTS'], category: 'operational' },
   { to: '/submissions', label: 'Submissions', icon: Upload, desc: 'Assignment submissions', permissions: ['VIEW_ASSIGNMENTS', 'MANAGE_ASSIGNMENTS'], category: 'operational' },
