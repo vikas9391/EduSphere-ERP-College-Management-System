@@ -1,8 +1,8 @@
 package com.collegeerp.Backend.student.portal;
 
 import com.collegeerp.Backend.common.dto.ApiResponse;
-import com.collegeerp.Backend.enrollment.dto.EnrollmentResponse;
 import com.collegeerp.Backend.result.dto.OverallResultResponse;
+import com.collegeerp.Backend.schoolclass.dto.ClassEnrollmentResponse;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.dto.*;
 import com.collegeerp.Backend.student.service.*;
@@ -57,7 +57,7 @@ public class StudentPortalController {
     }
 
     @GetMapping("/enrollments")
-    public ApiResponse<List<EnrollmentResponse>> enrollments(Authentication authentication) {
+    public ApiResponse<List<ClassEnrollmentResponse>> enrollments(Authentication authentication) {
         return ApiResponse.success(enrollmentQueryService.getEnrollments(studentId(authentication)));
     }
 
