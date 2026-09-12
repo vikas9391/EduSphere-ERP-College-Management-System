@@ -19,17 +19,15 @@ import java.util.Objects;
 
 @Service
 public class AssignmentSubmissionService {
-
     private final AssignmentSubmissionRepository submissionRepository;
     private final AssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
 
-    public AssignmentSubmissionService(
-            AssignmentSubmissionRepository submissionRepository,
-            AssignmentRepository assignmentRepository,
-            StudentRepository studentRepository,
-            ClassEnrollmentRepository classEnrollmentRepository) {
+    public AssignmentSubmissionService(AssignmentSubmissionRepository submissionRepository,
+                                       AssignmentRepository assignmentRepository,
+                                       StudentRepository studentRepository,
+                                       ClassEnrollmentRepository classEnrollmentRepository) {
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
         this.studentRepository = studentRepository;
@@ -45,82 +43,58 @@ public class AssignmentSubmissionService {
         if (submissionRepository.existsByAssignmentIdAndStudentId(assignment.getId(), student.getId())) {
             throw new RuntimeException("Assignment already submitted.");
         }
-
         requireEligibleStudent(assignment, student.getId());
-
         if (request.getSubmissionUrl() == null || request.getSubmissionUrl().isBlank()) {
             throw new IllegalArgumentException("Submission URL is required");
         }
 
         AssignmentSubmission submission = AssignmentSubmission.builder()
-                .assignment(assignment)
-                .student(student)
+                .assignment(assignment).student(student)
                 .submissionUrl(request.getSubmissionUrl().trim())
-                .submittedAt(LocalDateTime.now())
-                .status("SUBMITTED")
-                .build();
-
+                .submittedAt(LocalDateTime.now()).status("SUBMITTED").build();
         return map(submissionRepository.save(submission));
     }
 
     public List<AssignmentSubmissionResponse> getAllSubmissions(UserPrincipal principal) {
-        if (isAdmin(principal)) {
-            return submissionRepository.findAll().stream().map(this::map).toList();
-        }
+        if (isAdmin(principal)) return submissionRepository.findAll().stream().map(this::map).toList();
         requireTeacher(principal);
-        return submissionRepository.findByAssignmentTeacherId(principal.getId())
-                .stream().map(this::map).toList();
+        return submissionRepository.findByAssignmentTeacherId(principal.getId()).stream().map(this::map).toList();
     }
 
-    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(
-            Long assignmentId, UserPrincipal principal) {
+    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(Long assignmentId, UserPrincipal principal) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
         requireAssignmentOwner(assignment, principal);
-        return submissionRepository.findByAssignmentIdWithDetails(assignmentId)
-                .stream().map(this::map).toList();
+        return submissionRepository.findByAssignmentIdWithDetails(assignmentId).stream().map(this::map).toList();
     }
 
-    public AssignmentSubmissionResponse evaluateSubmission(
-            Long id, Integer marks, String feedback, UserPrincipal principal) {
+    public AssignmentSubmissionResponse evaluateSubmission(Long id, Integer marks, String feedback, UserPrincipal principal) {
         AssignmentSubmission submission = submissionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Submission not found"));
-
         requireAssignmentOwner(submission.getAssignment(), principal);
-
         Integer maxMarks = submission.getAssignment().getMaxMarks();
         if (marks == null || marks < 0 || marks > maxMarks) {
             throw new IllegalArgumentException("Marks must be between 0 and " + maxMarks);
         }
-
         submission.setMarks(marks);
         submission.setFeedback(feedback);
         submission.setStatus("EVALUATED");
-
         return map(submissionRepository.save(submission));
     }
 
     private void requireEligibleStudent(Assignment assignment, Long studentId) {
-        if (assignment.getClassSubject() == null) {
-            throw new AccessDeniedException(
-                    "This assignment is not class-scoped and cannot accept new submissions");
-        }
-
-        if (!classEnrollmentRepository.existsByClassSubjectIdAndStudentId(
-                assignment.getClassSubject().getId(), studentId)) {
-            throw new AccessDeniedException(
-                    "You are not enrolled in the class subject for this assignment");
+        if (assignment.getClassSubject() == null ||
+                !classEnrollmentRepository.existsByClassSubjectIdAndStudentId(assignment.getClassSubject().getId(), studentId)) {
+            throw new AccessDeniedException("You are not enrolled in the class subject for this assignment");
         }
     }
 
     private void requireAssignmentOwner(Assignment assignment, UserPrincipal principal) {
-        if (isAdmin(principal)) {
-            return;
-        }
+        if (isAdmin(principal)) return;
         requireTeacher(principal);
-        if (assignment.getTeacher() == null
-                || !Objects.equals(assignment.getTeacher().getId(), principal.getId())) {
-            throw new AccessDeniedException("You can manage only submissions for your own assignments");
+        if (assignment.getClassSubject() == null || assignment.getClassSubject().getTeacher() == null
+                || !Objects.equals(assignment.getClassSubject().getTeacher().getId(), principal.getId())) {
+            throw new AccessDeniedException("You can manage only submissions for your own class subjects");
         }
     }
 
@@ -131,22 +105,15 @@ public class AssignmentSubmissionService {
     }
 
     private boolean isAdmin(UserPrincipal principal) {
-        return "ADMIN".equalsIgnoreCase(principal.getRole())
-                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
+        return "ADMIN".equalsIgnoreCase(principal.getRole()) || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
     }
 
     private AssignmentSubmissionResponse map(AssignmentSubmission s) {
         return AssignmentSubmissionResponse.builder()
-                .id(s.getId())
-                .assignmentId(s.getAssignment().getId())
-                .assignmentTitle(s.getAssignment().getTitle())
+                .id(s.getId()).assignmentId(s.getAssignment().getId()).assignmentTitle(s.getAssignment().getTitle())
                 .studentId(s.getStudent().getId())
                 .studentName(s.getStudent().getFirstName() + " " + s.getStudent().getLastName())
-                .submissionUrl(s.getSubmissionUrl())
-                .submittedAt(s.getSubmittedAt())
-                .marks(s.getMarks())
-                .feedback(s.getFeedback())
-                .status(s.getStatus())
-                .build();
+                .submissionUrl(s.getSubmissionUrl()).submittedAt(s.getSubmittedAt())
+                .marks(s.getMarks()).feedback(s.getFeedback()).status(s.getStatus()).build();
     }
 }
