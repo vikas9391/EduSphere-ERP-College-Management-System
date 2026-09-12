@@ -1,5 +1,0 @@
--- Intentionally empty.
--- Class-based attendance belongs to tenant schemas and is provisioned by
--- db/tenant-migration/V27__support_class_attendance.sql.
--- Keeping this version as a no-op preserves migration ordering without trying
--- to reference tenant-only tables from the public schema.
