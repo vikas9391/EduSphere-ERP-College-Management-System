@@ -13,7 +13,8 @@ public final class AttendanceStatusPolicy {
     }
 
     public static boolean countsTowardPercentage(String status) {
-        return !"EXCUSED".equals(normalize(status));
+        String normalized = normalize(status);
+        return !"EXCUSED".equals(normalized) && !"HOLIDAY".equals(normalized);
     }
 
     private static String normalize(String status) {
