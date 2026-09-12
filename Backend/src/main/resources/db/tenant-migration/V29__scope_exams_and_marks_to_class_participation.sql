@@ -36,6 +36,9 @@ CREATE INDEX idx_marks_class_enrollment
     ON marks(class_enrollment_id);
 
 ALTER TABLE marks
+    DROP CONSTRAINT IF EXISTS uk_marks_schedule_student;
+
+ALTER TABLE marks
     DROP CONSTRAINT IF EXISTS fk_marks_student;
 
 ALTER TABLE marks
