@@ -17,13 +17,26 @@ CREATE UNIQUE INDEX uq_exam_schedule_class_subject
 CREATE INDEX idx_exam_schedule_class_subject
     ON exam_schedules(class_subject_id);
 
+ALTER TABLE exam_schedules
+    DROP CONSTRAINT IF EXISTS fk_schedule_subject;
+
+ALTER TABLE exam_schedules
+    DROP COLUMN IF EXISTS subject_id;
+
 ALTER TABLE marks
     ADD COLUMN class_enrollment_id BIGINT NOT NULL;
 
 ALTER TABLE marks
     ADD CONSTRAINT fk_marks_class_enrollment
         FOREIGN KEY (class_enrollment_id)
-        REFERENCES class_enrollments(id);
+        REFERENCES class_enrollments(id)
+        ON DELETE CASCADE;
 
 CREATE INDEX idx_marks_class_enrollment
     ON marks(class_enrollment_id);
+
+ALTER TABLE marks
+    DROP CONSTRAINT IF EXISTS fk_marks_student;
+
+ALTER TABLE marks
+    DROP COLUMN IF EXISTS student_id;
