@@ -4,13 +4,9 @@ import com.collegeerp.Backend.assignment.dto.AssignmentRequest;
 import com.collegeerp.Backend.assignment.dto.AssignmentResponse;
 import com.collegeerp.Backend.assignment.entity.Assignment;
 import com.collegeerp.Backend.assignment.repository.AssignmentRepository;
-import com.collegeerp.Backend.common.User;
-import com.collegeerp.Backend.common.UserRepository;
 import com.collegeerp.Backend.schoolclass.entity.ClassSubject;
 import com.collegeerp.Backend.schoolclass.repository.ClassSubjectRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
-import com.collegeerp.Backend.subject.entity.Subject;
-import com.collegeerp.Backend.subject.repository.SubjectRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -22,35 +18,21 @@ import java.util.Objects;
 public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
-    private final SubjectRepository subjectRepository;
     private final ClassSubjectRepository classSubjectRepository;
-    private final UserRepository userRepository;
 
-    public AssignmentService(
-            AssignmentRepository assignmentRepository,
-            SubjectRepository subjectRepository,
-            ClassSubjectRepository classSubjectRepository,
-            UserRepository userRepository) {
+    public AssignmentService(AssignmentRepository assignmentRepository,
+                             ClassSubjectRepository classSubjectRepository) {
         this.assignmentRepository = assignmentRepository;
-        this.subjectRepository = subjectRepository;
         this.classSubjectRepository = classSubjectRepository;
-        this.userRepository = userRepository;
     }
 
     public AssignmentResponse createAssignment(AssignmentRequest request, UserPrincipal principal) {
-        Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found"));
-        User teacher = userRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher not found"));
-
         validateAssignmentValues(request);
-        ClassSubject classSubject = resolveClassSubject(request, teacher, principal);
-        requireTeacherCanManage(subject, teacher, classSubject, principal);
+        ClassSubject classSubject = resolveClassSubject(request.getClassSubjectId());
+        requireClassSubjectTeacher(classSubject, principal);
 
         Assignment assignment = Assignment.builder()
-                .subject(subject)
                 .classSubject(classSubject)
-                .teacher(teacher)
                 .title(request.getTitle().trim())
                 .description(request.getDescription())
                 .dueDate(request.getDueDate())
@@ -79,20 +61,13 @@ public class AssignmentService {
     public AssignmentResponse updateAssignment(Long id, AssignmentRequest request, UserPrincipal principal) {
         Assignment assignment = assignmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
-
-        Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found"));
-        User teacher = userRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher not found"));
-
         validateAssignmentValues(request);
         requireAssignmentOwner(assignment, principal);
-        ClassSubject classSubject = resolveClassSubject(request, teacher, principal);
-        requireTeacherCanManage(subject, teacher, classSubject, principal);
 
-        assignment.setSubject(subject);
+        ClassSubject classSubject = resolveClassSubject(request.getClassSubjectId());
+        requireClassSubjectTeacher(classSubject, principal);
+
         assignment.setClassSubject(classSubject);
-        assignment.setTeacher(teacher);
         assignment.setTitle(request.getTitle().trim());
         assignment.setDescription(request.getDescription());
         assignment.setDueDate(request.getDueDate());
@@ -108,49 +83,17 @@ public class AssignmentService {
         assignmentRepository.delete(assignment);
     }
 
-    private ClassSubject resolveClassSubject(
-            AssignmentRequest request, User teacher, UserPrincipal principal) {
-        if (request.getClassSubjectId() == null) {
-            throw new IllegalArgumentException(
-                    "Class subject is required; select the exact class subject for this assignment");
-        }
-
-        ClassSubject classSubject = classSubjectRepository.findByIdWithRelations(request.getClassSubjectId())
+    private ClassSubject resolveClassSubject(Long classSubjectId) {
+        return classSubjectRepository.findByIdWithRelations(classSubjectId)
                 .orElseThrow(() -> new RuntimeException("Class subject not found"));
-
-        if (classSubject.getSubject() == null
-                || !Objects.equals(classSubject.getSubject().getId(), request.getSubjectId())) {
-            throw new IllegalArgumentException("Class subject does not belong to the selected subject");
-        }
-
-        if (classSubject.getTeacher() == null
-                || !Objects.equals(classSubject.getTeacher().getId(), teacher.getId())) {
-            throw new IllegalArgumentException("The selected teacher does not teach this class subject");
-        }
-
-        return classSubject;
     }
 
-    private void requireTeacherCanManage(
-            Subject subject, User teacher, ClassSubject classSubject, UserPrincipal principal) {
-        if (classSubject != null
-                && classSubject.getTeacher() != null
-                && !Objects.equals(classSubject.getTeacher().getId(), teacher.getId())) {
-            throw new IllegalArgumentException("The selected teacher does not teach this class subject");
-        }
-
+    private void requireClassSubjectTeacher(ClassSubject classSubject, UserPrincipal principal) {
         if (isAdmin(principal)) {
-            if (classSubject == null && subject.getTeacher() != null
-                    && !Objects.equals(subject.getTeacher().getId(), teacher.getId())) {
-                throw new IllegalArgumentException("The selected teacher is not assigned to this subject");
-            }
             return;
         }
-
         requireTeacher(principal);
-        if (!Objects.equals(principal.getId(), teacher.getId())
-                || classSubject == null
-                || classSubject.getTeacher() == null
+        if (classSubject.getTeacher() == null
                 || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())) {
             throw new AccessDeniedException("You can manage assignments only for class subjects assigned to you");
         }
@@ -161,9 +104,10 @@ public class AssignmentService {
             return;
         }
         requireTeacher(principal);
-        if (assignment.getTeacher() == null
-                || !Objects.equals(assignment.getTeacher().getId(), principal.getId())) {
-            throw new AccessDeniedException("You can access only your own assignments");
+        if (assignment.getClassSubject() == null
+                || assignment.getClassSubject().getTeacher() == null
+                || !Objects.equals(assignment.getClassSubject().getTeacher().getId(), principal.getId())) {
+            throw new AccessDeniedException("You can access only assignments for your class subjects");
         }
     }
 
@@ -179,8 +123,8 @@ public class AssignmentService {
     }
 
     private void validateAssignmentValues(AssignmentRequest request) {
-        if (request.getSubjectId() == null || request.getTeacherId() == null) {
-            throw new IllegalArgumentException("Subject and teacher are required");
+        if (request.getClassSubjectId() == null) {
+            throw new IllegalArgumentException("Class subject is required");
         }
         if (request.getTitle() == null || request.getTitle().isBlank()) {
             throw new IllegalArgumentException("Assignment title is required");
@@ -194,18 +138,19 @@ public class AssignmentService {
     }
 
     private AssignmentResponse map(Assignment a) {
-        ClassSubject classSubject = a.getClassSubject();
+        ClassSubject cs = a.getClassSubject();
+        var schoolClass = cs.getSchoolClass();
+        var teacher = cs.getTeacher();
+        var linkedSubject = cs.getSubject();
         return AssignmentResponse.builder()
                 .id(a.getId())
-                .subjectId(a.getSubject().getId())
-                .subjectName(a.getSubject().getSubjectName())
-                .classSubjectId(classSubject != null ? classSubject.getId() : null)
-                .classId(classSubject != null && classSubject.getSchoolClass() != null
-                        ? classSubject.getSchoolClass().getId() : null)
-                .className(classSubject != null && classSubject.getSchoolClass() != null
-                        ? classSubject.getSchoolClass().getName() : null)
-                .teacherId(a.getTeacher().getId())
-                .teacherName(a.getTeacher().getFirstName() + " " + a.getTeacher().getLastName())
+                .subjectId(linkedSubject != null ? linkedSubject.getId() : null)
+                .subjectName(linkedSubject != null ? linkedSubject.getSubjectName() : cs.getSubjectName())
+                .classSubjectId(cs.getId())
+                .classId(schoolClass != null ? schoolClass.getId() : null)
+                .className(schoolClass != null ? schoolClass.getName() : null)
+                .teacherId(teacher != null ? teacher.getId() : null)
+                .teacherName(teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null)
                 .title(a.getTitle())
                 .description(a.getDescription())
                 .dueDate(a.getDueDate())
