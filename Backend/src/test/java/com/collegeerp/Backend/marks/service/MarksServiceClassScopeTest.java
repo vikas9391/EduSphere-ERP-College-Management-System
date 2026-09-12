@@ -48,12 +48,11 @@ class MarksServiceClassScopeTest {
                 .id(20L).subject(subject).subjectCode("JAVA").subjectName("Java").teacher(teacher).build();
         Exam exam = Exam.builder().id(30L).examName("Midterm").semester(1).academicYear("2026-27").build();
         ExamSchedule schedule = ExamSchedule.builder()
-                .id(40L).exam(exam).subject(subject).classSubject(classSubject).maxMarks(100).build();
+                .id(40L).exam(exam).classSubject(classSubject).maxMarks(100).build();
         Student student = Student.builder().id(50L).firstName("Rahul").lastName("B").build();
 
         when(examScheduleRepository.findByIdWithDetails(40L)).thenReturn(Optional.of(schedule));
         when(studentRepository.findById(50L)).thenReturn(Optional.of(student));
-        when(marksRepository.existsByExamScheduleIdAndStudentId(40L, 50L)).thenReturn(false);
         when(classEnrollmentRepository.findByClassSubjectIdAndStudentId(20L, 50L)).thenReturn(Optional.empty());
 
         UserPrincipal principal = new UserPrincipal(7L, "teacher@example.com", "TEACHER");
