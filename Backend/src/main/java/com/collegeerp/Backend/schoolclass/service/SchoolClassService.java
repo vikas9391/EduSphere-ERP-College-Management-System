@@ -27,15 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Class creation and roster management.
- *
- * Classes are visible to all teachers in the tenant. Any teacher may add students to a
- * class roster, while destructive class operations remain owner/admin controlled.
- * Auto-enrollment of new roster members into existing MANDATORY subjects happens here;
- * the reverse direction (a new MANDATORY subject enrolling the existing roster) lives in
- * {@link ClassSubjectService}.
- */
 @Service
 @Transactional
 public class SchoolClassService {
@@ -69,10 +60,8 @@ public class SchoolClassService {
 
     public SchoolClassResponse createClass(Long teacherId, String role, SchoolClassRequest request) {
         requireTeacher(role);
-
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Teacher", teacherId));
-
         SchoolClass schoolClass = SchoolClass.builder()
                 .name(request.getName())
                 .academicYear(request.getAcademicYear())
@@ -81,17 +70,11 @@ public class SchoolClassService {
                 .teacher(teacher)
                 .createdAt(LocalDateTime.now())
                 .build();
-
         schoolClass = schoolClassRepository.save(schoolClass);
         log.info("Created class id={} name='{}' teacherId={}", schoolClass.getId(), schoolClass.getName(), teacherId);
-
         return map(schoolClass, 0, 0);
     }
 
-    /**
-     * All teachers can see all classes in the current tenant. This intentionally does not
-     * use the creator/owner as a filter; classes are shared teaching resources.
-     */
     @Transactional(readOnly = true)
     public List<SchoolClassResponse> getMyClasses(Long teacherId, String role) {
         requireTeacher(role);
@@ -115,7 +98,6 @@ public class SchoolClassService {
                 .toList();
     }
 
-    /** Any teacher may inspect a shared class. */
     @Transactional(readOnly = true)
     public SchoolClassResponse getClass(Long classId, Long principalId, String role) {
         SchoolClass schoolClass = findClassOrThrow(classId);
@@ -125,7 +107,6 @@ public class SchoolClassService {
                 classSubjectRepository.countBySchoolClassId(classId));
     }
 
-    /** Class deletion remains restricted to the creator/admin to avoid destructive conflicts. */
     public void deleteClass(Long classId, Long principalId, String role) {
         SchoolClass schoolClass = findClassOrThrow(classId);
         requireOwnerOrAdmin(schoolClass, principalId, role);
@@ -133,14 +114,9 @@ public class SchoolClassService {
         log.info("Deleted class id={}", classId);
     }
 
-    /**
-     * Any teacher may add students to any shared class. Newly-added students are also
-     * auto-enrolled into the class's existing MANDATORY subjects.
-     */
     public List<ClassStudentResponse> addStudents(Long classId, Long principalId, String role, AddStudentsRequest request) {
         SchoolClass schoolClass = findClassOrThrow(classId);
         requireTeacherOrAdmin(role);
-
         List<ClassSubject> mandatorySubjects = classSubjectRepository.findAllByClassId(classId).stream()
                 .filter(s -> s.getEnrollmentMode() == ClassSubject.EnrollmentMode.MANDATORY)
                 .toList();
@@ -151,40 +127,37 @@ public class SchoolClassService {
             }
             Student student = studentRepository.findById(studentId)
                     .orElseThrow(() -> ResourceNotFoundException.of("Student", studentId));
-
             classStudentRepository.save(ClassStudent.builder()
                     .schoolClass(schoolClass)
                     .student(student)
                     .addedAt(LocalDateTime.now())
                     .build());
-
             for (ClassSubject subject : mandatorySubjects) {
                 autoEnrollIfAbsent(subject, student);
             }
         }
-
         log.info("Teacher/admin id={} added {} student(s) to shared class id={}",
                 principalId, request.getStudentIds().size(), classId);
         return getRoster(classId, principalId, role);
     }
 
-    /** Removing a student remains owner/admin controlled because it changes the shared roster. */
+    /** Removing a roster member also removes every class-subject enrollment for that class.
+     * Attendance and marks attached to those class-enrollments are then removed by FK cascade. */
     public void removeStudent(Long classId, Long studentId, Long principalId, String role) {
         SchoolClass schoolClass = findClassOrThrow(classId);
         requireOwnerOrAdmin(schoolClass, principalId, role);
-
         ClassStudent entry = classStudentRepository.findBySchoolClassIdAndStudentId(classId, studentId)
                 .orElseThrow(() -> new BadRequestException("This student is not on the class roster"));
 
+        classEnrollmentRepository.deleteAllByClassSubjectSchoolClassIdAndStudentId(classId, studentId);
         classStudentRepository.delete(entry);
-        log.info("Removed student id={} from class id={}", studentId, classId);
+        log.info("Removed student id={} and class enrollments from class id={}", studentId, classId);
     }
 
     @Transactional(readOnly = true)
     public List<ClassStudentResponse> getRoster(Long classId, Long principalId, String role) {
         findClassOrThrow(classId);
         requireTeacherOrAdmin(role);
-
         return classStudentRepository.findAllByClassId(classId).stream()
                 .map(cs -> ClassStudentResponse.builder()
                         .studentId(cs.getStudent().getId())
