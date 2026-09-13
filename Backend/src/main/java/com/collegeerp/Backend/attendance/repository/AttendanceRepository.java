@@ -40,4 +40,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
            ORDER BY a.attendanceDate DESC
            """)
     List<Attendance> findClassAttendanceByTeacherId(Long teacherId);
+
+    long deleteByClassEnrollmentClassSubjectSchoolClassIdAndAttendanceDate(Long classId, LocalDate attendanceDate);
 }
