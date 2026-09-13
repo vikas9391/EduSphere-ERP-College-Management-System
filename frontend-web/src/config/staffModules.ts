@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, ShieldCheck, IdCard, Megaphone, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, ShieldCheck, IdCard, Megaphone, CalendarOff, type LucideIcon } from 'lucide-react'
 
 export interface StaffModule { to: string; label: string; icon: LucideIcon; desc: string; permissions: string[] | null; category: 'administration' | 'operational' }
 
@@ -11,6 +11,7 @@ export const staffModules: StaffModule[] = [
   { to: '/teachers', label: 'Teachers', icon: GraduationCap, desc: 'Faculty management', permissions: ['VIEW_TEACHER'], category: 'operational' },
   { to: '/students', label: 'Students', icon: Users, desc: 'Student records', permissions: ['VIEW_STUDENT'], category: 'operational' },
   { to: '/attendance', label: 'Attendance', icon: CalendarCheck, desc: 'Track daily attendance', permissions: ['VIEW_ATTENDANCE_REPORTS', 'MANAGE_ATTENDANCE'], category: 'operational' },
+  { to: '/attendance/holidays', label: 'Class Holidays', icon: CalendarOff, desc: 'Mark non-working days that do not count against attendance', permissions: ['VIEW_ATTENDANCE_REPORTS', 'MANAGE_ATTENDANCE'], category: 'operational' },
   { to: '/assignments', label: 'Assignments', icon: ClipboardList, desc: 'Manage assignments', permissions: ['VIEW_ASSIGNMENTS', 'MANAGE_ASSIGNMENTS'], category: 'operational' },
   { to: '/submissions', label: 'Submissions', icon: Upload, desc: 'Assignment submissions', permissions: ['VIEW_ASSIGNMENTS', 'MANAGE_ASSIGNMENTS'], category: 'operational' },
   { to: '/exams', label: 'Examinations', icon: ClipboardCheck, desc: 'Schedule and manage exams', permissions: ['MANAGE_EXAMS'], category: 'operational' },
