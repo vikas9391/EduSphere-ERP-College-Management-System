@@ -66,9 +66,9 @@ public class ClassHolidayService {
                 .reason(normalize(request.getReason()))
                 .createdAt(LocalDateTime.now())
                 .build();
-        // A holiday supersedes any attendance already marked for that class/date.
-        classEnrollmentRepository.findAllByStudentId(-1L); // no-op removed by compiler? 
         holidayRepository.save(holiday);
+        // A holiday supersedes any attendance already marked for the class on that date.
+        attendanceRepository.deleteByClassEnrollmentClassSubjectSchoolClassIdAndAttendanceDate(schoolClass.getId(), request.getHolidayDate());
         return map(holiday);
     }
 
