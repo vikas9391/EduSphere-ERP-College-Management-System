@@ -53,6 +53,28 @@ export async function deleteAttendance(id: number): Promise<void> {
   await api.delete(`/attendance/${id}`)
 }
 
+export interface ClassHoliday {
+  id: number
+  classId: number
+  className: string
+  holidayDate: string
+  reason?: string
+}
+
+export async function getClassHolidays(classId: number): Promise<ClassHoliday[]> {
+  const res = await api.get<ClassHoliday[]>('/attendance/holidays', { params: { classId } })
+  return res.data
+}
+
+export async function createClassHoliday(payload: { classId: number; holidayDate: string; reason?: string }): Promise<ClassHoliday> {
+  const res = await api.post<ClassHoliday>('/attendance/holidays', payload)
+  return res.data
+}
+
+export async function deleteClassHoliday(id: number): Promise<void> {
+  await api.delete(`/attendance/holidays/${id}`)
+}
+
 export interface SubjectAttendanceSummary {
   subjectId: number | null
   subjectCode: string
