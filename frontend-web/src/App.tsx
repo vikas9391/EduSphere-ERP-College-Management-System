@@ -28,6 +28,7 @@ const ExamSchedulePage = lazy(() => import("@/pages/ExamSchedulePage").then((m) 
 const MarksEntryPage = lazy(() => import("@/pages/MarksEntryPage").then((m) => ({ default: m.MarksEntryPage })));
 const ResultsPage = lazy(() => import("@/pages/ResultsPage").then((m) => ({ default: m.ResultsPage })));
 const AttendancePage = lazy(() => import("@/pages/AttendancePage").then((m) => ({ default: m.AttendancePage })));
+const ClassHolidaysPage = lazy(() => import("@/pages/ClassHolidaysPage").then((m) => ({ default: m.ClassHolidaysPage })));
 const AssignmentsPage = lazy(() => import("@/pages/AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })));
 const SubmissionsPage = lazy(() => import("@/pages/Submissionspage").then((m) => ({ default: m.SubmissionsPage })));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage").then((m) => ({ default: m.AnnouncementsPage })));
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/exam-schedules/:scheduleId/marks" element={<ProtectedRoute><MarksEntryPage /></ProtectedRoute>} />
           <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+          <Route path="/attendance/holidays" element={<ProtectedRoute><ClassHolidaysPage /></ProtectedRoute>} />
           <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>} />
           <Route path="/submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
           <Route path="/announcements" element={<ProtectedRoute><AnnouncementsPage /></ProtectedRoute>} />
