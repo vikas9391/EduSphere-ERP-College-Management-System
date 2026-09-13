@@ -14,10 +14,12 @@
     "framer-motion": "^12.42.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^1.24.0",
+    "pdfjs-dist": "^5.4.54",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",
+    "tesseract.js": "^6.0.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
