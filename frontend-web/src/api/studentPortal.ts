@@ -38,7 +38,15 @@ export interface MySemesterResult { studentId: number; studentName: string; seme
 export interface MyOverallResult { studentId: number; studentName: string; semesterResults: MySemesterResult[]; totalCredits: number; cgpa: number; overallResult: string }
 export async function getMyResults(): Promise<MyOverallResult> { const res = await api.get<MyOverallResult>('/student/results'); return res.data }
 
-export interface TimetableEntry { startTime: string; endTime: string; subjectId: number; subjectName: string; teacherName: string; room: string }
+export interface TimetableEntry {
+  classSubjectId: number
+  startTime: string
+  endTime: string
+  subjectId: number | null
+  subjectName: string
+  teacherName: string | null
+  room: string
+}
 export interface StudentTimetable { placeholder: boolean; note: string; schedule: Record<string, TimetableEntry[]> }
 export async function getMyTimetable(): Promise<StudentTimetable> { const res = await api.get<StudentTimetable>('/student/timetable'); return res.data }
 
