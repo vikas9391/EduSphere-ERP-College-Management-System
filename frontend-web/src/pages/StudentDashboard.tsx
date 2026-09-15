@@ -56,8 +56,8 @@ interface TodayClass {
   id: string
   subject: string
   time: string
-  teacher: string
-  room: string
+  teacher: string | null
+  room: string | null
 }
 
 interface Deadline {
@@ -75,7 +75,6 @@ interface Announcement {
 }
 
 interface DashboardData {
-  /** Null when the student has no course assigned and no enrollments to derive it from yet. */
   course: string | null
   department: string | null
   semester: number | null
@@ -89,13 +88,7 @@ interface DashboardData {
   todayClasses: TodayClass[]
   upcomingDeadlines: Deadline[]
   announcements: Announcement[]
-  /** True if the timetable/announcements sections below are backend placeholder data,
-   *  not real scheduling/notification data - see api/studentPortal.ts for why. */
   timetableIsPlaceholder: boolean
-  /** Per-section fetch failure flags. A failed section is shown with an
-   *  explicit "couldn't load" state, distinct from a genuine zero/empty
-   *  result, so a student doesn't mistake "the request 404'd" for "you
-   *  have 0% attendance". */
   failed: {
     summary: boolean
     attendance: boolean
@@ -105,10 +98,6 @@ interface DashboardData {
     notifications: boolean
   }
 }
-
-/* ------------------------------------------------------------------ */
-/* Palette (botanical theme)                                          */
-/* ------------------------------------------------------------------ */
 
 const COLORS = {
   primary: '#2e7d32',
@@ -120,9 +109,6 @@ const COLORS = {
   grid: '#eef2e7',
 }
 
-// One tonal family (shades of green) instead of mixed accent colors across
-// the 8 stat cards — reads as a deliberate, cohesive set rather than a
-// traffic-light mix of unrelated hues.
 const STAT_SHADES = [
   '#1b5e20',
   '#2e7d32',
@@ -135,7 +121,6 @@ const STAT_SHADES = [
 ]
 
 const PIE_COLORS = [COLORS.primary, '#e8f5e9']
-
 const EASE_STAMP = [0.16, 1, 0.3, 1] as const
 
 const panelIn = {
@@ -157,10 +142,6 @@ const listItem = {
   show: { opacity: 1, x: 0, transition: { duration: 0.26, ease: EASE_STAMP } },
 }
 
-/* ------------------------------------------------------------------ */
-/* Small presentational helpers                                       */
-/* ------------------------------------------------------------------ */
-
 function StatCard({
   icon: Icon,
   label,
@@ -174,8 +155,6 @@ function StatCard({
   value: string | number
   suffix?: string
   accent?: string
-  /** When true, shows a "couldn't load" state instead of the value - used
-   *  when the backing request failed rather than genuinely returning zero. */
   failed?: boolean
 }) {
   return (
@@ -217,8 +196,6 @@ function PanelHeader({ icon: Icon, title, note }: { icon: typeof CalendarCheck2;
   )
 }
 
-/** Shown inside a panel body when its backing request failed, distinct from
- *  a genuine "nothing here yet" empty state. */
 function PanelError({ message = "Couldn't load this section. Try refreshing the page." }: { message?: string }) {
   return (
     <div className="flex items-start gap-2 text-sm text-danger">
@@ -244,14 +221,9 @@ function daysUntil(iso: string) {
   return `Due in ${diff} days`
 }
 
-/** Backend timetable keys are MONDAY..FRIDAY (uppercase). */
 function todayScheduleKey() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()
 }
-
-/* ------------------------------------------------------------------ */
-/* Main component                                                     */
-/* ------------------------------------------------------------------ */
 
 export function StudentDashboard() {
   const [profile, setProfile] = useState<StudentProfile | null>(null)
@@ -262,10 +234,6 @@ export function StudentDashboard() {
     let cancelled = false
 
     async function load() {
-      // Each real endpoint is fetched independently via allSettled - if one fails
-      // (e.g. results aren't published yet, so /student/results 404s) the rest of
-      // the dashboard still renders correctly with safe defaults for that section,
-      // rather than the whole page falling back to made-up data.
       const [
         profileResult,
         summaryResult,
@@ -337,11 +305,11 @@ export function StudentDashboard() {
 
       const todaysEntries = timetable?.schedule?.[todayScheduleKey()] ?? []
       const todayClasses: TodayClass[] = todaysEntries.map((entry, index) => ({
-        id: `${entry.subjectId}-${index}`,
+        id: `${entry.classSubjectId ?? entry.subjectId ?? 'class'}-${index}`,
         subject: entry.subjectName,
         time: `${entry.startTime} - ${entry.endTime}`,
-        teacher: entry.teacherName,
-        room: entry.room,
+        teacher: entry.teacherName ?? null,
+        room: entry.room ?? null,
       }))
 
       const announcements: Announcement[] = notifications.map((n) => ({
@@ -403,9 +371,6 @@ export function StudentDashboard() {
       ? `${profile?.firstName?.[0] ?? ''}${profile?.lastName?.[0] ?? ''}`.toUpperCase()
       : (profile?.email?.[0] ?? '?').toUpperCase()
 
-  // Attendance stat/chart draw from either the dedicated attendance endpoint
-  // or the summary endpoint as a fallback - only flag it as failed if both
-  // sources came back rejected.
   const attendanceFailed = data.failed.attendance && data.failed.summary
 
   return (
@@ -441,7 +406,6 @@ export function StudentDashboard() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <StampGrid className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={CalendarCheck2}
@@ -467,260 +431,189 @@ export function StudentDashboard() {
         />
         <StatCard
           icon={ListTodo}
-          label="Pending Work"
+          label="Pending work"
           value={data.pendingWorkCount}
           accent={STAT_SHADES[3]}
           failed={data.failed.assignments}
         />
         <StatCard
           icon={Award}
-          label="Average Marks"
+          label="Average marks"
           value={data.averageMarks}
           suffix="%"
           accent={STAT_SHADES[4]}
           failed={data.failed.results}
         />
-        <StatCard
-          icon={Clock}
-          label="Today's Classes"
-          value={data.todayClasses.length}
-          accent={STAT_SHADES[5]}
-          failed={data.failed.timetable}
-        />
-        <StatCard
-          icon={AlarmClockCheck}
-          label="Upcoming Deadlines"
-          value={data.upcomingDeadlines.length}
-          accent={STAT_SHADES[6]}
-          failed={data.failed.assignments}
-        />
-        <StatCard
-          icon={Megaphone}
-          label="Announcements"
-          value={data.announcements.length}
-          accent={STAT_SHADES[7]}
-          failed={data.failed.notifications}
-        />
       </StampGrid>
 
-      {/* Charts */}
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <motion.div
-          className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)] lg:col-span-2"
+      <div className="grid gap-6 lg:grid-cols-2">
+        <motion.section
           custom={0}
           variants={panelIn}
           initial="hidden"
           animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
         >
-          <PanelHeader icon={CalendarCheck2} title="Attendance by Subject" />
+          <PanelHeader icon={CalendarCheck2} title="Attendance by subject" />
           {attendanceFailed ? (
             <PanelError />
-          ) : data.attendanceBySubject.length === 0 ? (
-            <p className="text-sm text-muted">No attendance records yet.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={data.attendanceBySubject} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid stroke={COLORS.grid} vertical={false} />
-                <XAxis dataKey="subject" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: `1px solid ${COLORS.grid}`,
-                    fontSize: 13,
-                  }}
-                  formatter={(value) => [`${value}%`, 'Attendance']}
-                  cursor={{ fill: COLORS.grid, opacity: 0.4 }}
-                />
-                <Bar dataKey="percentage" fill={COLORS.primary} radius={[4, 4, 0, 0]} animationDuration={700} />
+          ) : data.attendanceBySubject.length ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.attendanceBySubject} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                <XAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="percentage" fill={COLORS.primary} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-muted">No attendance records yet.</p>
           )}
-        </motion.div>
+        </motion.section>
 
-        <motion.div
-          className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]"
+        <motion.section
           custom={1}
           variants={panelIn}
           initial="hidden"
           animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
         >
-          <PanelHeader icon={CalendarCheck2} title="Attendance Split" />
-          {attendanceFailed ? (
+          <PanelHeader icon={Award} title="Marks overview" />
+          {data.failed.results ? (
             <PanelError />
+          ) : data.subjectMarks.length ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.subjectMarks} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                <XAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="marks" fill={COLORS.secondary} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
-            <>
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={88}
-                    paddingAngle={2}
-                    startAngle={90}
-                    endAngle={-270}
-                    animationDuration={700}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value}%`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <p className="-mt-4 text-center text-2xl font-semibold text-text">
-                <TallyCounter value={data.attendancePercentage} format={(n) => `${Math.round(n)}%`} />
-              </p>
-              <p className="text-center text-xs text-muted">Present this term</p>
-            </>
+            <p className="text-sm text-muted">No published marks yet.</p>
           )}
-        </motion.div>
-      </div>
+        </motion.section>
 
-      <motion.div
-        className="leaf-card mb-6 rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]"
-        custom={2}
-        variants={panelIn}
-        initial="hidden"
-        animate="show"
-      >
-        <PanelHeader
-          icon={Award}
-          title="Marks by Subject"
-          note={!data.failed.results && data.subjectMarks.length === 0 ? 'No published results yet' : undefined}
-        />
-        {data.failed.results ? (
-          <PanelError message="Couldn't load your results. Try refreshing the page." />
-        ) : data.subjectMarks.length === 0 ? (
-          <p className="text-sm text-muted">Results will appear here once published.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data.subjectMarks} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid stroke={COLORS.grid} vertical={false} />
-              <XAxis dataKey="subject" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: `1px solid ${COLORS.grid}`, fontSize: 13 }}
-                formatter={(value) => [`${value}%`, 'Marks']}
-                cursor={{ fill: COLORS.grid, opacity: 0.4 }}
-              />
-              <Bar dataKey="marks" fill={COLORS.primary} radius={[4, 4, 0, 0]} animationDuration={700} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </motion.div>
+        <motion.section
+          custom={2}
+          variants={panelIn}
+          initial="hidden"
+          animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
+        >
+          <PanelHeader icon={Clock} title="Today's timetable" />
+          {data.failed.timetable ? (
+            <PanelError />
+          ) : data.todayClasses.length ? (
+            <motion.div variants={listStagger} initial="hidden" animate="show" className="space-y-3">
+              {data.todayClasses.map((item) => (
+                <motion.div key={item.id} variants={listItem} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
+                  <div>
+                    <p className="font-medium text-text">{item.subject}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {item.teacher ?? 'Teacher not assigned'}{item.room ? ` · Room ${item.room}` : ''}
+                    </p>
+                  </div>
+                  <span className="text-sm font-medium text-primary">{item.time}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <p className="text-sm text-muted">No classes scheduled today.</p>
+          )}
+        </motion.section>
 
-      {/* Lists */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <motion.div
-          className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]"
+        <motion.section
           custom={3}
           variants={panelIn}
           initial="hidden"
           animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
         >
-          <PanelHeader
-            icon={Clock}
-            title="Today's Classes"
-            note={
-              !data.failed.timetable && data.timetableIsPlaceholder
-                ? 'Provisional schedule — timetabling isn\'t final yet'
-                : undefined
-            }
-          />
-          {data.failed.timetable ? (
-            <PanelError message="Couldn't load today's schedule. Try refreshing the page." />
-          ) : data.todayClasses.length === 0 ? (
-            <p className="text-sm text-muted">No classes scheduled today.</p>
-          ) : (
-            <motion.ul className="space-y-3" variants={listStagger} initial="hidden" animate="show">
-              {data.todayClasses.map((c) => (
-                <motion.li
-                  key={c.id}
-                  variants={listItem}
-                  className="flex items-start justify-between gap-3 text-sm"
-                >
+          <PanelHeader icon={AlarmClockCheck} title="Upcoming deadlines" />
+          {data.failed.assignments ? (
+            <PanelError />
+          ) : data.upcomingDeadlines.length ? (
+            <motion.div variants={listStagger} initial="hidden" animate="show" className="space-y-3">
+              {data.upcomingDeadlines.map((item) => (
+                <motion.div key={item.id} variants={listItem} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
                   <div>
-                    <p className="font-medium text-text">{c.subject}</p>
-                    <p className="text-xs text-muted">
-                      {c.teacher} &middot; {c.room}
-                    </p>
+                    <p className="font-medium text-text">{item.title}</p>
+                    <p className="mt-1 text-xs text-muted">{item.subject}</p>
                   </div>
-                  <span className="whitespace-nowrap rounded bg-bg px-2 py-1 font-numbers text-xs text-muted">
-                    {c.time}
-                  </span>
-                </motion.li>
+                  <div className="text-right">
+                    <p className="text-xs font-medium text-primary">{daysUntil(item.dueDate)}</p>
+                    <p className="mt-1 text-[11px] text-muted">{formatDate(item.dueDate)}</p>
+                  </div>
+                </motion.div>
               ))}
-            </motion.ul>
+            </motion.div>
+          ) : (
+            <p className="text-sm text-muted">No pending assignment deadlines.</p>
           )}
-        </motion.div>
+        </motion.section>
 
-        <motion.div
-          className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)]"
+        <motion.section
           custom={4}
           variants={panelIn}
           initial="hidden"
           animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
         >
-          <PanelHeader icon={AlarmClockCheck} title="Upcoming Deadlines" />
-          {data.failed.assignments ? (
-            <PanelError message="Couldn't load your assignments. Try refreshing the page." />
-          ) : data.upcomingDeadlines.length === 0 ? (
-            <p className="text-sm text-muted">Nothing due soon. Nice work.</p>
-          ) : (
-            <motion.ul className="space-y-3" variants={listStagger} initial="hidden" animate="show">
-              {data.upcomingDeadlines.map((d) => (
-                <motion.li
-                  key={d.id}
-                  variants={listItem}
-                  className="flex items-start justify-between gap-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-text">{d.title}</p>
-                    <p className="text-xs text-muted">{d.subject}</p>
+          <PanelHeader icon={Megaphone} title="Announcements" />
+          {data.failed.notifications ? (
+            <PanelError />
+          ) : data.announcements.length ? (
+            <motion.div variants={listStagger} initial="hidden" animate="show" className="space-y-3">
+              {data.announcements.slice(0, 5).map((item) => (
+                <motion.div key={item.id} variants={listItem} className="rounded-xl border border-slate-100 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-text">{item.title}</p>
+                    <span className="shrink-0 text-[11px] text-muted">{formatDate(item.postedAt)}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted">{formatDate(d.dueDate)}</p>
-                    <span className="text-xs font-medium text-danger">{daysUntil(d.dueDate)}</span>
-                  </div>
-                </motion.li>
+                  <p className="mt-1 text-sm text-muted">{item.body}</p>
+                </motion.div>
               ))}
-            </motion.ul>
+            </motion.div>
+          ) : (
+            <p className="text-sm text-muted">No announcements yet.</p>
           )}
-        </motion.div>
+        </motion.section>
 
-        <motion.div
-          className="leaf-card rounded-lg border border-border bg-white/60 p-5 shadow-[var(--shadow-card-hover)] lg:col-span-2 xl:col-span-1"
+        <motion.section
           custom={5}
           variants={panelIn}
           initial="hidden"
           animate="show"
+          className="rounded-2xl bg-white p-5 shadow-[var(--shadow-card)]"
         >
-          <PanelHeader icon={Megaphone} title="Recent Announcements" />
-          {data.failed.notifications ? (
-            <PanelError message="Couldn't load announcements. Try refreshing the page." />
-          ) : data.announcements.length === 0 ? (
-            <p className="text-sm text-muted">No announcements yet.</p>
+          <PanelHeader icon={CalendarCheck2} title="Attendance snapshot" note="Overall attendance for your enrolled class subjects" />
+          {attendanceFailed ? (
+            <PanelError />
           ) : (
-            <motion.ul className="space-y-4" variants={listStagger} initial="hidden" animate="show">
-              {data.announcements.map((a) => (
-                <motion.li
-                  key={a.id}
-                  variants={listItem}
-                  className="border-b border-border pb-3 last:border-0 last:pb-0"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-text">{a.title}</p>
-                    <span className="text-xs text-muted">{formatDate(a.postedAt)}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted">{a.body}</p>
-                </motion.li>
-              ))}
-            </motion.ul>
+            <div className="flex items-center justify-center">
+              <div className="relative h-56 w-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={92} paddingAngle={2} startAngle={90} endAngle={-270}>
+                      {pieData.map((_, index) => (
+                        <Cell key={`attendance-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-numbers text-3xl font-bold text-text">{data.attendancePercentage}%</span>
+                  <span className="text-xs text-muted">attendance</span>
+                </div>
+              </div>
+            </div>
           )}
-        </motion.div>
+        </motion.section>
       </div>
     </Layout>
   )
