@@ -9,11 +9,11 @@ export interface TimetableEntry {
   schoolClassName: string
   academicYear: string
   semester: number
-  subjectId: number
+  subjectId: number | null
   subjectCode: string
   subjectName: string
-  teacherId: number
-  teacherName: string
+  teacherId: number | null
+  teacherName: string | null
   dayOfWeek: TimetableDay
   startTime: string
   endTime: string
