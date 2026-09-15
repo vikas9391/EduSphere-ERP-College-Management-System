@@ -17,6 +17,7 @@ public class TimetableEntryResponse {
     private String schoolClassName;
     private String academicYear;
     private Integer semester;
+    /** Nullable when the ClassSubject is not linked to the formal curriculum Subject. */
     private Long subjectId;
     private String subjectCode;
     private String subjectName;
