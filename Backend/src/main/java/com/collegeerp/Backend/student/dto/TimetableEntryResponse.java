@@ -9,10 +9,12 @@ import lombok.*;
 @Builder
 public class TimetableEntryResponse {
 
-    private String startTime;
-    private String endTime;
+    private Long classSubjectId;
+    /** Nullable when the class subject is not linked to the formal curriculum Subject. */
     private Long subjectId;
     private String subjectName;
     private String teacherName;
+    private String startTime;
+    private String endTime;
     private String room;
 }
