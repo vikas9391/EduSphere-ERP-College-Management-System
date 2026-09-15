@@ -89,6 +89,13 @@ public class TimetableService {
     }
 
     private void validateConflicts(ClassSubject classSubject, TimetableEntryRequest request, Long currentId) {
+        if (classSubject.getSchoolClass() == null || classSubject.getSchoolClass().getId() == null) {
+            throw new BadRequestException("The class subject must belong to a valid class before it can be added to the timetable");
+        }
+        if (classSubject.getTeacher() == null || classSubject.getTeacher().getId() == null) {
+            throw new BadRequestException("Assign a teacher to the class subject before adding it to the timetable");
+        }
+
         long excludeId = currentId == null ? -1L : currentId;
         Long schoolClassId = classSubject.getSchoolClass().getId();
         Long teacherId = classSubject.getTeacher().getId();
