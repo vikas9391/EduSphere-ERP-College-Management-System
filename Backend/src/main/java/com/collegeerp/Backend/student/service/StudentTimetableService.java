@@ -26,26 +26,20 @@ public class StudentTimetableService {
 
     public StudentTimetableResponse getTimetable(Long studentId) {
         List<TimetableEntry> entries = timetableEntryRepository.findAllForStudent(studentId);
-
         Map<String, List<TimetableEntryResponse>> schedule = new LinkedHashMap<>();
-        for (DayOfWeek day : DayOfWeek.values()) {
-            schedule.put(day.name(), new ArrayList<>());
-        }
+        for (DayOfWeek day : DayOfWeek.values()) schedule.put(day.name(), new ArrayList<>());
 
         for (TimetableEntry entry : entries) {
             var classSubject = entry.getClassSubject();
-            String teacherName = classSubject.getTeacher() == null
-                    ? null
-                    : (classSubject.getTeacher().getFirstName() + " "
-                    + classSubject.getTeacher().getLastName()).trim();
-
+            String teacherName = classSubject.getTeacher() == null ? null
+                    : (classSubject.getTeacher().getFirstName() + " " + classSubject.getTeacher().getLastName()).trim();
             schedule.get(entry.getDayOfWeek().name()).add(TimetableEntryResponse.builder()
-                    .startTime(entry.getStartTime().toString())
-                    .endTime(entry.getEndTime().toString())
-                    .subjectId(classSubject.getSubject() != null
-                            ? classSubject.getSubject().getId() : classSubject.getId())
+                    .classSubjectId(classSubject.getId())
+                    .subjectId(classSubject.getSubject() != null ? classSubject.getSubject().getId() : null)
                     .subjectName(classSubject.getSubjectName())
                     .teacherName(teacherName)
+                    .startTime(entry.getStartTime().toString())
+                    .endTime(entry.getEndTime().toString())
                     .room(entry.getRoom() != null ? entry.getRoom() : "TBD")
                     .build());
         }
