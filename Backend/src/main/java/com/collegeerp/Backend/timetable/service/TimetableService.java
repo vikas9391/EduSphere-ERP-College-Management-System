@@ -25,9 +25,7 @@ public class TimetableService {
     private final TimetableEntryRepository timetableEntryRepository;
     private final ClassSubjectRepository classSubjectRepository;
 
-    public TimetableService(
-            TimetableEntryRepository timetableEntryRepository,
-            ClassSubjectRepository classSubjectRepository) {
+    public TimetableService(TimetableEntryRepository timetableEntryRepository, ClassSubjectRepository classSubjectRepository) {
         this.timetableEntryRepository = timetableEntryRepository;
         this.classSubjectRepository = classSubjectRepository;
     }
@@ -37,17 +35,10 @@ public class TimetableService {
         ClassSubject classSubject = requireClassSubject(request.getClassSubjectId());
         requireCanManage(classSubject, principal);
         validateConflicts(classSubject, request, null);
-
         LocalDateTime now = LocalDateTime.now();
-        TimetableEntry entry = TimetableEntry.builder()
-                .classSubject(classSubject)
-                .dayOfWeek(request.getDayOfWeek())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .room(normalizeRoom(request.getRoom()))
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
+        TimetableEntry entry = TimetableEntry.builder().classSubject(classSubject).dayOfWeek(request.getDayOfWeek())
+                .startTime(request.getStartTime()).endTime(request.getEndTime()).room(normalizeRoom(request.getRoom()))
+                .createdAt(now).updatedAt(now).build();
         return map(timetableEntryRepository.save(entry));
     }
 
@@ -55,11 +46,9 @@ public class TimetableService {
         validateRequest(request);
         TimetableEntry entry = requireEntry(id);
         requireCanManage(entry.getClassSubject(), principal);
-
         ClassSubject classSubject = requireClassSubject(request.getClassSubjectId());
         requireCanManage(classSubject, principal);
         validateConflicts(classSubject, request, id);
-
         entry.setClassSubject(classSubject);
         entry.setDayOfWeek(request.getDayOfWeek());
         entry.setStartTime(request.getStartTime());
@@ -79,8 +68,7 @@ public class TimetableService {
     public List<TimetableEntryResponse> getForClassSubject(Long classSubjectId, UserPrincipal principal) {
         ClassSubject classSubject = requireClassSubject(classSubjectId);
         requireCanView(classSubject, principal);
-        return timetableEntryRepository.findAllByClassSubjectIdWithDetails(classSubjectId)
-                .stream().map(this::map).toList();
+        return timetableEntryRepository.findAllByClassSubjectIdWithDetails(classSubjectId).stream().map(this::map).toList();
     }
 
     @Transactional(readOnly = true)
@@ -88,13 +76,11 @@ public class TimetableService {
         if (!"TEACHER".equalsIgnoreCase(principal.getRole())) {
             throw new AccessDeniedException("Only teachers can view their teaching timetable");
         }
-        return timetableEntryRepository.findAllForTeacher(principal.getId())
-                .stream().map(this::map).toList();
+        return timetableEntryRepository.findAllForTeacher(principal.getId()).stream().map(this::map).toList();
     }
 
     private void validateRequest(TimetableEntryRequest request) {
-        if (request.getClassSubjectId() == null || request.getDayOfWeek() == null
-                || request.getStartTime() == null || request.getEndTime() == null) {
+        if (request.getClassSubjectId() == null || request.getDayOfWeek() == null || request.getStartTime() == null || request.getEndTime() == null) {
             throw new BadRequestException("Class subject, day, start time and end time are required");
         }
         if (!request.getEndTime().isAfter(request.getStartTime())) {
@@ -106,70 +92,48 @@ public class TimetableService {
         long excludeId = currentId == null ? -1L : currentId;
         Long schoolClassId = classSubject.getSchoolClass().getId();
         Long teacherId = classSubject.getTeacher().getId();
-
-        if (timetableEntryRepository.hasClassConflict(
-                schoolClassId, request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), excludeId)) {
+        if (timetableEntryRepository.hasClassConflict(schoolClassId, request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), excludeId)) {
             throw new DuplicateResourceException("This class already has another subject during the selected time");
         }
-        if (timetableEntryRepository.hasTeacherConflict(
-                teacherId, request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), excludeId)) {
+        if (timetableEntryRepository.hasTeacherConflict(teacherId, request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), excludeId)) {
             throw new DuplicateResourceException("The assigned teacher already has another class during the selected time");
         }
     }
 
     private ClassSubject requireClassSubject(Long id) {
-        return classSubjectRepository.findByIdWithRelations(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("Class subject", id));
+        return classSubjectRepository.findByIdWithRelations(id).orElseThrow(() -> ResourceNotFoundException.of("Class subject", id));
     }
 
     private TimetableEntry requireEntry(Long id) {
-        return timetableEntryRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("Timetable entry", id));
+        return timetableEntryRepository.findByIdWithDetails(id).orElseThrow(() -> ResourceNotFoundException.of("Timetable entry", id));
     }
 
     private void requireCanView(ClassSubject classSubject, UserPrincipal principal) {
         if (isAdmin(principal)) return;
-        if (!"TEACHER".equalsIgnoreCase(principal.getRole())
-                || classSubject.getTeacher() == null
+        if (!"TEACHER".equalsIgnoreCase(principal.getRole()) || classSubject.getTeacher() == null
                 || !Objects.equals(classSubject.getTeacher().getId(), principal.getId())) {
             throw new AccessDeniedException("You can view timetable slots only for class subjects assigned to you");
         }
     }
 
-    private void requireCanManage(ClassSubject classSubject, UserPrincipal principal) {
-        requireCanView(classSubject, principal);
-    }
+    private void requireCanManage(ClassSubject classSubject, UserPrincipal principal) { requireCanView(classSubject, principal); }
 
     private boolean isAdmin(UserPrincipal principal) {
-        return "ADMIN".equalsIgnoreCase(principal.getRole())
-                || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
+        return "ADMIN".equalsIgnoreCase(principal.getRole()) || "SUPER_ADMIN".equalsIgnoreCase(principal.getRole());
     }
 
-    private String normalizeRoom(String room) {
-        return room == null || room.isBlank() ? null : room.trim();
-    }
+    private String normalizeRoom(String room) { return room == null || room.isBlank() ? null : room.trim(); }
 
     public TimetableEntryResponse map(TimetableEntry entry) {
         ClassSubject cs = entry.getClassSubject();
         var schoolClass = cs.getSchoolClass();
         var teacher = cs.getTeacher();
-        return TimetableEntryResponse.builder()
-                .id(entry.getId())
-                .classSubjectId(cs.getId())
-                .schoolClassId(schoolClass.getId())
-                .schoolClassName(schoolClass.getName())
-                .academicYear(schoolClass.getAcademicYear())
-                .semester(schoolClass.getSemester())
-                .subjectId(cs.getSubject() != null ? cs.getSubject().getId() : cs.getId())
-                .subjectCode(cs.getSubjectCode())
-                .subjectName(cs.getSubjectName())
+        return TimetableEntryResponse.builder().id(entry.getId()).classSubjectId(cs.getId()).schoolClassId(schoolClass.getId())
+                .schoolClassName(schoolClass.getName()).academicYear(schoolClass.getAcademicYear()).semester(schoolClass.getSemester())
+                .subjectId(cs.getSubject() != null ? cs.getSubject().getId() : null)
+                .subjectCode(cs.getSubjectCode()).subjectName(cs.getSubjectName())
                 .teacherId(teacher != null ? teacher.getId() : null)
-                .teacherName(teacher != null
-                        ? (teacher.getFirstName() + " " + teacher.getLastName()).trim() : null)
-                .dayOfWeek(entry.getDayOfWeek())
-                .startTime(entry.getStartTime())
-                .endTime(entry.getEndTime())
-                .room(entry.getRoom())
-                .build();
+                .teacherName(teacher != null ? (teacher.getFirstName() + " " + teacher.getLastName()).trim() : null)
+                .dayOfWeek(entry.getDayOfWeek()).startTime(entry.getStartTime()).endTime(entry.getEndTime()).room(entry.getRoom()).build();
     }
 }
