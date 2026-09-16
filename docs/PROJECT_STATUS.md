@@ -6,7 +6,7 @@ The core ERP architecture is implemented around a class-scoped academic model. T
 
 - `Backend/` — Spring Boot 3.5.3 / Java 21 REST API.
 - `frontend-web/` — React 19 + TypeScript + Vite web application.
-- `app/` — Expo/React Native mobile application using the same backend and the web application's botanical color system.
+- `app/` — Expo/React Native mobile application using the same backend and the web application's botanical design system.
 
 ## Completed
 
@@ -31,7 +31,7 @@ The core ERP architecture is implemented around a class-scoped academic model. T
 
 ### Web UI
 - Role-specific dashboards and route protection.
-- Student profile, classes, enrollments, attendance, holidays, assignments and timetable views.
+- Student profile, classes, enrollments, attendance, holidays, assignments, results and timetable views.
 - Teacher academic management views.
 - Class roster and ClassSubject management.
 - Flexible teacher timetable grid with selectable days, custom rows, add/edit/delete controls.
@@ -41,35 +41,32 @@ The core ERP architecture is implemented around a class-scoped academic model. T
 - Shared botanical design system using green/white/soft-neutral surfaces, rounded cards and responsive layouts.
 
 ### Mobile app
-The `app/` directory has now been created as the mobile application foundation.
+The `app/` directory is an active Expo/React Native client backed by the same Spring Boot API.
 
-Implemented in the first mobile milestone:
-
-- Expo + React Native project structure.
-- Same Spring Boot backend login endpoint: `/api/auth/login`.
-- Secure session persistence using AsyncStorage for the current foundation.
-- College code, username and password login form.
-- Post-login dashboard shell.
-- Sign-out flow.
-- Shared botanical color tokens matching the web application:
-  - Primary `#2e7d32`
-  - Secondary `#4caf50`
-  - Light green `#e8f5e9`
-  - Background `#f8f8f2`
-  - Card `#ffffff`
-  - Text `#1f2937`
-  - Muted `#6b7280`
-- Mobile environment variable for the backend API URL.
+Implemented:
+- Expo + React Native project structure and Android/iOS package identifiers.
+- College code, username and password login.
+- Persistent access/refresh-token session storage.
+- Automatic access-token refresh on protected API `401` responses, with session cleanup when refresh fails.
+- Role-aware initial navigation for student, teacher, admin and super-admin accounts.
+- Student dashboard with attendance, subject and assignment summary.
+- Student classes/enrollments, attendance, assignments, timetable and profile screens.
+- Student results screen with semester results, subject marks/grades, SGPA and CGPA.
+- Teacher and admin dashboard screens using the same backend authorization model.
+- Pull-to-refresh and loading/error states on the main student data screens.
+- Environment-driven mobile API URL via `EXPO_PUBLIC_API_URL`.
+- Mobile `typecheck` npm script.
+- CI job that installs the mobile dependencies and runs the TypeScript type check.
 
 ## CI verification
 
-The latest verified CI run before the mobile scaffold was green:
+The CI workflow now covers all three application surfaces:
 
-- Backend compilation: PASS.
-- Relationship tests: 9 tests, 0 failures, 0 errors.
-- Frontend production build: PASS.
+- Backend compilation and relationship isolation tests.
+- Web frontend production build.
+- Mobile dependency installation and TypeScript type check.
 
-The mobile folder was added after that CI run, so a follow-up CI job for mobile installation/type checking should be added before treating the mobile app as release-ready.
+The workflow also uses `actions/checkout@v5` to avoid the previous checkout Node 20 deprecation warning.
 
 ## Remaining work
 
@@ -89,22 +86,15 @@ The mobile folder was added after that CI run, so a follow-up CI job for mobile 
 - Add automated tests for import parsing, invalid candidates and conflict handling.
 - Test PDF/image imports with real timetable samples.
 
-### Mobile app — next milestones
-1. Add React Navigation and role-specific navigation stacks.
-2. Build Student dashboard and modules using the existing APIs.
-3. Build Teacher dashboard and modules.
-4. Add Admin/Super-admin mobile views where appropriate.
-5. Add attendance views and teacher attendance management.
-6. Add assignments and submission views.
-7. Add student/teacher timetable views.
-8. Add exams, marks and results views.
-9. Add profile, password change and forgot-password flows.
-10. Add API refresh-token interceptor and robust offline/error handling.
-11. Add mobile push notifications if required.
-12. Add automated mobile type-check/build CI.
-13. Configure Android/iOS application icons, splash assets and release metadata.
-14. Test on physical Android/iOS devices.
-15. Create signed Android/iOS release builds.
+### Mobile release hardening
+- Add teacher attendance/academic-management mobile workflows beyond the current dashboard foundation.
+- Add admin/super-admin operational management screens where appropriate.
+- Add password change and forgot-password flows.
+- Improve offline handling and user-facing session-expiry navigation.
+- Add push notifications if required.
+- Configure final Android/iOS icons, splash assets and release metadata.
+- Test on physical Android/iOS devices.
+- Create signed Android/iOS release builds and publish through the selected distribution channel.
 
 ## Important architecture rule
 
