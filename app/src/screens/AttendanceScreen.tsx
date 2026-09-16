@@ -1,0 +1,5 @@
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, radius, spacing } from '../theme';
+export function AttendanceScreen(){return <ScrollView style={s.page} contentContainerStyle={s.content}><Text style={s.title}>Attendance</Text><Text style={s.muted}>Your attendance and class holiday calendar will use the same ClassEnrollment-based backend data as the web app.</Text><View style={s.card}><Text style={s.cardTitle}>Attendance overview</Text><Text style={s.muted}>Ready for student attendance summary and subject-wise records.</Text></View></ScrollView>}
+const s=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},content:{padding:spacing.lg,paddingTop:spacing.xl},title:{fontSize:28,fontWeight:'800',color:colors.text},muted:{fontSize:15,lineHeight:23,color:colors.muted,marginTop:spacing.sm},card:{backgroundColor:colors.card,borderRadius:radius.card,padding:spacing.lg,marginTop:spacing.xl},cardTitle:{fontSize:18,fontWeight:'800',color:colors.text}});
