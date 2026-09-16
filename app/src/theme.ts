@@ -14,5 +14,5 @@ export const colors = {
   brass: '#a9812f',
 };
 
-export const spacing = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 };
+export const spacing = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32, xxl: 48 };
 export const radius = { card: 24, button: 16, input: 18 };
