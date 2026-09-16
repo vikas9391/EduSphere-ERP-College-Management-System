@@ -7,9 +7,10 @@ import { ClassesScreen } from './screens/ClassesScreen';
 import { AttendanceScreen } from './screens/AttendanceScreen';
 import { AssignmentsScreen } from './screens/AssignmentsScreen';
 import { TimetableScreen } from './screens/TimetableScreen';
+import { ResultsScreen } from './screens/ResultsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 
-export type RootStackParamList = { Dashboard:undefined; TeacherDashboard:undefined; AdminDashboard:undefined; Classes:undefined; Attendance:undefined; Assignments:undefined; Timetable:undefined; Profile:undefined };
+export type RootStackParamList = { Dashboard:undefined; TeacherDashboard:undefined; AdminDashboard:undefined; Classes:undefined; Attendance:undefined; Assignments:undefined; Timetable:undefined; Results:undefined; Profile:undefined };
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigation({ role }: { role?: string | null }) {
@@ -23,6 +24,7 @@ export function AppNavigation({ role }: { role?: string | null }) {
     <Stack.Screen name="Attendance" component={AttendanceScreen}/>
     <Stack.Screen name="Assignments" component={AssignmentsScreen}/>
     <Stack.Screen name="Timetable" component={TimetableScreen}/>
+    <Stack.Screen name="Results" component={ResultsScreen}/>
     <Stack.Screen name="Profile" component={ProfileScreen}/>
   </Stack.Navigator>;
 }
