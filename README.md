@@ -2,21 +2,22 @@
 
 A multi-tenant College ERP/SaaS platform for managing colleges, users, academics, classes, students, teachers, attendance, assignments, examinations, marks, results, timetables, holidays and announcements.
 
-> **Status:** Core ERP architecture is implemented and the latest CI build is green. The project is in the integration/deployment-hardening stage rather than the initial architecture stage.
+> **Status:** Core ERP architecture is implemented and the latest verified web CI is green. A new Expo/React Native mobile app has also been scaffolded in `app/` and is being extended to use the same backend and design system.
 
 ## Project Structure
 
 ```text
 EduSphere-ERP-College-Management-System/
 ├── Backend/        # Spring Boot REST API
-├── frontend-web/   # React + TypeScript application
-├── docs/            # Project documentation and status
+├── frontend-web/   # React + TypeScript web application
+├── app/            # Expo + React Native mobile application
+├── docs/            # Project documentation, status and deployment guide
 └── .github/         # CI configuration
 ```
 
 ## Technology Stack
 
-### Frontend
+### Web
 - React 19
 - TypeScript
 - Vite
@@ -27,6 +28,13 @@ EduSphere-ERP-College-Management-System/
 - Framer Motion
 - Lucide React
 - Recharts
+
+### Mobile
+- Expo
+- React Native
+- React Navigation
+- AsyncStorage
+- Same Spring Boot API as the web application
 
 ### Backend
 - Java 21
@@ -46,7 +54,7 @@ EduSphere-ERP-College-Management-System/
 
 ## Core Academic Relationship Model
 
-EduSphere now uses one authoritative class-scoped operational model:
+EduSphere uses one authoritative class-scoped operational model:
 
 ```text
 Department → Course → Subject
@@ -63,45 +71,15 @@ ClassSubject → ExamSchedule
 ClassEnrollment → Marks
 ```
 
-### Relationship rules
-
-- **ClassStudent** — establishes that a student belongs to a class.
-- **ClassSubject** — identifies the subject being taught in a specific class and its assigned teacher.
-- **ClassEnrollment** — identifies one student's participation in one ClassSubject.
-- **Attendance** — belongs to the exact ClassEnrollment.
-- **TimetableEntry** — belongs to a ClassSubject.
-- **Assignment** — belongs to a ClassSubject.
-- **ExamSchedule** — belongs to a ClassSubject.
-- **Marks** — belong to the student's ClassEnrollment and an exam.
-
-The old standalone operational `Enrollment` model has been removed. The repository should not use a subject-only fallback for attendance, assignments, exams, marks or timetable data.
-
-## Student Identity
-
-Student self-service operations resolve the authenticated account through the student's profile:
-
-```text
-Authenticated User
-       ↓
-Student
-       ↓
-Student.id
-       ↓
-ClassEnrollment / academic records
-```
-
-A `User.id` must never be assumed to be the same identifier as `Student.id`.
+The old standalone operational `Enrollment` model has been removed. Attendance, assignments, exams, marks and timetable data use the class-scoped relationships.
 
 ## Implemented Features
 
 ### Authentication and authorization
 
-- Super-admin authentication.
-- Tenant/staff authentication.
-- Teacher and student authentication.
+- Super-admin, tenant/staff, teacher and student authentication.
 - JWT access and refresh tokens.
-- Password change flow.
-- Forgot-password/reset flow.
+- Password change and forgot-password/reset flows.
 - Role/permission-based staff access.
 - Frontend role guards for ADMIN, TEACHER and STUDENT routes.
 - Backend authorization remains the actual security boundary.
@@ -110,130 +88,121 @@ A `User.id` must never be assumed to be the same identifier as `Student.id`.
 
 - Schema-based PostgreSQL multi-tenancy.
 - Public tenant metadata separated from tenant-specific academic data.
-- Public migrations under `Backend/src/main/resources/db/migration`.
-- Tenant migrations under `Backend/src/main/resources/db/tenant-migration`.
+- Flyway-managed public and tenant migrations.
 - Hibernate schema generation disabled; Flyway owns schema creation.
 
-### Classes and academic structure
+### Classes and academics
 
 - Create/delete school classes.
-- Manage class membership through ClassStudent.
-- Add/remove students from classes.
+- Add/remove students through ClassStudent.
 - Create ClassSubjects, including bulk creation.
 - Assign teachers to ClassSubjects.
 - Optional formal Subject/curriculum link.
-- View class rosters and class enrollments.
-- Student and teacher academic views use ClassEnrollment/ClassSubject relationships.
+- Class rosters and class-enrollment views.
 
-### Attendance
+### Attendance and holidays
 
-Attendance is fully class-scoped:
-
-```text
-Student → ClassEnrollment → ClassSubject → Teacher + Subject
-                              ↓
-                           Attendance
-```
-
-Implemented:
-
-- Attendance creation/update/view through ClassEnrollment.
-- Teacher authorization based on the assigned ClassSubject teacher.
+- Attendance is tied to ClassEnrollment.
+- Teacher authorization follows the assigned ClassSubject teacher.
 - Student self-only attendance access.
 - Admin/super-admin management.
-- Unique attendance per `ClassEnrollment + attendanceDate`.
-- Attendance summary and subject-wise calculations.
-- Canonical statuses:
-  - `PRESENT`
-  - `ABSENT`
-  - `LATE`
-  - `EXCUSED`
-  - `HOLIDAY`
-- `PRESENT` and `LATE` count as attended.
-- `ABSENT` counts as missed.
-- `EXCUSED` and `HOLIDAY` do not count in the percentage denominator.
+- Unique attendance per ClassEnrollment + date.
+- Attendance summaries and subject-wise calculations.
+- Statuses: `PRESENT`, `ABSENT`, `LATE`, `EXCUSED`, `HOLIDAY`.
+- `PRESENT`/`LATE` count as attended; `ABSENT` counts as missed; `EXCUSED`/`HOLIDAY` are excluded from the percentage denominator.
 - Class holiday calendar API and student holiday display.
 
 ### Timetable
 
-Implemented:
-
 - ClassSubject-based timetable entries.
-- Student timetable derived from ClassEnrollment → ClassSubject → TimetableEntry.
-- Teacher timetable derived from the teacher's ClassSubjects.
-- Class conflict detection.
-- Teacher conflict detection.
-- Create, edit and delete timetable entries.
-- Flexible teacher timetable grid with selectable days.
-- Add Period/Slot and custom row support.
-- Edit/delete controls in the grid.
+- Student and teacher timetable views.
+- Class and teacher conflict detection.
+- Create/edit/delete timetable entries.
+- Flexible teacher timetable grid with selectable days and custom rows.
 - Validation when a ClassSubject has no assigned teacher.
-- AI-assisted timetable image/PDF inspection and review workflow.
+- AI-assisted image/PDF timetable inspection and review.
 
-#### AI timetable import
-
-The current flow is:
+AI timetable flow:
 
 ```text
-Image/PDF
-   ↓
-Backend inspection
-   ↓
-OpenAI vision/file processing
-   ↓
-Normalized timetable candidates
-   ↓
-Teacher/admin review and editing
-   ↓
-Existing timetable conflict validation
-   ↓
-Save entries
+Image/PDF → Backend → OpenAI processing → Candidates → Review/Edit → Conflict validation → Save
 ```
 
-The API key stays on the backend. The frontend never receives `OPENAI_API_KEY`.
+The OpenAI API key remains backend-only.
 
-### Assignments
+### Assignments, examinations, marks and results
 
-- Assignments are tied to ClassSubject.
-- Teacher ownership is derived from ClassSubject.teacher.
-- Students see assignments for their class-subject enrollments.
-- Assignment submission is tied to the student's ClassEnrollment.
-- Teacher/admin submission review is class-scoped.
-- Legacy subject-only assignment relationships were removed.
-
-### Examinations, marks and results
-
-- Exam schedules use ClassSubject.
+- Assignments and submissions are class-scoped.
+- Exams use ClassSubject.
 - Marks use ClassEnrollment.
-- Student eligibility and result calculations use the class-scoped academic relationship.
-- Teacher access is constrained by the relevant ClassSubject.
-- Legacy standalone enrollment paths were removed.
+- Student eligibility and result calculations use the class-scoped academic model.
+- Teacher access is constrained by ClassSubject ownership.
 
-### Student and teacher portals
+### Web UI
 
 - Role-specific dashboards and route protection.
-- Student profile, classes, enrollments, attendance, assignments and timetable views.
-- Teacher timetable, students, assignments, attendance and academic management views.
-- Student class-enrollment responses include class, subject, teacher and academic context.
+- Student profile, classes, enrollments, attendance, holidays, assignments and timetable pages.
+- Teacher academic management pages.
+- Class roster/ClassSubject management.
+- Flexible timetable editor and AI import review UI.
+- Central Axios API client with `VITE_API_URL`.
+- Access-token injection and refresh-token handling.
+- Responsive botanical design system.
 
-### Frontend API/authentication layer
+## Mobile App
 
-- Central Axios API client.
-- Environment-driven API base URL through `VITE_API_URL`.
-- Access-token injection.
-- Refresh-token handling with queued retry behavior.
-- API response envelope unwrapping.
-- Protected role-based routes.
+The `app/` folder is now the mobile application for EduSphere.
 
-### Database/migration cleanup
+The mobile app is **not a second backend**. It connects to the same Spring Boot API and uses the same tenant/authentication model.
 
-The fresh-database model no longer carries the old standalone enrollment/attendance compatibility path. Obsolete migration-era files and reconciliation/backfill migrations were removed where they belonged to the previous model.
+### Current mobile milestone
 
-The repository is intentionally maintained around a clean database reset rather than a historical data migration from the old enrollment design.
+Implemented:
+
+- Expo/React Native project foundation.
+- EduSphere mobile branding.
+- Same botanical color system as the web UI.
+- College code + username + password login.
+- Connection to `/api/auth/login`.
+- Session persistence foundation.
+- Post-login dashboard shell.
+- Sign-out flow.
+- Mobile API environment configuration.
+
+### Shared design system
+
+The mobile app uses the web application's current botanical palette:
+
+```text
+Primary       #2e7d32
+Primary Dark  #256428
+Secondary     #4caf50
+Light Green   #e8f5e9
+Background    #f8f8f2
+Card          #ffffff
+Text          #1f2937
+Muted         #6b7280
+Border        #eef2e7
+Danger        #c1543c
+```
+
+### Run the mobile app
+
+```bash
+cd app
+npm install
+npm start
+```
+
+Configure the backend:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8080/api
+```
+
+For a physical device, use an API URL reachable from the device rather than `localhost`.
 
 ## API Areas
-
-Current major API areas include:
 
 ```text
 /api/courses
@@ -251,7 +220,7 @@ Current major API areas include:
 /api/teacher
 ```
 
-Student class enrollments are exposed under the student portal rather than a generic standalone enrollment API:
+Student class enrollments are exposed through:
 
 ```text
 /api/student/enrollments
@@ -266,15 +235,19 @@ Swagger/OpenAPI:
 
 ## Environment Variables
 
-### Frontend
+### Web
 
 ```env
 VITE_API_URL=http://localhost:8080/api
 ```
 
-For production, set `VITE_API_URL` to the deployed backend API base URL, including `/api`.
+### Mobile
 
-### Backend — required/core
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8080/api
+```
+
+### Backend
 
 ```env
 DB_URL=jdbc:postgresql://localhost:5432/college_erp
@@ -283,40 +256,17 @@ DB_PASSWORD=your_password
 JWT_SECRET=replace_with_a_long_random_secret
 FRONTEND_URL=http://localhost:5173
 CORS_ALLOWED_ORIGINS=http://localhost:5173
-```
-
-### Backend — AI timetable import
-
-```env
 OPENAI_API_KEY=
 OPENAI_TIMETABLE_MODEL=gpt-5-mini
 ```
 
-`OPENAI_API_KEY` is optional unless AI timetable inspection is used. It must only be configured on the backend.
-
-### Optional mail configuration
-
-```env
-MAIL_HOST=
-MAIL_PORT=587
-MAIL_USERNAME=
-MAIL_PASSWORD=
-PASSWORD_RESET_TOKEN_EXPIRY_MINUTES=30
-```
+Optional mail configuration is documented in `docs/DEPLOYMENT.md`.
 
 Never commit real secrets to Git.
 
 ## Local Development
 
-### Prerequisites
-
-- Java 21
-- Maven or the included Maven wrapper
-- Node.js and npm
-- PostgreSQL
-- Redis
-
-### Start backend
+### Backend
 
 ```bash
 cd Backend
@@ -330,13 +280,9 @@ cd Backend
 ./mvnw.cmd spring-boot:run
 ```
 
-Backend:
+Backend: `http://localhost:8080`
 
-```text
-http://localhost:8080
-```
-
-### Start frontend
+### Web
 
 ```bash
 cd frontend-web
@@ -344,93 +290,87 @@ npm install
 npm run dev
 ```
 
-Frontend:
+Web: `http://localhost:5173`
 
-```text
-http://localhost:5173
-```
-
-### Frontend checks
+### Mobile
 
 ```bash
-cd frontend-web
-npm run build
-npm run lint
+cd app
+npm install
+npm start
 ```
 
-## CI / Automated Verification
+## CI / Verification
 
-The repository has GitHub Actions CI covering:
+The latest verified web CI run before adding the mobile scaffold reported:
 
-- Backend compilation with Java 21.
-- Relationship-focused backend tests.
-- Frontend installation and production build with Node 22.
+- Backend compilation: **PASS**
+- Relationship tests: **9 tests, 0 failures, 0 errors**
+- Frontend production build: **PASS**
 
-Latest verified CI state before this documentation update:
-
-- **Backend:** PASS
-- **Relationship tests:** 9 tests, 0 failures, 0 errors
-- **Frontend build:** PASS
-
-The relationship test suite currently covers attendance, assignment submission, marks class scope, results and timetable behavior.
+The mobile application was added after that verification, so mobile CI/type-check/build automation is still a remaining task.
 
 ## Fresh Database Setup
 
-This project is maintained around a fresh database baseline. When resetting the ERP database, reset Flyway history together with the tenant schemas and recreate the schema from the current migration set.
+The project is maintained around a fresh database baseline. When resetting the ERP database, reset Flyway history together with tenant schemas and recreate the schema from the current migration set.
 
 Do not reintroduce historical backfill, compatibility or reconciliation logic for the removed standalone enrollment model.
 
-## Production / Deployment Status
+## Production Status
 
-The application has environment-driven database, JWT, CORS, frontend URL, mail and AI configuration. The frontend API URL is also environment-driven.
+The application has environment-driven database, JWT, CORS, frontend URL, mail and AI configuration. Provider-specific hosting configuration is intentionally not hard-coded until a production host is selected.
 
-However, a hosting provider has **not** been selected in this repository, so provider-specific configuration such as Vercel rewrites, Netlify redirects, Apache/Hostinger `.htaccess`, Docker deployment or Render/Railway service definitions has intentionally not been hard-coded.
-
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the provider-neutral deployment checklist.
+See `docs/DEPLOYMENT.md` for the provider-neutral deployment checklist.
 
 ## What Is Done vs What Is Left
 
 ### Done
 
-- [x] Core Spring Boot + React ERP structure.
+- [x] Core Spring Boot + React ERP.
 - [x] Multi-tenant architecture.
-- [x] JWT authentication and refresh flow.
-- [x] Role/permission enforcement and frontend role guards.
-- [x] Class, student and teacher relationships.
-- [x] ClassSubject with class + subject + teacher relationship.
-- [x] ClassEnrollment as the authoritative student/subject participation record.
+- [x] JWT authentication/refresh flow.
+- [x] Role and permission enforcement.
+- [x] Frontend role guards.
+- [x] Class/student/teacher relationships.
+- [x] ClassSubject and ClassEnrollment model.
 - [x] Class-scoped attendance.
-- [x] Attendance summaries and holiday handling.
-- [x] Class-scoped assignments and submissions.
+- [x] Attendance summaries and holidays.
+- [x] Class-scoped assignments/submissions.
 - [x] Class-scoped exams, marks and results.
-- [x] Class-scoped timetable.
-- [x] Timetable conflict validation.
-- [x] Flexible teacher timetable grid.
+- [x] Class-scoped timetable and conflict validation.
+- [x] Flexible timetable grid.
 - [x] AI timetable image/PDF inspection and review UI.
-- [x] Legacy standalone enrollment operational path removed.
-- [x] Obsolete attendance/enrollment compatibility paths cleaned up.
-- [x] Environment-driven frontend/backend configuration.
-- [x] CI build and relationship tests passing.
+- [x] Legacy standalone enrollment path removed.
+- [x] Environment-driven API configuration.
+- [x] Web CI/build and relationship tests passing.
+- [x] Mobile app folder created.
+- [x] Mobile app login connected to the same backend.
+- [x] Mobile app uses the same botanical UI color system.
 
-### Remaining / recommended before production
+### Remaining
 
-- [ ] Choose the production hosting target and add only the required provider-specific SPA/deployment configuration.
-- [ ] Create production environment variables and verify CORS/frontend API URL against the real domains.
-- [ ] Run a full clean-database deployment test, including tenant creation and Flyway migrations.
-- [ ] Run manual end-to-end tests for admin → class → ClassSubject → teacher → student → attendance/timetable/assignments/exams/marks/results.
-- [ ] Test tenant isolation with at least two tenants.
-- [ ] Harden AI timetable import confirmation so a multi-slot import cannot leave a partially saved timetable if a later slot fails validation.
-- [ ] Review and resolve the current frontend npm audit findings before production if they are actionable without breaking the application.
-- [ ] Optionally update GitHub Actions `actions/checkout` to the current major version to remove the Node 20 deprecation warning.
-- [ ] Add production monitoring/logging and a database backup/restore procedure.
-- [ ] Perform a final security review of production secrets, CORS, JWT settings, file upload limits and public endpoints.
-
-These items are deployment/integration hardening tasks; they do not mean the core class-scoped ERP architecture is unfinished.
+- [ ] Complete Student mobile dashboard and modules.
+- [ ] Complete Teacher mobile dashboard and modules.
+- [ ] Add appropriate Admin/Super-admin mobile views.
+- [ ] Add mobile attendance, assignments, timetable, exams, marks and results screens.
+- [ ] Add mobile profile/password/reset flows.
+- [ ] Add robust mobile refresh-token handling and network/offline states.
+- [ ] Add mobile push notifications if required.
+- [ ] Add mobile CI/type checking/release builds.
+- [ ] Configure Android/iOS production icons, splash assets and release metadata.
+- [ ] Test Android/iOS builds on physical devices.
+- [ ] Make AI timetable multi-slot confirmation transactional to prevent partial saves.
+- [ ] Choose production hosting and add provider-specific SPA configuration.
+- [ ] Run clean production database/Flyway deployment testing.
+- [ ] Test tenant isolation with multiple tenants.
+- [ ] Review npm audit findings safely.
+- [ ] Add production monitoring, logging and database backups.
+- [ ] Perform final production security review.
 
 ## Documentation
 
-- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — implementation status, completed areas and remaining work.
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — provider-neutral production deployment checklist.
+- `docs/PROJECT_STATUS.md` — complete implementation status and mobile roadmap.
+- `docs/DEPLOYMENT.md` — web/mobile deployment and production checklist.
 
 ## Repository
 
