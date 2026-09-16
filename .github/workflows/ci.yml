@@ -15,7 +15,7 @@ jobs:
         working-directory: Backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 21
         uses: actions/setup-java@v5
@@ -38,7 +38,7 @@ jobs:
         working-directory: frontend-web
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node 22
         uses: actions/setup-node@v5
@@ -52,3 +52,25 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+  mobile:
+    name: Mobile type check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type check mobile app
+        run: npm run typecheck
