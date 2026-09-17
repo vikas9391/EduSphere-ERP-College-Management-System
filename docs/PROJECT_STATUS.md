@@ -6,7 +6,9 @@ The core ERP architecture is implemented around a class-scoped academic model. T
 
 - `Backend/` — Spring Boot 3.5.3 / Java 21 REST API.
 - `frontend-web/` — React 19 + TypeScript + Vite web application.
-- `app/` — Expo/React Native mobile application using the same backend and the web application's botanical design system.
+- `app/` — Flutter/Dart mobile application using the same backend.
+
+The former Expo/React Native mobile implementation has been removed.
 
 ## Completed
 
@@ -40,33 +42,38 @@ The core ERP architecture is implemented around a class-scoped academic model. T
 - Access-token and refresh-token handling.
 - Shared botanical design system using green/white/soft-neutral surfaces, rounded cards and responsive layouts.
 
-### Mobile app
-The `app/` directory is an active Expo/React Native client backed by the same Spring Boot API.
+### Flutter mobile app
+The `app/` directory is now the Flutter/Dart client backed by the same Spring Boot API.
 
 Implemented:
-- Expo + React Native project structure and Android/iOS package identifiers.
+- Flutter/Dart project structure.
+- Material 3 EduSphere green/white branding.
 - College code, username and password login.
-- Persistent access/refresh-token session storage.
+- Persistent access/refresh-token session storage with `shared_preferences`.
 - Automatic access-token refresh on protected API `401` responses, with session cleanup when refresh fails.
-- Role-aware initial navigation for student, teacher, admin and super-admin accounts.
-- Student dashboard with attendance, subject and assignment summary.
-- Student classes/enrollments, attendance, assignments, timetable and profile screens.
-- Student results screen with semester results, subject marks/grades, SGPA and CGPA.
-- Teacher and admin dashboard screens using the same backend authorization model.
-- Pull-to-refresh and loading/error states on the main student data screens.
-- Environment-driven mobile API URL via `EXPO_PUBLIC_API_URL`.
-- Mobile `typecheck` npm script.
-- CI job that installs the mobile dependencies and runs the TypeScript type check.
+- Role-aware initial dashboard routing for student, teacher and admin accounts.
+- Student and teacher dashboard data integration.
+- Logout flow.
+- Backend REST integration through `http`.
+- Flutter static analysis in CI.
+
+Removed:
+- Expo configuration.
+- React Native source files.
+- React Navigation mobile source.
+- TypeScript mobile source.
+- npm mobile package configuration and mobile TypeScript configuration.
+- Expo environment configuration.
 
 ## CI verification
 
-The CI workflow now covers all three application surfaces:
+The CI workflow covers all three application surfaces:
 
 - Backend compilation and relationship isolation tests.
 - Web frontend production build.
-- Mobile dependency installation and TypeScript type check.
+- Flutter dependency installation and `flutter analyze`.
 
-The workflow also uses `actions/checkout@v5` to avoid the previous checkout Node 20 deprecation warning.
+The mobile job no longer installs Node/Expo dependencies or runs a TypeScript type check.
 
 ## Remaining work
 
@@ -86,10 +93,11 @@ The workflow also uses `actions/checkout@v5` to avoid the previous checkout Node
 - Add automated tests for import parsing, invalid candidates and conflict handling.
 - Test PDF/image imports with real timetable samples.
 
-### Mobile release hardening
-- Add teacher attendance/academic-management mobile workflows beyond the current dashboard foundation.
-- Add admin/super-admin operational management screens where appropriate.
-- Add password change and forgot-password flows.
+### Flutter mobile release hardening
+- Build all Student modules: classes, attendance, assignments, timetable, exams, marks and results.
+- Build all Teacher modules: classes/rosters, attendance, assignments, timetable, exams and marks.
+- Add appropriate Admin/Super-admin operational screens.
+- Add profile, password change and forgot-password flows.
 - Improve offline handling and user-facing session-expiry navigation.
 - Add push notifications if required.
 - Configure final Android/iOS icons, splash assets and release metadata.
@@ -99,6 +107,8 @@ The workflow also uses `actions/checkout@v5` to avoid the previous checkout Node
 ## Important architecture rule
 
 The mobile app must not create a second backend or duplicate business logic. It uses the same Spring Boot API and the same tenant/authentication model as the web application.
+
+The mobile stack is Flutter/Dart. Do not reintroduce Expo, React Native, React Navigation, TypeScript mobile source or npm-based mobile configuration.
 
 Operational academic relationships remain:
 
