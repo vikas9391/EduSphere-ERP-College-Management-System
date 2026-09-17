@@ -5,12 +5,12 @@
 ```text
 Web Browser ───────┐
                    ├──> Spring Boot API ───> PostgreSQL
-Mobile App ────────┘             │
+Flutter Mobile ────┘             │
                                  ├──> Redis (where enabled)
                                  └──> OpenAI (AI timetable import, optional)
 ```
 
-The web and mobile applications use the same backend API. Do not create a separate mobile backend.
+The web and Flutter mobile applications use the same backend API. Do not create a separate mobile backend.
 
 ## Backend
 
@@ -40,7 +40,7 @@ OPENAI_API_KEY=...
 OPENAI_TIMETABLE_MODEL=gpt-5-mini
 ```
 
-Never put `OPENAI_API_KEY` in the web or mobile application.
+Never put `OPENAI_API_KEY` in the web or Flutter application.
 
 ### Deployment checks
 
@@ -74,42 +74,59 @@ VITE_API_URL=https://your-api-domain.example/api
 
 Because the application uses browser-side routing, configure the selected static host to serve `index.html` for application routes. The exact rewrite configuration depends on the provider and is intentionally not hard-coded until a provider is selected.
 
-## Mobile application
+## Flutter mobile application
 
 Directory: `app/`
 
-The mobile app is Expo/React Native and uses the same backend.
+The mobile client is **Flutter/Dart**. The former Expo/React Native implementation has been removed.
 
 Install and run:
 
 ```bash
 cd app
-npm install
-npm start
+flutter pub get
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
-Backend URL:
+For a physical device, use a backend URL reachable from the device rather than `localhost`.
 
-```env
-EXPO_PUBLIC_API_URL=https://your-api-domain.example/api
+The API URL is provided through Dart compile-time configuration:
+
+```bash
+flutter run --dart-define=API_URL=https://your-api-domain.example/api
 ```
 
-For a physical device, do not use `localhost` unless the backend is running on the device itself. During local development, use the computer's LAN IP or an accessible development URL.
+There is no npm, Expo, React Native, or `EXPO_PUBLIC_API_URL` configuration for the mobile client.
 
-## Mobile release readiness
+## Flutter release readiness
 
 Before publishing Android/iOS builds:
 
-- [ ] Complete Student/Teacher/Admin navigation.
-- [ ] Complete academic modules.
-- [ ] Add refresh-token handling.
-- [ ] Add robust network/error states.
+- [ ] Complete Student/Teacher/Admin Flutter navigation.
+- [ ] Complete all required academic modules.
+- [x] Access/refresh-token handling foundation implemented.
+- [ ] Add robust network/offline states.
 - [ ] Add icons and splash assets.
 - [ ] Configure Android application ID and iOS bundle ID for production.
 - [ ] Test against production backend.
 - [ ] Test tenant isolation and role restrictions.
 - [ ] Run Android/iOS release builds.
 - [ ] Test on physical devices.
+
+Android release example:
+
+```bash
+cd app
+flutter build apk --release --dart-define=API_URL=https://your-api-domain.example/api
+```
+
+For Play Store distribution, use `flutter build appbundle --release` after configuring Android signing.
+
+For iOS distribution on macOS, configure Xcode signing and use `flutter build ipa --release`.
+
+## CI
+
+CI validates the backend, web application and Flutter mobile application. The Flutter job installs Flutter dependencies and runs `flutter analyze`; it does not install Node/Expo dependencies or run a TypeScript mobile check.
 
 ## Production smoke test
 
@@ -147,7 +164,7 @@ Before publishing Android/iOS builds:
 ## Known remaining hardening
 
 - Batch/transactional confirmation for multi-slot AI timetable imports.
-- Full mobile module implementation and mobile CI.
+- Full Flutter mobile module implementation.
 - Provider-specific frontend SPA configuration after hosting selection.
 - Production monitoring and backups.
 - Final dependency/security review.
