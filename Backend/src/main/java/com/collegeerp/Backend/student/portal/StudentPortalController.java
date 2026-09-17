@@ -1,8 +1,12 @@
 package com.collegeerp.Backend.student.portal;
 
 import com.collegeerp.Backend.common.dto.ApiResponse;
+import com.collegeerp.Backend.examination.dto.ExamScheduleResponse;
+import com.collegeerp.Backend.examination.repository.ExamScheduleRepository;
 import com.collegeerp.Backend.result.dto.OverallResultResponse;
 import com.collegeerp.Backend.schoolclass.dto.ClassEnrollmentResponse;
+import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
+import com.collegeerp.Backend.schoolclass.repository.ClassEnrollmentRepository;
 import com.collegeerp.Backend.security.UserPrincipal;
 import com.collegeerp.Backend.student.dto.*;
 import com.collegeerp.Backend.student.service.*;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /** Read-only self-service endpoints for the currently logged-in student. */
@@ -29,6 +34,8 @@ public class StudentPortalController {
     private final StudentTimetableService timetableService;
     private final StudentNotificationService notificationService;
     private final StudentIdentityService studentIdentityService;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
+    private final ExamScheduleRepository examScheduleRepository;
 
     public StudentPortalController(
             StudentDashboardService dashboardService,
@@ -39,7 +46,9 @@ public class StudentPortalController {
             StudentResultService resultService,
             StudentTimetableService timetableService,
             StudentNotificationService notificationService,
-            StudentIdentityService studentIdentityService) {
+            StudentIdentityService studentIdentityService,
+            ClassEnrollmentRepository classEnrollmentRepository,
+            ExamScheduleRepository examScheduleRepository) {
         this.dashboardService = dashboardService;
         this.enrollmentQueryService = enrollmentQueryService;
         this.attendanceService = attendanceService;
@@ -49,6 +58,8 @@ public class StudentPortalController {
         this.timetableService = timetableService;
         this.notificationService = notificationService;
         this.studentIdentityService = studentIdentityService;
+        this.classEnrollmentRepository = classEnrollmentRepository;
+        this.examScheduleRepository = examScheduleRepository;
     }
 
     @GetMapping("/dashboard")
@@ -89,6 +100,36 @@ public class StudentPortalController {
     @GetMapping("/notifications")
     public ApiResponse<List<NotificationResponse>> notifications(Authentication authentication) {
         return ApiResponse.success(notificationService.getNotifications(studentId(authentication)));
+    }
+
+    @GetMapping("/exams")
+    public ApiResponse<List<ExamScheduleResponse>> exams(Authentication authentication) {
+        Long studentId = studentId(authentication);
+        List<Long> classSubjectIds = classEnrollmentRepository.findAllByStudentId(studentId).stream()
+                .map(ClassEnrollment::getClassSubject)
+                .filter(java.util.Objects::nonNull)
+                .map(cs -> cs.getId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (classSubjectIds.isEmpty()) return ApiResponse.success(List.of());
+        return ApiResponse.success(examScheduleRepository.findUpcomingForStudent(classSubjectIds, LocalDate.now()).stream()
+                .map(schedule -> ExamScheduleResponse.builder()
+                        .id(schedule.getId())
+                        .examId(schedule.getExam().getId())
+                        .examName(schedule.getExam().getExamName())
+                        .subjectId(schedule.getClassSubject().getSubject() != null ? schedule.getClassSubject().getSubject().getId() : null)
+                        .subjectName(schedule.getClassSubject().getSubjectName())
+                        .classSubjectId(schedule.getClassSubject().getId())
+                        .classId(schedule.getClassSubject().getSchoolClass() != null ? schedule.getClassSubject().getSchoolClass().getId() : null)
+                        .className(schedule.getClassSubject().getSchoolClass() != null ? schedule.getClassSubject().getSchoolClass().getName() : null)
+                        .examDate(schedule.getExamDate())
+                        .startTime(schedule.getStartTime())
+                        .endTime(schedule.getEndTime())
+                        .room(schedule.getRoom())
+                        .maxMarks(schedule.getMaxMarks())
+                        .build())
+                .toList());
     }
 
     private Long studentId(Authentication authentication) {
