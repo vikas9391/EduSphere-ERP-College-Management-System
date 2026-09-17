@@ -1,37 +1,39 @@
-# EduSphere ERP Mobile
+# EduSphere ERP — Flutter Mobile App
 
-Expo / React Native mobile client for the EduSphere ERP backend.
+The `app/` directory is now a Flutter/Dart mobile application. The previous Expo/React Native implementation has been removed.
 
-## Backend
-
-The mobile app uses the existing Spring Boot API. No second backend is required.
-
-Create `app/.env` from `.env.example`:
-
-```env
-EXPO_PUBLIC_API_URL=http://YOUR_COMPUTER_IP:8080/api
-```
-
-For a physical phone, do not use `localhost`; use the LAN IP of the machine running the backend, and make sure the phone can reach that machine.
+## Requirements
+- Flutter stable
+- Dart 3.5+
+- Android Studio or an Android SDK for Android builds
 
 ## Run
 
 ```bash
-cd app
-npm install
-npm start
+flutter pub get
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
-Then open the project with Expo Go or an Android/iOS emulator.
+For a physical phone, replace `API_URL` with the reachable backend URL, for example:
 
-## Current mobile modules
+```bash
+flutter run --dart-define=API_URL=https://your-backend.example.com/api
+```
 
-- JWT login with persisted session
-- Student dashboard using live ERP dashboard data
-- Enrolled classes
-- Attendance summary
-- Assignments and submission status
-- Weekly timetable
-- Profile foundation
+The default API URL is `http://localhost:8080/api`.
 
-The mobile UI follows the web application's green botanical design tokens.
+## Build
+
+```bash
+flutter build apk --release --dart-define=API_URL=https://your-backend.example.com/api
+```
+
+## Included
+- College-code, username and password login
+- Access/refresh token handling
+- Student, teacher and admin role dashboards
+- Student academic overview
+- Teacher teaching overview
+- Session persistence and logout
+- Material 3 green/white EduSphere design system
+- Backend REST integration
