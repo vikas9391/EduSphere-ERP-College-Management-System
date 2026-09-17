@@ -2,7 +2,7 @@
 
 A multi-tenant College ERP/SaaS platform for managing colleges, users, academics, classes, students, teachers, attendance, assignments, examinations, marks, results, timetables, holidays and announcements.
 
-> **Status:** Core ERP architecture is implemented and the latest verified web CI is green. A new Expo/React Native mobile app has also been scaffolded in `app/` and is being extended to use the same backend and design system.
+> **Status:** Core ERP architecture is implemented. The web application uses React + TypeScript, and the mobile application in `app/` is now a Flutter/Dart application. The former Expo/React Native mobile implementation has been removed.
 
 ## Project Structure
 
@@ -10,7 +10,7 @@ A multi-tenant College ERP/SaaS platform for managing colleges, users, academics
 EduSphere-ERP-College-Management-System/
 ├── Backend/        # Spring Boot REST API
 ├── frontend-web/   # React + TypeScript web application
-├── app/            # Expo + React Native mobile application
+├── app/            # Flutter + Dart mobile application
 ├── docs/            # Project documentation, status and deployment guide
 └── .github/         # CI configuration
 ```
@@ -30,10 +30,11 @@ EduSphere-ERP-College-Management-System/
 - Recharts
 
 ### Mobile
-- Expo
-- React Native
-- React Navigation
-- AsyncStorage
+- Flutter stable
+- Dart 3.5+
+- Material 3
+- `http`
+- `shared_preferences`
 - Same Spring Boot API as the web application
 
 ### Backend
@@ -122,14 +123,6 @@ The old standalone operational `Enrollment` model has been removed. Attendance, 
 - Validation when a ClassSubject has no assigned teacher.
 - AI-assisted image/PDF timetable inspection and review.
 
-AI timetable flow:
-
-```text
-Image/PDF → Backend → OpenAI processing → Candidates → Review/Edit → Conflict validation → Save
-```
-
-The OpenAI API key remains backend-only.
-
 ### Assignments, examinations, marks and results
 
 - Assignments and submissions are class-scoped.
@@ -149,58 +142,40 @@ The OpenAI API key remains backend-only.
 - Access-token injection and refresh-token handling.
 - Responsive botanical design system.
 
-## Mobile App
+## Flutter Mobile App
 
-The `app/` folder is now the mobile application for EduSphere.
+The `app/` directory is the single mobile client for EduSphere. It is implemented in **Flutter/Dart** and connects directly to the same Spring Boot API used by the web application.
 
-The mobile app is **not a second backend**. It connects to the same Spring Boot API and uses the same tenant/authentication model.
+The previous Expo/React Native project has been removed from the mobile app directory. There are no React Native/Expo mobile dependencies, TypeScript mobile entry points, or Expo configuration files in the current mobile project.
 
-### Current mobile milestone
+### Current Flutter mobile foundation
 
-Implemented:
-
-- Expo/React Native project foundation.
-- EduSphere mobile branding.
-- Same botanical color system as the web UI.
+- Flutter/Dart project structure.
+- Material 3 green/white EduSphere branding.
 - College code + username + password login.
-- Connection to `/api/auth/login`.
-- Session persistence foundation.
-- Post-login dashboard shell.
-- Sign-out flow.
-- Mobile API environment configuration.
-
-### Shared design system
-
-The mobile app uses the web application's current botanical palette:
-
-```text
-Primary       #2e7d32
-Primary Dark  #256428
-Secondary     #4caf50
-Light Green   #e8f5e9
-Background    #f8f8f2
-Card          #ffffff
-Text          #1f2937
-Muted         #6b7280
-Border        #eef2e7
-Danger        #c1543c
-```
+- JWT access/refresh token handling.
+- Persistent session storage with `shared_preferences`.
+- Student, teacher and admin role-aware home/dashboard foundation.
+- Logout flow.
+- Backend REST integration through the shared API.
+- Flutter static analysis in CI.
 
 ### Run the mobile app
 
 ```bash
 cd app
-npm install
-npm start
+flutter pub get
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
-Configure the backend:
+For a physical device, use a backend URL reachable from that device.
 
-```env
-EXPO_PUBLIC_API_URL=http://localhost:8080/api
+### Build Android APK
+
+```bash
+cd app
+flutter build apk --release --dart-define=API_URL=https://your-backend.example.com/api
 ```
-
-For a physical device, use an API URL reachable from the device rather than `localhost`.
 
 ## API Areas
 
@@ -241,10 +216,12 @@ Swagger/OpenAPI:
 VITE_API_URL=http://localhost:8080/api
 ```
 
-### Mobile
+### Flutter Mobile
 
-```env
-EXPO_PUBLIC_API_URL=http://localhost:8080/api
+The mobile API URL is supplied at build/run time with Dart's `--dart-define`:
+
+```bash
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
 ### Backend
@@ -292,23 +269,23 @@ npm run dev
 
 Web: `http://localhost:5173`
 
-### Mobile
+### Flutter Mobile
 
 ```bash
 cd app
-npm install
-npm start
+flutter pub get
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
 ## CI / Verification
 
-The latest verified web CI run before adding the mobile scaffold reported:
+CI validates all three application layers:
 
-- Backend compilation: **PASS**
-- Relationship tests: **9 tests, 0 failures, 0 errors**
-- Frontend production build: **PASS**
+- Backend compilation and relationship isolation tests.
+- Frontend production build.
+- Flutter mobile dependency resolution and `flutter analyze`.
 
-The mobile application was added after that verification, so mobile CI/type-check/build automation is still a remaining task.
+The mobile CI no longer installs Node/Expo dependencies or runs a TypeScript type check.
 
 ## Fresh Database Setup
 
@@ -342,22 +319,21 @@ See `docs/DEPLOYMENT.md` for the provider-neutral deployment checklist.
 - [x] AI timetable image/PDF inspection and review UI.
 - [x] Legacy standalone enrollment path removed.
 - [x] Environment-driven API configuration.
-- [x] Web CI/build and relationship tests passing.
-- [x] Mobile app folder created.
-- [x] Mobile app login connected to the same backend.
-- [x] Mobile app uses the same botanical UI color system.
+- [x] Web CI/build and relationship tests.
+- [x] Flutter mobile project replacing the former React Native app.
+- [x] Flutter mobile login and backend connection foundation.
+- [x] Flutter mobile session persistence and refresh-token foundation.
+- [x] Flutter mobile static analysis in CI.
 
 ### Remaining
 
-- [ ] Complete Student mobile dashboard and modules.
-- [ ] Complete Teacher mobile dashboard and modules.
-- [ ] Add appropriate Admin/Super-admin mobile views.
-- [ ] Add mobile attendance, assignments, timetable, exams, marks and results screens.
-- [ ] Add mobile profile/password/reset flows.
-- [ ] Add robust mobile refresh-token handling and network/offline states.
+- [ ] Complete all Student Flutter modules: classes, attendance, assignments, timetable, exams, marks and results.
+- [ ] Complete all Teacher Flutter modules: classes/rosters, attendance, assignments, timetable, exams and marks.
+- [ ] Add appropriate Admin/Super-admin Flutter views.
+- [ ] Add Flutter profile/password/reset flows.
+- [ ] Add robust network/offline states.
 - [ ] Add mobile push notifications if required.
-- [ ] Add mobile CI/type checking/release builds.
-- [ ] Configure Android/iOS production icons, splash assets and release metadata.
+- [ ] Add Android/iOS production icons, splash assets and release metadata.
 - [ ] Test Android/iOS builds on physical devices.
 - [ ] Make AI timetable multi-slot confirmation transactional to prevent partial saves.
 - [ ] Choose production hosting and add provider-specific SPA configuration.
