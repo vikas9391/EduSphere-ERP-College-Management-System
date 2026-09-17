@@ -4,1020 +4,162 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-const apiUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'http://localhost:8080/api',
-);
+const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api');
+const green = Color(0xFF2E7D32);
 
 class ApiService {
   ApiService._();
   static final instance = ApiService._();
-
   String get base => apiUrl.replaceFirst(RegExp(r'/$'), '');
 
-  Future<dynamic> _rawRequest(
-    String path, {
-    String method = 'GET',
-    Map<String, dynamic>? body,
-    bool retry = true,
-  }) async {
+  Future<dynamic> request(String path, {String method = 'GET', Map<String, dynamic>? body, bool retry = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('accessToken');
-    final headers = <String, String>{
-      'Accept': 'application/json',
-      if (body != null) 'Content-Type': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-    };
+    final headers = <String, String>{'Accept': 'application/json', if (body != null) 'Content-Type': 'application/json', if (token?.isNotEmpty == true) 'Authorization': 'Bearer $token'};
     final uri = Uri.parse('$base$path');
     late http.Response response;
-
+    final encoded = body == null ? null : jsonEncode(body);
     switch (method) {
-      case 'POST':
-        response = await http.post(
-          uri,
-          headers: headers,
-          body: body == null ? null : jsonEncode(body),
-        );
-        break;
-      case 'PUT':
-        response = await http.put(
-          uri,
-          headers: headers,
-          body: body == null ? null : jsonEncode(body),
-        );
-        break;
-      case 'DELETE':
-        response = await http.delete(uri, headers: headers);
-        break;
-      default:
-        response = await http.get(uri, headers: headers);
+      case 'POST': response = await http.post(uri, headers: headers, body: encoded); break;
+      case 'PUT': response = await http.put(uri, headers: headers, body: encoded); break;
+      case 'DELETE': response = await http.delete(uri, headers: headers); break;
+      default: response = await http.get(uri, headers: headers);
     }
-
     if (response.statusCode == 401 && retry && !path.startsWith('/auth/')) {
-      if (await refresh()) {
-        return _rawRequest(path, method: method, body: body, retry: false);
-      }
+      if (await refresh()) return request(path, method: method, body: body, retry: false);
     }
-
     dynamic data;
-    try {
-      data = response.body.isEmpty ? null : jsonDecode(response.body);
-    } catch (_) {
-      data = null;
-    }
-
+    try { data = response.body.isEmpty ? null : jsonDecode(response.body); } catch (_) { data = null; }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = data is Map
-          ? (data['message'] ?? data['error'] ?? 'Request failed (${response.statusCode})')
-          : 'Request failed (${response.statusCode})';
+      final message = data is Map ? (data['message'] ?? data['error'] ?? 'Request failed (${response.statusCode})') : 'Request failed (${response.statusCode})';
       throw Exception(message.toString());
     }
-
-    if (data is Map && data['data'] != null) return data['data'];
-    return data;
-  }
-
-  Future<Map<String, dynamic>> _mapRequest(
-    String path, {
-    String method = 'GET',
-    Map<String, dynamic>? body,
-    bool retry = true,
-  }) async {
-    final data = await _rawRequest(
-      path,
-      method: method,
-      body: body,
-      retry: retry,
-    );
-    return data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
-  }
-
-  Future<List<dynamic>> _listRequest(String path) async {
-    final data = await _rawRequest(path);
-    return data is List ? data : <dynamic>[];
+    return data is Map && data['data'] != null ? data['data'] : data;
   }
 
   Future<bool> refresh() async {
     final prefs = await SharedPreferences.getInstance();
-    final refreshToken = prefs.getString('refreshToken');
-    if (refreshToken == null || refreshToken.isEmpty) return false;
-
+    final token = prefs.getString('refreshToken');
+    if (token == null || token.isEmpty) return false;
     try {
-      final response = await http.post(
-        Uri.parse('$base/auth/refresh'),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'refreshToken': refreshToken}),
-      );
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception();
-      }
+      final response = await http.post(Uri.parse('$base/auth/refresh'), headers: {'Accept': 'application/json', 'Content-Type': 'application/json'}, body: jsonEncode({'refreshToken': token}));
+      if (response.statusCode < 200 || response.statusCode >= 300) throw Exception();
       final raw = jsonDecode(response.body);
       final data = raw is Map && raw['data'] is Map ? raw['data'] : raw;
       if (data is! Map || data['accessToken'] == null) throw Exception();
       await prefs.setString('accessToken', data['accessToken'].toString());
-      if (data['refreshToken'] != null) {
-        await prefs.setString('refreshToken', data['refreshToken'].toString());
-      }
+      if (data['refreshToken'] != null) await prefs.setString('refreshToken', data['refreshToken'].toString());
       if (data['role'] != null) await prefs.setString('role', data['role'].toString());
       return true;
-    } catch (_) {
-      await logout();
-      return false;
-    }
+    } catch (_) { await logout(); return false; }
   }
 
-  Future<Map<String, dynamic>> login(
-    String collegeCode,
-    String username,
-    String password,
-  ) async {
-    final data = await _mapRequest(
-      '/auth/login',
-      method: 'POST',
-      retry: false,
-      body: {
-        'collegeCode': collegeCode,
-        'username': username,
-        'password': password,
-      },
-    );
+  Future<Map<String, dynamic>> login(String college, String username, String password) async {
+    final raw = await request('/auth/login', method: 'POST', retry: false, body: {'collegeCode': college, 'username': username, 'password': password});
+    final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('accessToken', (data['accessToken'] ?? '').toString());
-    await prefs.setString('username', (data['username'] ?? username).toString());
-    await prefs.setString('role', (data['role'] ?? '').toString());
-    if (data['refreshToken'] != null) {
-      await prefs.setString('refreshToken', data['refreshToken'].toString());
-    }
+    await prefs.setString('accessToken', '${data['accessToken'] ?? ''}');
+    await prefs.setString('refreshToken', '${data['refreshToken'] ?? ''}');
+    await prefs.setString('username', '${data['username'] ?? username}');
+    await prefs.setString('role', '${data['role'] ?? ''}');
     return data;
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken');
-    await prefs.remove('refreshToken');
-    await prefs.remove('role');
-    await prefs.remove('username');
+    await prefs.remove('accessToken'); await prefs.remove('refreshToken'); await prefs.remove('role'); await prefs.remove('username');
   }
 
-  Future<Map<String, dynamic>> studentDashboard() => _mapRequest('/student/dashboard');
-  Future<Map<String, dynamic>> teacherDashboard() => _mapRequest('/teacher/dashboard');
+  Future<Map<String, dynamic>> map(String path) async { final v = await request(path); return v is Map ? Map<String, dynamic>.from(v) : {}; }
+  Future<List<Map<String, dynamic>>> list(String path) async { final v = await request(path); return v is List ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : []; }
 
-  Future<List<Map<String, dynamic>>> teacherStudents() async =>
-      (await _listRequest('/teacher/students'))
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-
-  Future<List<Map<String, dynamic>>> myAttendance() async =>
-      (await _listRequest('/attendance'))
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-
-  Future<Map<String, dynamic>> createAttendance(Map<String, dynamic> body) =>
-      _mapRequest('/attendance', method: 'POST', body: body);
-
-  Future<Map<String, dynamic>> updateAttendance(
-    int id,
-    Map<String, dynamic> body,
-  ) => _mapRequest('/attendance/$id', method: 'PUT', body: body);
-
-  Future<Map<String, dynamic>> studentAttendanceSummary() =>
-      _mapRequest('/attendance/me/summary');
+  Future<Map<String, dynamic>> studentDashboard() => map('/student/dashboard');
+  Future<Map<String, dynamic>> teacherDashboard() => map('/teacher/dashboard');
+  Future<List<Map<String, dynamic>>> teacherStudents() => list('/teacher/students');
+  Future<List<Map<String, dynamic>>> attendance() => list('/attendance');
+  Future<Map<String, dynamic>> attendanceSummary() => map('/attendance/me/summary');
+  Future<List<Map<String, dynamic>>> studentEnrollments() => list('/student/enrollments');
+  Future<List<Map<String, dynamic>>> studentAssignments() => list('/student/assignments');
+  Future<Map<String, dynamic>> studentResults() => map('/student/results');
+  Future<Map<String, dynamic>> studentTimetable() => map('/student/timetable');
+  Future<List<Map<String, dynamic>>> teacherAssignments() => list('/teacher/assignments');
+  Future<List<Map<String, dynamic>>> myTimetable() => list('/timetable/mine');
+  Future<Map<String, dynamic>> createAttendance(Map<String, dynamic> body) => mapPost('/attendance', body);
+  Future<Map<String, dynamic>> updateAttendance(int id, Map<String, dynamic> body) => mapPut('/attendance/$id', body);
+  Future<Map<String, dynamic>> mapPost(String path, Map<String, dynamic> body) async { final v = await request(path, method: 'POST', body: body); return v is Map ? Map<String, dynamic>.from(v) : {}; }
+  Future<Map<String, dynamic>> mapPut(String path, Map<String, dynamic> body) async { final v = await request(path, method: 'PUT', body: body); return v is Map ? Map<String, dynamic>.from(v) : {}; }
 }
 
 void main() => runApp(const EduSphereApp());
 
 class EduSphereApp extends StatelessWidget {
   const EduSphereApp({super.key});
-
   @override
   Widget build(BuildContext context) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'EduSphere ERP',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF2E7D32),
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: const Color(0xFFF6F7F2),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: const Color(0xFFF0F4EE),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFE4E9E2)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
-              side: const BorderSide(color: Color(0xFFE4E9E2)),
-            ),
-          ),
-        ),
-        home: const RootScreen(),
-      );
+    debugShowCheckedModeBanner: false,
+    title: 'EduSphere ERP',
+    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: green), scaffoldBackgroundColor: const Color(0xFFF6F7F2), inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: const Color(0xFFF0F4EE), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none))),
+    home: const RootScreen(),
+  );
 }
 
-class RootScreen extends StatefulWidget {
-  const RootScreen({super.key});
-  @override
-  State<RootScreen> createState() => _RootScreenState();
+class RootScreen extends StatefulWidget { const RootScreen({super.key}); @override State<RootScreen> createState() => _RootState(); }
+class _RootState extends State<RootScreen> {
+  String? role; bool loading = true;
+  @override void initState() { super.initState(); restore(); }
+  Future<void> restore() async { final p = await SharedPreferences.getInstance(); final t = p.getString('accessToken'); if (mounted) setState(() { role = t?.isNotEmpty == true ? p.getString('role') : null; loading = false; }); }
+  @override Widget build(BuildContext context) { if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator())); if (role == null) return LoginScreen(onLogin: (r) => setState(() => role = r)); return HomeScreen(role: role!, onLogout: () async { await ApiService.instance.logout(); if (mounted) setState(() => role = null); }); }
 }
 
-class _RootScreenState extends State<RootScreen> {
-  String? role;
-  bool loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _restore();
-  }
-
-  Future<void> _restore() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('accessToken');
-    if (!mounted) return;
-    setState(() {
-      role = token == null || token.isEmpty ? null : prefs.getString('role');
-      loading = false;
-    });
-  }
-
-  void signedIn(String value) => setState(() => role = value);
-
-  Future<void> signOut() async {
-    await ApiService.instance.logout();
-    if (mounted) setState(() => role = null);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) return const SplashScreen();
-    if (role == null) return LoginScreen(onSignedIn: signedIn);
-    return HomeScreen(role: role!, onLogout: signOut);
-  }
+class LoginScreen extends StatefulWidget { final void Function(String) onLogin; const LoginScreen({super.key, required this.onLogin}); @override State<LoginScreen> createState() => _LoginState(); }
+class _LoginState extends State<LoginScreen> {
+  final college = TextEditingController(), user = TextEditingController(), password = TextEditingController(); bool busy = false, obscure = true;
+  Future<void> submit() async { if ([college, user, password].any((c) => c.text.trim().isEmpty)) { snack(context, 'Enter all login details.'); return; } setState(() => busy = true); try { final r = await ApiService.instance.login(college.text.trim(), user.text.trim(), password.text); widget.onLogin('${r['role'] ?? ''}'); } catch (e) { snack(context, cleanError(e)); } finally { if (mounted) setState(() => busy = false); } }
+  @override Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('EduSphere', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: green)), const Text('College ERP mobile', style: TextStyle(color: Colors.black54)), const SizedBox(height: 34), Card(child: Padding(padding: const EdgeInsets.all(22), child: Column(children: [field('College code', college), field('Username', user), TextField(controller: password, obscureText: obscure, decoration: InputDecoration(labelText: 'Password', suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility : Icons.visibility_off)))), const SizedBox(height: 22), SizedBox(width: double.infinity, height: 52, child: FilledButton(onPressed: busy ? null : submit, child: busy ? const CircularProgressIndicator(color: Colors.white) : const Text('Sign in')))])))])))));
+  Widget field(String label, TextEditingController c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: c, decoration: InputDecoration(labelText: label)));
 }
 
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-}
-
-class LoginScreen extends StatefulWidget {
-  final void Function(String) onSignedIn;
-  const LoginScreen({super.key, required this.onSignedIn});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final college = TextEditingController();
-  final user = TextEditingController();
-  final pass = TextEditingController();
-  bool busy = false;
-  bool obscure = true;
-
-  Future<void> submit() async {
-    if (college.text.trim().isEmpty || user.text.trim().isEmpty || pass.text.isEmpty) {
-      _error('Enter your college code, username and password.');
-      return;
-    }
-    setState(() => busy = true);
-    try {
-      final result = await ApiService.instance.login(
-        college.text.trim(),
-        user.text.trim(),
-        pass.text,
-      );
-      widget.onSignedIn((result['role'] ?? '').toString());
-    } catch (e) {
-      _error(e.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  void _error(String message) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2E7D32),
-                          borderRadius: BorderRadius.circular(17),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'E',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('EduSphere', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                          Text('College ERP', style: TextStyle(color: Color(0xFF68736B))),
-                        ],
-                      ),
-                    ]),
-                    const SizedBox(height: 42),
-                    const Text(
-                      'Your campus, beautifully connected.',
-                      style: TextStyle(fontSize: 32, height: 1.18, fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Classes, attendance, assignments and results in one secure mobile workspace.',
-                      style: TextStyle(color: Color(0xFF68736B), fontSize: 15, height: 1.5),
-                    ),
-                    const SizedBox(height: 28),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(22),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Welcome back', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                            const SizedBox(height: 4),
-                            const Text('Sign in to continue to your campus.', style: TextStyle(color: Color(0xFF68736B))),
-                            const SizedBox(height: 20),
-                            _field('College code', college, 'e.g. MREC'),
-                            _field('Username', user, 'Enter username'),
-                            TextField(
-                              controller: pass,
-                              obscureText: obscure,
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                hintText: 'Enter password',
-                                suffixIcon: IconButton(
-                                  onPressed: () => setState(() => obscure = !obscure),
-                                  icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 22),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: FilledButton(
-                                onPressed: busy ? null : submit,
-                                child: busy
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : const Text('Sign in securely', style: TextStyle(fontWeight: FontWeight.w800)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-  Widget _field(String label, TextEditingController controller, String hint) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: controller,
-          textCapitalization: label == 'College code' ? TextCapitalization.characters : TextCapitalization.none,
-          decoration: InputDecoration(labelText: label, hintText: hint),
-        ),
-      );
-}
-
-class HomeScreen extends StatefulWidget {
-  final String role;
-  final Future<void> Function() onLogout;
-  const HomeScreen({super.key, required this.role, required this.onLogout});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  Map<String, dynamic>? data;
-  bool loading = true;
-
+class HomeScreen extends StatefulWidget { final String role; final Future<void> Function() onLogout; const HomeScreen({super.key, required this.role, required this.onLogout}); @override State<HomeScreen> createState() => _HomeState(); }
+class _HomeState extends State<HomeScreen> {
+  Map<String, dynamic> data = {}; bool loading = true;
   bool get teacher => widget.role.toUpperCase().contains('TEACHER');
-  bool get student => widget.role.toUpperCase().contains('STUDENT');
+  @override void initState() { super.initState(); load(); }
+  Future<void> load() async { setState(() => loading = true); try { data = await (teacher ? ApiService.instance.teacherDashboard() : ApiService.instance.studentDashboard()); } catch (_) { data = {}; } finally { if (mounted) setState(() => loading = false); } }
+  @override Widget build(BuildContext context) { final name = '${data['${teacher ? 'teacher' : 'student'}Name'] ?? 'User'}'; final items = teacher ? <_Module>[const _Module('Classes', Icons.school_outlined, TeacherClassesScreen()), const _Module('Attendance', Icons.fact_check_outlined, TeacherAttendanceScreen()), const _Module('Assignments', Icons.assignment_outlined, TeacherAssignmentsScreen()), const _Module('Timetable', Icons.calendar_month_outlined, TeacherTimetableScreen())] : <_Module>[const _Module('Classes', Icons.school_outlined, StudentClassesScreen()), const _Module('Attendance', Icons.fact_check_outlined, StudentAttendanceScreen()), const _Module('Assignments', Icons.assignment_outlined, StudentAssignmentsScreen()), const _Module('Timetable', Icons.calendar_month_outlined, StudentTimetableScreen()), const _Module('Results', Icons.bar_chart_outlined, StudentResultsScreen())]; return Scaffold(appBar: AppBar(title: const Text('EduSphere', style: TextStyle(fontWeight: FontWeight.w900)), actions: [IconButton(onPressed: widget.onLogout, icon: const Icon(Icons.logout))]), body: RefreshIndicator(onRefresh: load, child: ListView(padding: const EdgeInsets.all(20), children: [Text(teacher ? 'Welcome back,' : 'Good to see you,', style: const TextStyle(color: Colors.black54)), Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), const SizedBox(height: 20), if (loading) const Center(child: Padding(padding: EdgeInsets.all(30), child: CircularProgressIndicator())) else ...[Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(22)), child: Text(teacher ? '${data['totalSubjects'] ?? 0} subjects · ${data['totalStudents'] ?? 0} students' : '${data['course'] ?? 'Student'} · Attendance ${data['attendancePercentage'] ?? 0}%', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w800))), const SizedBox(height: 20), const Text('Modules', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 8), Card(child: Column(children: items.map((m) => ListTile(leading: CircleAvatar(backgroundColor: const Color(0xFFE8F5E9), child: Icon(m.icon, color: green)), title: Text(m.title, style: const TextStyle(fontWeight: FontWeight.w700)), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => m.page))).toList()))]])); }
+}
+class _Module { final String title; final IconData icon; final Widget page; const _Module(this.title, this.icon, this.page); }
 
-  @override
-  void initState() {
-    super.initState();
-    load();
-  }
+class StudentClassesScreen extends StatelessWidget { const StudentClassesScreen({super.key}); @override Widget build(BuildContext c) => DataListScreen(title: 'My Classes', future: ApiService.instance.studentEnrollments(), empty: 'No enrollments found.', item: (x) => '${x['subjectName'] ?? 'Subject'} · ${x['className'] ?? ''}', sub: (x) => '${x['subjectCode'] ?? ''} · ${x['teacherName'] ?? ''}'); }
+class TeacherClassesScreen extends StatelessWidget { const TeacherClassesScreen({super.key}); @override Widget build(BuildContext c) => DataListScreen(title: 'My Classes', future: ApiService.instance.teacherStudents(), empty: 'No assigned students.', group: true, item: (x) => '${x['studentName'] ?? 'Student'}', sub: (x) => '${x['className'] ?? ''} · ${x['subjectName'] ?? ''} · ${x['admissionNo'] ?? ''}'); }
 
-  Future<void> load() async {
-    setState(() => loading = true);
-    try {
-      if (teacher) {
-        data = await ApiService.instance.teacherDashboard();
-      } else if (student) {
-        data = await ApiService.instance.studentDashboard();
-      } else {
-        data = {};
-      }
-    } catch (_) {
-      data = {};
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
+class StudentAttendanceScreen extends StatelessWidget { const StudentAttendanceScreen({super.key}); @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('My Attendance')), body: FutureBuilder(future: Future.wait([ApiService.instance.attendanceSummary(), ApiService.instance.attendance()]), builder: (c, s) { if (s.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator()); if (s.hasError) return ErrorView('${s.error}'); final summary = s.data![0] as Map<String, dynamic>; final rows = s.data![1] as List<Map<String, dynamic>>; return ListView(padding: const EdgeInsets.all(20), children: [Card(child: Padding(padding: const EdgeInsets.all(22), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Attendance percentage', style: TextStyle(color: Colors.black54)), const SizedBox(height: 6), Text('${summary['percentage'] ?? summary['attendancePercentage'] ?? 0}%', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: green))])), const SizedBox(height: 18), const Text('Recent records', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), ...rows.take(30).map((x) => Card(child: ListTile(title: Text('${x['subjectName'] ?? 'Subject'}', style: const TextStyle(fontWeight: FontWeight.w700)), subtitle: Text('${x['attendanceDate'] ?? ''}'), trailing: Text('${x['status'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)))))]); })); }
 
-  String get name => (data?['studentName'] ?? data?['teacherName'] ?? 'User').toString();
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('EduSphere', style: TextStyle(fontWeight: FontWeight.w900)),
-          actions: [IconButton(onPressed: widget.onLogout, icon: const Icon(Icons.logout_rounded))],
-        ),
-        body: RefreshIndicator(
-          onRefresh: load,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text(teacher ? 'Welcome back,' : 'Good to see you,', style: const TextStyle(color: Color(0xFF68736B), fontSize: 15)),
-              const SizedBox(height: 4),
-              Row(children: [
-                Expanded(child: Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900))),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFFE8F5E9),
-                  child: Text(name.isEmpty ? 'U' : name[0].toUpperCase(), style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w900)),
-                ),
-              ]),
-              const SizedBox(height: 22),
-              if (loading)
-                const Padding(padding: EdgeInsets.all(48), child: Center(child: CircularProgressIndicator()))
-              else ...[
-                _hero(),
-                const SizedBox(height: 18),
-                const Text('Quick overview', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 12),
-                _stats(),
-                const SizedBox(height: 22),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(teacher ? 'Teaching tools' : 'Academic tools', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 12),
-                        _tool('Classes', Icons.school_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherClassesScreen() : const StudentClassesScreen()))),
-                        _tool('Attendance', Icons.fact_check_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherAttendanceScreen() : const StudentAttendanceScreen()))),
-                        _tool('Assignments', Icons.assignment_outlined, () => _comingSoon('Assignments')),
-                        _tool('Timetable', Icons.calendar_month_outlined, () => _comingSoon('Timetable')),
-                        _tool('Results', Icons.bar_chart_rounded, () => _comingSoon('Results')),
-                        _tool('Profile', Icons.person_outline_rounded, () => _comingSoon('Profile')),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-
-  Widget _tool(String title, IconData icon, VoidCallback onTap) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE8F5E9),
-          child: Icon(icon, color: const Color(0xFF2E7D32), size: 20),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15),
-        onTap: onTap,
-      );
-
-  void _comingSoon(String title) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$title mobile module is next in the Flutter build.'), behavior: SnackBarBehavior.floating),
-      );
-
-  Widget _hero() => Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(22)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(teacher ? 'TODAY’S TEACHING' : 'ACADEMIC PROFILE', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-            const SizedBox(height: 10),
-            Text(
-              teacher ? 'Your teaching overview is ready.' : '${data?['course'] ?? 'Student'} · ${data?['department'] ?? 'Department'}',
-              style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              teacher ? '${data?['upcomingClassesCount'] ?? 0} upcoming classes' : 'Semester ${data?['semester'] ?? '—'} · CGPA ${data?['cgpa'] ?? '—'}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ],
-        ),
-      );
-
-  Widget _stats() => Row(
-        children: (teacher
-                ? [['Subjects', data?['totalSubjects'] ?? 0], ['Students', data?['totalStudents'] ?? 0], ['Reviews', data?['pendingReviewCount'] ?? 0]]
-                : [['Attendance', '${data?['attendancePercentage'] ?? 0}%'], ['Subjects', data?['totalSubjects'] ?? 0], ['Pending', data?['pendingAssignments'] ?? 0]])
-            .map((item) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('${item[0]}', style: const TextStyle(color: Color(0xFF68736B), fontSize: 12)),
-                          const SizedBox(height: 5),
-                          Text('${item[1]}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ))
-            .toList(),
-      );
+class TeacherAttendanceScreen extends StatefulWidget { const TeacherAttendanceScreen({super.key}); @override State<TeacherAttendanceScreen> createState() => _TeacherAttendanceState(); }
+class _TeacherAttendanceState extends State<TeacherAttendanceScreen> {
+  List<Map<String, dynamic>> students = [], records = []; String? group; DateTime date = DateTime.now(); final status = <String, String>{}; bool loading = true, saving = false;
+  String get day => '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  @override void initState() { super.initState(); load(); }
+  Future<void> load() async { setState(() => loading = true); try { final r = await Future.wait([ApiService.instance.teacherStudents(), ApiService.instance.attendance()]); students = r[0] as List<Map<String, dynamic>>; records = r[1] as List<Map<String, dynamic>>; final groups = _groups; group = groups.containsKey(group) ? group : groups.keys.firstOrNull; sync(); } catch (e) { if (mounted) snack(context, cleanError(e)); } finally { if (mounted) setState(() => loading = false); } }
+  Map<String, List<Map<String, dynamic>>> get _groups { final g = <String, List<Map<String, dynamic>>>{}; for (final s in students) { final k = '${s['classSubjectId'] ?? ''}'; g.putIfAbsent(k, () => []).add(s); } return g; }
+  List<Map<String, dynamic>> get selected => group == null ? [] : (_groups[group] ?? []);
+  void sync() { status.clear(); for (final s in selected) { final id = '${s['id']}'; final r = records.where((x) => '${x['classEnrollmentId']}' == id && '${x['attendanceDate']}' == day).firstOrNull; status[id] = '${r?['status'] ?? 'PRESENT'}'.toUpperCase(); } }
+  Future<void> save() async { setState(() => saving = true); try { for (final s in selected) { final eid = int.tryParse('${s['id']}'); if (eid == null) continue; final payload = {'classEnrollmentId': eid, 'attendanceDate': day, 'status': status['$eid'] ?? 'PRESENT'}; final old = records.where((x) => '${x['classEnrollmentId']}' == '$eid' && '${x['attendanceDate']}' == day).firstOrNull; if (old?['id'] != null) await ApiService.instance.updateAttendance(int.parse('${old!['id']}'), payload); else await ApiService.instance.createAttendance(payload); } snack(context, 'Attendance saved'); await load(); } catch (e) { snack(context, cleanError(e)); } finally { if (mounted) setState(() => saving = false); } }
+  @override Widget build(BuildContext context) { final groups = _groups; return Scaffold(appBar: AppBar(title: const Text('Mark Attendance')), body: loading ? const Center(child: CircularProgressIndicator()) : Column(children: [Padding(padding: const EdgeInsets.all(16), child: Column(children: [DropdownButtonFormField<String>(value: group, decoration: const InputDecoration(labelText: 'Class / subject'), items: groups.entries.map((e) { final f=e.value.first; return DropdownMenuItem(value:e.key, child:Text('${f['className'] ?? 'Class'} · ${f['subjectName'] ?? 'Subject'}')); }).toList(), onChanged:(v){setState((){group=v;sync();});}), const SizedBox(height:10), ListTile(contentPadding:EdgeInsets.zero, title:Text('Date: $day'), trailing:const Icon(Icons.calendar_month), onTap:() async { final d=await showDatePicker(context:context, initialDate:date, firstDate:DateTime(2020), lastDate:DateTime(2100)); if(d!=null)setState((){date=d;sync();}); })])), Expanded(child:ListView.builder(padding:const EdgeInsets.fromLTRB(16,0,16,100), itemCount:selected.length, itemBuilder:(c,i){final s=selected[i]; final id='${s['id']}'; final value=status[id]??'PRESENT'; return Card(child:ListTile(title:Text('${s['studentName'] ?? 'Student'}'), subtitle:Text('${s['admissionNo'] ?? ''}'), trailing:DropdownButton<String>(value:value, items:['PRESENT','ABSENT','LATE','EXCUSED'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(), onChanged:(v)=>setState(()=>status[id]=v!)));})),]), floatingActionButton: FloatingActionButton.extended(onPressed:saving||selected.isEmpty?null:save,label:Text(saving?'Saving…':'Save'))); }
 }
 
-class StudentClassesScreen extends StatelessWidget {
-  const StudentClassesScreen({super.key});
+class StudentAssignmentsScreen extends StatelessWidget { const StudentAssignmentsScreen({super.key}); @override Widget build(BuildContext c) => DataListScreen(title:'My Assignments', future:ApiService.instance.studentAssignments(), empty:'No assignments found.', item:(x)=>'${x['title'] ?? 'Assignment'}', sub:(x)=>'${x['subjectName'] ?? ''} · Due ${x['dueDate'] ?? '—'} · ${x['submissionStatus'] ?? 'PENDING'}'); }
+class TeacherAssignmentsScreen extends StatelessWidget { const TeacherAssignmentsScreen({super.key}); @override Widget build(BuildContext c) => DataListScreen(title:'My Assignments', future:ApiService.instance.teacherAssignments(), empty:'No assignments found.', item:(x)=>'${x['title'] ?? 'Assignment'}', sub:(x)=>'${x['subjectName'] ?? ''} · Due ${x['dueDate'] ?? '—'}'); }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('My Classes', style: TextStyle(fontWeight: FontWeight.w900))),
-        body: FutureBuilder<Map<String, dynamic>>(
-          future: ApiService.instance.studentDashboard(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            if (snapshot.hasError) return _ErrorView(message: snapshot.error.toString());
-            final data = snapshot.data ?? {};
-            final subjects = (data['subjects'] is List) ? List<dynamic>.from(data['subjects']) : <dynamic>[];
-            return ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                const Text('Enrolled subjects', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 8),
-                Text('${subjects.length} subject${subjects.length == 1 ? '' : 's'}', style: const TextStyle(color: Color(0xFF68736B))),
-                const SizedBox(height: 16),
-                if (subjects.isEmpty) const _EmptyCard(title: 'No classes yet', message: 'Your enrolled subjects will appear here.'),
-                ...subjects.map((item) => Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(backgroundColor: Color(0xFFE8F5E9), child: Icon(Icons.menu_book_outlined, color: Color(0xFF2E7D32))),
-                        title: Text((item is Map ? (item['subjectName'] ?? item['name'] ?? 'Subject') : item).toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-                        subtitle: Text(item is Map ? (item['subjectCode'] ?? item['code'] ?? '')?.toString() ?? '' : ''),
-                      ),
-                    )),
-              ],
-            );
-          },
-        ),
-      );
-}
+class StudentTimetableScreen extends StatelessWidget { const StudentTimetableScreen({super.key}); @override Widget build(BuildContext c) => TimetableScreen(title:'My Timetable', future:ApiService.instance.studentTimetable()); }
+class TeacherTimetableScreen extends StatelessWidget { const TeacherTimetableScreen({super.key}); @override Widget build(BuildContext c) => DataListScreen(title:'My Timetable', future:ApiService.instance.myTimetable(), empty:'No timetable entries.', item:(x)=>'${x['subjectName'] ?? x['subject'] ?? 'Subject'}', sub:(x)=>'${x['day'] ?? ''} · ${x['startTime'] ?? ''}-${x['endTime'] ?? ''} · ${x['room'] ?? ''}'); }
+class TimetableScreen extends StatelessWidget { final String title; final Future<Map<String,dynamic>> future; const TimetableScreen({super.key,required this.title,required this.future}); @override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:Text(title)),body:FutureBuilder(future:future,builder:(c,s){if(s.connectionState==ConnectionState.waiting)return const Center(child:CircularProgressIndicator());if(s.hasError)return ErrorView('${s.error}');final d=s.data??{};final schedule=d['schedule'];if(schedule is! Map)return const Center(child:Text('No timetable available.'));return ListView(padding:const EdgeInsets.all(16),children:schedule.entries.expand<Widget>((e){final list=e.value is List?e.value as List:[];return [Padding(padding:const EdgeInsets.only(top:10,bottom:6),child:Text('${e.key}',style:const TextStyle(fontSize:18,fontWeight:FontWeight.w900))),...list.map((x)=>Card(child:ListTile(title:Text('${x['subjectName']??x['subject']??'Subject'}'),subtitle:Text('${x['startTime']??''}-${x['endTime']??''} · ${x['room']??''}'))))];}).toList());}));}
 
-class TeacherClassesScreen extends StatefulWidget {
-  const TeacherClassesScreen({super.key});
+class StudentResultsScreen extends StatelessWidget { const StudentResultsScreen({super.key}); @override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('My Results')),body:FutureBuilder(future:ApiService.instance.studentResults(),builder:(c,s){if(s.connectionState==ConnectionState.waiting)return const Center(child:CircularProgressIndicator());if(s.hasError)return ErrorView('${s.error}');final d=s.data??{};return ListView(padding:const EdgeInsets.all(20),children:[Card(child:Padding(padding:const EdgeInsets.all(22),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('CGPA ${d['cgpa']??'—'}',style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:green)),Text('${d['overallResult']??'Result available'} · ${d['totalCredits']??0} credits',style:const TextStyle(color:Colors.black54))])),const SizedBox(height:18),if(d['subjects'] is List)...(d['subjects'] as List).map((x)=>Card(child:ListTile(title:Text('${x['subjectName']??x['subject']??'Subject'}'),trailing:Text('${x['marks']??x['grade']??'—'}',style:const TextStyle(fontWeight:FontWeight.w900)))))]); }));}
 
-  @override
-  State<TeacherClassesScreen> createState() => _TeacherClassesScreenState();
-}
+class DataListScreen extends StatelessWidget { final String title, empty; final Future<List<Map<String,dynamic>>> future; final String Function(Map<String,dynamic>) item, sub; final bool group; const DataListScreen({super.key,required this.title,required this.future,required this.empty,required this.item,required this.sub,this.group=false}); @override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:Text(title)),body:FutureBuilder(future:future,builder:(c,s){if(s.connectionState==ConnectionState.waiting)return const Center(child:CircularProgressIndicator());if(s.hasError)return ErrorView('${s.error}');final rows=s.data??[];if(rows.isEmpty)return Center(child:Text(empty));return RefreshIndicator(onRefresh:()async{await future;},child:ListView.builder(padding:const EdgeInsets.all(16),itemCount:rows.length,itemBuilder:(c,i){final x=rows[i];return Card(child:ListTile(leading:const CircleAvatar(backgroundColor:Color(0xFFE8F5E9),child:Icon(Icons.menu_book,color:green)),title:Text(item(x),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text(sub(x)));}));}));}
+class ErrorView extends StatelessWidget { final String message; const ErrorView(this.message,{super.key}); @override Widget build(BuildContext c)=>Center(child:Padding(padding:const EdgeInsets.all(24),child:Text(message,textAlign:TextAlign.center))); }
 
-class _TeacherClassesScreenState extends State<TeacherClassesScreen> {
-  bool loading = true;
-  String? error;
-  List<Map<String, dynamic>> rows = [];
+String cleanError(Object e)=>e.toString().replaceFirst('Exception: ','');
+void snack(BuildContext c,String m)=>ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text(m),behavior:SnackBarBehavior.floating));
 
-  @override
-  void initState() {
-    super.initState();
-    load();
-  }
-
-  Future<void> load() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    try {
-      rows = await ApiService.instance.teacherStudents();
-    } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final grouped = <String, List<Map<String, dynamic>>>{};
-    for (final row in rows) {
-      final key = '${row['classSubjectId'] ?? ''}';
-      grouped.putIfAbsent(key, () => []).add(row);
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Classes', style: TextStyle(fontWeight: FontWeight.w900)),
-        actions: [IconButton(onPressed: load, icon: const Icon(Icons.refresh_rounded))],
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-              ? _ErrorView(message: error!)
-              : RefreshIndicator(
-                  onRefresh: load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      const Text('Assigned teaching groups', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 6),
-                      Text('${grouped.length} class subject${grouped.length == 1 ? '' : 's'} · ${rows.length} students', style: const TextStyle(color: Color(0xFF68736B))),
-                      const SizedBox(height: 16),
-                      if (grouped.isEmpty) const _EmptyCard(title: 'No assigned classes', message: 'Classes assigned to you will appear here.'),
-                      ...grouped.entries.map((entry) {
-                        final first = entry.value.first;
-                        return Card(
-                          child: ExpansionTile(
-                            title: Text((first['className'] ?? 'Class').toString(), style: const TextStyle(fontWeight: FontWeight.w900)),
-                            subtitle: Text('${first['subjectName'] ?? 'Subject'} · ${entry.value.length} students'),
-                            children: entry.value.map((student) => ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: const Color(0xFFE8F5E9),
-                                    child: Text(_initial(student['studentName'])),
-                                  ),
-                                  title: Text((student['studentName'] ?? 'Student').toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  subtitle: Text((student['admissionNo'] ?? '').toString()),
-                                )).toList(),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-    );
-  }
-
-  String _initial(dynamic value) {
-    final text = value?.toString().trim() ?? '';
-    return text.isEmpty ? 'S' : text[0].toUpperCase();
-  }
-}
-
-class TeacherAttendanceScreen extends StatefulWidget {
-  const TeacherAttendanceScreen({super.key});
-
-  @override
-  State<TeacherAttendanceScreen> createState() => _TeacherAttendanceScreenState();
-}
-
-class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
-  bool loading = true;
-  bool saving = false;
-  String? error;
-  List<Map<String, dynamic>> students = [];
-  List<Map<String, dynamic>> attendance = [];
-  String? selectedGroup;
-  DateTime selectedDate = DateTime.now();
-  final statuses = <String, String>{};
-
-  @override
-  void initState() {
-    super.initState();
-    load();
-  }
-
-  Future<void> load() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    try {
-      final results = await Future.wait([
-        ApiService.instance.teacherStudents(),
-        ApiService.instance.myAttendance(),
-      ]);
-      students = results[0] as List<Map<String, dynamic>>;
-      attendance = results[1] as List<Map<String, dynamic>>;
-      final groups = _groups;
-      if (selectedGroup == null || !groups.containsKey(selectedGroup)) {
-        selectedGroup = groups.keys.isEmpty ? null : groups.keys.first;
-      }
-      _loadStatuses();
-    } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  Map<String, List<Map<String, dynamic>>> get _groups {
-    final result = <String, List<Map<String, dynamic>>>{};
-    for (final student in students) {
-      final key = '${student['classSubjectId'] ?? ''}';
-      result.putIfAbsent(key, () => []).add(student);
-    }
-    return result;
-  }
-
-  List<Map<String, dynamic>> get _selectedStudents =>
-      selectedGroup == null ? [] : (_groups[selectedGroup] ?? []);
-
-  String get _date => '${selectedDate.year.toString().padLeft(4, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
-
-  void _loadStatuses() {
-    statuses.clear();
-    for (final student in _selectedStudents) {
-      final enrollmentId = '${student['id']}';
-      final record = attendance.cast<Map<String, dynamic>?>().firstWhere(
-        (item) => '${item?['classEnrollmentId']}' == enrollmentId && '${item?['attendanceDate']}' == _date,
-        orElse: () => null,
-      );
-      statuses[enrollmentId] = record?['status']?.toString().toUpperCase() ?? 'PRESENT';
-    }
-  }
-
-  Future<void> _pickDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (date != null) setState(() { selectedDate = date; _loadStatuses(); });
-  }
-
-  Future<void> _save() async {
-    if (_selectedStudents.isEmpty) return;
-    setState(() => saving = true);
-    try {
-      for (final student in _selectedStudents) {
-        final enrollmentId = int.tryParse('${student['id']}');
-        if (enrollmentId == null) continue;
-        final payload = {
-          'classEnrollmentId': enrollmentId,
-          'attendanceDate': _date,
-          'status': statuses['$enrollmentId'] ?? 'PRESENT',
-          'remarks': '',
-        };
-        final existing = attendance.cast<Map<String, dynamic>?>().firstWhere(
-          (item) => '${item?['classEnrollmentId']}' == '$enrollmentId' && '${item?['attendanceDate']}' == _date,
-          orElse: () => null,
-        );
-        if (existing?['id'] != null) {
-          await ApiService.instance.updateAttendance(int.parse('${existing!['id']}'), payload);
-        } else {
-          await ApiService.instance.createAttendance(payload);
-        }
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance saved successfully'), behavior: SnackBarBehavior.floating));
-      }
-      await load();
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
-    } finally {
-      if (mounted) setState(() => saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final groups = _groups;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mark Attendance', style: TextStyle(fontWeight: FontWeight.w900)),
-        actions: [IconButton(onPressed: loading ? null : _pickDate, icon: const Icon(Icons.event_outlined))],
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-              ? _ErrorView(message: error!)
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                      child: Column(
-                        children: [
-                          DropdownButtonFormField<String>(
-                            value: selectedGroup,
-                            decoration: const InputDecoration(labelText: 'Class / subject'),
-                            items: groups.entries.map((entry) {
-                              final first = entry.value.first;
-                              return DropdownMenuItem(
-                                value: entry.key,
-                                child: Text('${first['className'] ?? 'Class'} · ${first['subjectName'] ?? 'Subject'}'),
-                              );
-                            }).toList(),
-                            onChanged: (value) => setState(() { selectedGroup = value; _loadStatuses(); }),
-                          ),
-                          const SizedBox(height: 12),
-                          InkWell(
-                            onTap: _pickDate,
-                            borderRadius: BorderRadius.circular(16),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'Attendance date'),
-                              child: Text(_date, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: _selectedStudents.isEmpty
-                          ? const _EmptyCard(title: 'No students', message: 'No class roster is assigned to this teaching group.')
-                          : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-                              itemCount: _selectedStudents.length,
-                              itemBuilder: (context, index) {
-                                final student = _selectedStudents[index];
-                                final id = '${student['id']}';
-                                final status = statuses[id] ?? 'PRESENT';
-                                return Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: const Color(0xFFE8F5E9),
-                                          child: Text(_initial(student['studentName'])),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                            Text((student['studentName'] ?? 'Student').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-                                            Text((student['admissionNo'] ?? '').toString(), style: const TextStyle(color: Color(0xFF68736B), fontSize: 12)),
-                                          ]),
-                                        ),
-                                        PopupMenuButton<String>(
-                                          initialValue: status,
-                                          onSelected: (value) => setState(() => statuses[id] = value),
-                                          itemBuilder: (_) => const [
-                                            PopupMenuItem(value: 'PRESENT', child: Text('Present')),
-                                            PopupMenuItem(value: 'ABSENT', child: Text('Absent')),
-                                            PopupMenuItem(value: 'LATE', child: Text('Late')),
-                                            PopupMenuItem(value: 'EXCUSED', child: Text('Excused')),
-                                            PopupMenuItem(value: 'HOLIDAY', child: Text('Holiday')),
-                                          ],
-                                          child: Chip(label: Text(status)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-      floatingActionButton: (!loading && error == null && _selectedStudents.isNotEmpty)
-          ? FloatingActionButton.extended(
-              onPressed: saving ? null : _save,
-              icon: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save_outlined),
-              label: Text(saving ? 'Saving…' : 'Save attendance'),
-            )
-          : null,
-    );
-  }
-
-  String _initial(dynamic value) {
-    final text = value?.toString().trim() ?? '';
-    return text.isEmpty ? 'S' : text[0].toUpperCase();
-  }
-}
-
-class StudentAttendanceScreen extends StatelessWidget {
-  const StudentAttendanceScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Attendance', style: TextStyle(fontWeight: FontWeight.w900))),
-        body: FutureBuilder<Map<String, dynamic>>(
-          future: ApiService.instance.studentAttendanceSummary(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            if (snapshot.hasError) return _ErrorView(message: snapshot.error.toString());
-            final data = snapshot.data ?? {};
-            final percentage = data['overallAttendancePercentage'] ?? data['attendancePercentage'] ?? 0;
-            final bySubject = data['bySubject'] is List ? List<dynamic>.from(data['bySubject']) : <dynamic>[];
-            return ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(24)),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('OVERALL ATTENDANCE', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                    const SizedBox(height: 8),
-                    Text('${_number(percentage)}%', style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900)),
-                    Text('${data['classesAttended'] ?? 0} attended · ${data['classesMissed'] ?? 0} missed', style: const TextStyle(color: Colors.white70)),
-                  ]),
-                ),
-                const SizedBox(height: 22),
-                const Text('By subject', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 10),
-                if (bySubject.isEmpty) const _EmptyCard(title: 'No attendance records', message: 'Attendance details will appear here.'),
-                ...bySubject.map((item) {
-                  final map = item is Map ? item : <String, dynamic>{};
-                  return Card(
-                    child: ListTile(
-                      title: Text((map['subjectName'] ?? 'Subject').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-                      subtitle: Text('${map['classesAttended'] ?? 0} attended · ${map['classesMissed'] ?? 0} missed'),
-                      trailing: Text('${_number(map['attendancePercentage'] ?? 0)}%', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF2E7D32))),
-                    ),
-                  );
-                }),
-              ],
-            );
-          },
-        ),
-      );
-
-  static String _number(dynamic value) {
-    final number = double.tryParse('$value') ?? 0;
-    return number % 1 == 0 ? number.toStringAsFixed(0) : number.toStringAsFixed(1);
-  }
-}
-
-class _EmptyCard extends StatelessWidget {
-  final String title;
-  final String message;
-  const _EmptyCard({required this.title, required this.message});
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(message, style: const TextStyle(color: Color(0xFF68736B), height: 1.4)),
-          ]),
-        ),
-      );
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.cloud_off_rounded, size: 48, color: Color(0xFF68736B)),
-            const SizedBox(height: 12),
-            const Text('Unable to load data', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF68736B))),
-          ]),
-        ),
-      );
-}
+extension FirstOrNull<E> on Iterable<E> { E? get firstOrNull => isEmpty ? null : first; }
