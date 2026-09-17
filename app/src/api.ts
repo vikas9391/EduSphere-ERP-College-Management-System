@@ -15,7 +15,10 @@ export async function getAccessToken(){return AsyncStorage.getItem('accessToken'
 export async function getRole(){return AsyncStorage.getItem('userRole');}
 export async function getUsername(){return AsyncStorage.getItem('username');}
 export type DashboardSummary={studentId:number;studentName:string;rollNumber:string|null;department:string|null;course:string|null;semester:number|null;cgpa:number;attendancePercentage:number;totalSubjects:number;pendingAssignments:number;upcomingExams:number;notificationsCount:number};
-export type ClassEnrollment={id:number;classSubjectId:number;schoolClassId:number;className?:string;subjectId?:number;subjectCode?:string;subjectName?:string;teacherId?:number;teacherName?:string;academicYear?:string;semester?:number|string;status?:string};
+export type ClassEnrollment={id:number;classSubjectId:number;schoolClassId?:number|null;className?:string;subjectId?:number;subjectCode?:string;subjectName?:string;teacherId?:number;teacherName?:string;academicYear?:string;semester?:number|string;status?:string;studentId?:number;studentName?:string;source?:string;enrolledAt?:string};
+export type TeacherClassSubject={id:number;schoolClassId:number;schoolClassName?:string|null;academicYear?:string|null;semester?:number|null;subjectCode:string;subjectName:string;credits:number;teacherId:number;teacherName:string;enrollmentMode:string;enrolledCount:number;linkedSubjectId?:number|null;linkedSubjectName?:string|null};
+export type AttendanceRecord={id:number;classEnrollmentId:number;studentId:number;studentName:string;subjectId:number;subjectName:string;attendanceDate:string;status:string;remarks?:string};
+export type AttendancePayload={classEnrollmentId:number;attendanceDate:string;status:string;remarks?:string};
 export type AttendanceSummary={totalClasses?:number;classesAttended?:number;classesMissed?:number;attendancePercentage?:number;percentage?:number;[key:string]:any};
 export type Assignment={assignmentId:number;title:string;description:string;subjectId:number;subjectName:string;teacherName:string;dueDate:string;maxMarks:number;submissionStatus:string;submittedAt:string|null;submissionUrl:string|null;marksObtained:number|null;feedback:string|null};
 export type TimetableEntry={classSubjectId:number;startTime:string;endTime:string;subjectId:number|null;subjectName:string;teacherName:string|null;room:string};
@@ -31,3 +34,9 @@ export const getMyTimetable=()=>request<StudentTimetable>('/student/timetable');
 export const getMyAssignments=()=>request<Assignment[]>('/student/assignments');
 export const getMyResults=()=>request<MyOverallResult>('/student/results');
 export const getTeacherDashboardSummary=()=>request<TeacherDashboardSummary>('/teacher/dashboard');
+export const getTeacherStudents=()=>request<ClassEnrollment[]>('/teacher/students');
+export const getTeacherClassSubjects=()=>request<TeacherClassSubject[]>('/classes/subjects/mine-teaching');
+export const getClassSubjectEnrollments=(classSubjectId:number)=>request<ClassEnrollment[]>(`/classes/subjects/${classSubjectId}/enrollments`);
+export const getAttendance=()=>request<AttendanceRecord[]>('/attendance');
+export const createAttendance=(payload:AttendancePayload)=>request<AttendanceRecord>('/attendance',{method:'POST',body:JSON.stringify(payload)});
+export const updateAttendance=(id:number,payload:AttendancePayload)=>request<AttendanceRecord>(`/attendance/${id}`,{method:'PUT',body:JSON.stringify(payload)});
