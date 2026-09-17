@@ -1,18 +1,19 @@
 export const colors = {
   primary: '#2e7d32',
-  primaryDark: '#256428',
+  primaryDark: '#1f5d25',
   secondary: '#4caf50',
   lightGreen: '#e8f5e9',
-  background: '#f8f8f2',
+  background: '#f6f7f2',
   card: '#ffffff',
-  text: '#1f2937',
-  muted: '#6b7280',
-  border: '#eef2e7',
-  hover: '#f1f8ee',
+  text: '#17221a',
+  muted: '#68736b',
+  border: '#e4e9e2',
+  hover: '#eef7ed',
   danger: '#c1543c',
-  ink: '#161f2b',
+  ink: '#101812',
   brass: '#a9812f',
+  soft: '#f0f4ee',
 };
 
 export const spacing = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32, xxl: 48 };
-export const radius = { card: 24, button: 16, input: 18 };
+export const radius = { card: 22, button: 15, input: 16, pill: 999 };
