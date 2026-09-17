@@ -23,9 +23,11 @@ export type StudentTimetable={placeholder:boolean;note:string;schedule:Record<st
 export type MySubjectResult={subjectId:number;subjectCode:string;subjectName:string;credits:number;internalMarks:number;externalMarks:number;totalMarks:number;maxMarks:number;grade:string;gradePoint:number};
 export type MySemesterResult={studentId:number;studentName:string;semester:number;academicYear:string;subjects:MySubjectResult[];totalCredits:number;sgpa:number;result:string};
 export type MyOverallResult={studentId:number;studentName:string;semesterResults:MySemesterResult[];totalCredits:number;cgpa:number;overallResult:string};
+export type TeacherDashboardSummary={teacherId:number;teacherName:string;totalSubjects:number;totalStudents:number;pendingReviewCount:number;attendancePendingToday:number;upcomingClassesCount:number;assignmentsPerSubject:{subjectName:string;count:number}[];attendanceTrend:{label:string;ratePercentage:number}[];recentAssignments:any[];todaysSchedule:any[];schedulePlaceholder:boolean;announcements:any[];announcementsPlaceholder:boolean};
 export const getStudentDashboard=()=>request<DashboardSummary>('/student/dashboard');
 export const getMyEnrollments=()=>request<ClassEnrollment[]>('/student/enrollments');
 export const getMyAttendanceSummary=()=>request<AttendanceSummary>('/student/attendance/summary');
 export const getMyTimetable=()=>request<StudentTimetable>('/student/timetable');
 export const getMyAssignments=()=>request<Assignment[]>('/student/assignments');
 export const getMyResults=()=>request<MyOverallResult>('/student/results');
+export const getTeacherDashboardSummary=()=>request<TeacherDashboardSummary>('/teacher/dashboard');
