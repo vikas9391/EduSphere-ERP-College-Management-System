@@ -121,7 +121,7 @@ class _TeacherAssignmentsState extends State<TeacherAssignmentsScreen> {
     ));
     title.dispose(); description.dispose(); due.dispose(); max.dispose();
     if (payload == null) return;
-    try { await ApiService.instance.mapPost('/assignments', {'classSubjectId': payload['classSubjectId']}); if (mounted) snack(context, 'Assignment created.'); await load(); }
+    try { await ApiService.instance.mapPost('/assignments', payload); if (mounted) snack(context, 'Assignment created.'); await load(); }
     catch (e) { if (mounted) snack(context, cleanError(e)); }
   }
   Future<void> submissions(Map<String,dynamic> x) async {
