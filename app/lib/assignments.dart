@@ -176,7 +176,7 @@ class _AssignmentSubmissionsState extends State<AssignmentSubmissionsScreen> {
     ));
     if (r == null || r['marks'] == null) { marks.dispose(); feedback.dispose(); return; }
     try {
-      final updated = await ApiService.instance.mapPut('/submissions/' + x['id'].toString() + '/evaluate', r);
+      final updated = await ApiService.instance.request('/submissions/' + x['id'].toString() + '/evaluate?marks=' + Uri.encodeQueryComponent(r['marks'].toString()) + '&feedback=' + Uri.encodeQueryComponent(r['feedback'].toString()), method: 'PUT');
       final i = rows.indexWhere((a) => a['id'].toString() == x['id'].toString());
       if (i >= 0) setState(() => rows[i] = updated);
       if (mounted) snack(context, 'Submission evaluated.');
