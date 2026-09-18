@@ -10,6 +10,7 @@ part 'teacher_exams.dart';
 part 'admin_academics.dart';
 part 'admin_people.dart';
 part 'admin_classes.dart';
+part 'admin_class_subjects.dart';
 part 'admin_users.dart';
 
 const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api');
