@@ -1,15 +1,14 @@
 part of 'main.dart';
 
-class AdminPersonFormScreen extends StatefulWidget{
-  final String type; final Map<String,dynamic>? initial;
-  const AdminPersonFormScreen({super.key,required this.type,this.initial});
-  @override State<AdminPersonFormScreen> createState()=>_AdminPersonFormState();
+class AdminPeopleListScreen extends StatefulWidget{
+  final String type; const AdminPeopleListScreen({super.key,required this.type});
+  @override State<AdminPeopleListScreen> createState()=>_AdminPeopleListState();
 }
-class _AdminPersonFormState extends State<AdminPersonFormScreen>{
-  final form=GlobalKey<FormState>(); final fields=<String,TextEditingController>{}; bool saving=false;
-  bool get student=>widget.type=='Student';
-  @override void initState(){super.initState();final names=student?['admissionNo','rollNumber','firstName','lastName','email','password','phone','gender','city','state','pincode','fatherName','motherName']:['employeeId','firstName','lastName','email','password','phone','gender','qualification','specialization','experience','joiningDate'];for(final n in names)fields[n]=TextEditingController(text:'${widget.initial?[n]??''}');}
-  @override void dispose(){for(final x in fields.values)x.dispose();super.dispose();}
-  Future<void> save()async{if(!form.currentState!.validate())return;setState(()=>saving=true);final p=<String,dynamic>{};for(final e in fields.entries){final v=e.value.text.trim();if(v.isNotEmpty)p[e.key]=e.key=='experience'?int.tryParse(v):v;}try{final id=widget.initial?['id'];final path=student?'students':'teachers';if(id!=null)await ApiService.instance.mapPut('/$path/$id',p);else await ApiService.instance.mapPost('/$path',p);if(mounted){snack(context,widget.type+' saved.');Navigator.pop(context,true);}}catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>saving=false);}}
-  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text((widget.initial==null?'Add ':'Edit ')+widget.type)),body:Form(key:form,child:ListView(padding:const EdgeInsets.all(16),children:[for(final e in fields.entries)Padding(padding:const EdgeInsets.only(bottom:10),child:TextFormField(controller:e.value,obscureText:e.key=='password',decoration:InputDecoration(labelText:e.key),validator:(v){if(['admissionNo','employeeId','firstName','email'].contains(e.key)&&(v??'').trim().isEmpty)return 'Required';if(e.key=='password'&&widget.initial==null&&(v??'').length<8)return 'Minimum 8 characters';return null;}}),FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),label:Text(saving?'Saving...':'Save'))]));}
+class _AdminPeopleListState extends State<AdminPeopleListScreen>{
+  List<Map<String,dynamic>> rows=[];bool loading=true;
+  String get endpoint=>widget.type=='Student'?'/students':'/teachers';
+  @override void initState(){super.initState();load();}
+  Future<void> load()async{try{final raw=await ApiService.instance.request(endpoint);final v=raw is Map&&raw['content'] is List?raw['content']:raw is List?raw:[];rows=v.whereType<Map>().map((x)=>Map<String,dynamic>.from(x)).toList();}catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
+  Future<void> add()async{final ok=await Navigator.push<bool>(context,MaterialPageRoute(builder:(_)=>AdminPersonFormScreen(type:widget.type)));if(ok==true)load();}
+  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.type+' Management'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(onRefresh:load,child:rows.isEmpty?ListView(children:[const SizedBox(height:180),Center(child:Text('No records found.'))]):ListView.builder(padding:const EdgeInsets.all(16),itemCount:rows.length,itemBuilder:(c,i){final r=rows[i];final name=((r['firstName']??'')+' '+(r['lastName']??'')).trim();return Card(child:ListTile(title:Text(name.isEmpty?'Record #'+(r['id']??'').toString():name,style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((widget.type=='Student'?(r['admissionNo']??''):(r['employeeId']??''))+' · '+(r['email']??'')),trailing:const Icon(Icons.chevron_right)));})),floatingActionButton:FloatingActionButton.extended(onPressed:add,icon:const Icon(Icons.add),label:Text('Add '+widget.type)));}
 }
