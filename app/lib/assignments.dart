@@ -40,12 +40,12 @@ class _StudentAssignmentsState extends State<StudentAssignmentsScreen> {
       child: rows.isEmpty ? ListView(children: const [SizedBox(height: 180), Center(child: Text('No assignments found.'))]) :
       ListView.builder(padding: const EdgeInsets.all(16), itemCount: rows.length, itemBuilder: (c, i) {
         final x = rows[i];
-        final status = (x['submissionStatus'] ?? 'PENDING').toString();
+        final status = (x['submissionStatus'] ?? 'NOT_SUBMITTED').toString().toUpperCase();
         return Card(child: ListTile(
           title: Text((x['title'] ?? 'Assignment').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text((x['subjectName'] ?? 'Subject').toString() + ' · Due ' + (x['dueDate'] ?? '—').toString() + '\nStatus: ' + status),
+          subtitle: Text((x['subjectName'] ?? 'Subject').toString() + ' · Due ' + (x['dueDate'] ?? '—').toString() + '\nStatus: ' + status + (x['marksObtained'] != null ? ' · Marks: ' + x['marksObtained'].toString() : '') + (x['feedback'] != null && x['feedback'].toString().isNotEmpty ? '\nFeedback: ' + x['feedback'].toString() : '')),
           isThreeLine: true,
-          trailing: FilledButton(onPressed: () => submit(x), child: Text(status == 'PENDING' ? 'Submit' : 'Update')),
+          trailing: status == 'NOT_SUBMITTED' ? FilledButton(onPressed: () => submit(x), child: const Text('Submit')) : const Icon(Icons.check_circle_outline),
         ));
       }),
     ),
@@ -121,7 +121,7 @@ class _TeacherAssignmentsState extends State<TeacherAssignmentsScreen> {
     ));
     title.dispose(); description.dispose(); due.dispose(); max.dispose();
     if (payload == null) return;
-    try { await ApiService.instance.mapPost('/assignments', payload); if (mounted) snack(context, 'Assignment created.'); await load(); }
+    try { await ApiService.instance.mapPost('/assignments', {'classSubjectId': payload['classSubjectId']}); if (mounted) snack(context, 'Assignment created.'); await load(); }
     catch (e) { if (mounted) snack(context, cleanError(e)); }
   }
   Future<void> submissions(Map<String,dynamic> x) async {
