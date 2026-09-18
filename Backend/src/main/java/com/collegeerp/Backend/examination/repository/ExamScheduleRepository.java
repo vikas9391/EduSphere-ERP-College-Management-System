@@ -41,6 +41,19 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
            JOIN FETCH es.exam
            JOIN FETCH es.classSubject cs
            LEFT JOIN FETCH cs.subject
+           LEFT JOIN FETCH cs.schoolClass
+           LEFT JOIN FETCH es.invigilator
+           WHERE cs.teacher.id = :teacherId
+           ORDER BY es.examDate ASC, es.startTime ASC
+           """)
+    List<ExamSchedule> findForTeacher(Long teacherId);
+
+    @Query("""
+           SELECT DISTINCT es
+           FROM ExamSchedule es
+           JOIN FETCH es.exam
+           JOIN FETCH es.classSubject cs
+           LEFT JOIN FETCH cs.subject
            WHERE cs.id IN :classSubjectIds
              AND es.examDate >= :fromDate
            ORDER BY es.examDate ASC, es.startTime ASC
