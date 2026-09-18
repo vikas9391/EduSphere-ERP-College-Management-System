@@ -77,12 +77,13 @@ class ApiService {
     await prefs.setString('refreshToken', '${data['refreshToken'] ?? ''}');
     await prefs.setString('email', '${data['email'] ?? email}');
     await prefs.setString('role', '${data['role'] ?? ''}');
+    await prefs.setBool('mustChangePassword', data['mustChangePassword'] == true);
     return data;
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken'); await prefs.remove('refreshToken'); await prefs.remove('role'); await prefs.remove('email');
+    await prefs.remove('accessToken'); await prefs.remove('refreshToken'); await prefs.remove('role'); await prefs.remove('email'); await prefs.remove('mustChangePassword');
   }
 
   Future<Map<String, dynamic>> map(String path) async { final v = await request(path); return v is Map ? Map<String, dynamic>.from(v) : {}; }
@@ -120,10 +121,16 @@ class EduSphereApp extends StatelessWidget {
 
 class RootScreen extends StatefulWidget { const RootScreen({super.key}); @override State<RootScreen> createState() => _RootState(); }
 class _RootState extends State<RootScreen> {
-  String? role; bool loading = true;
+  String? role; bool loading = true; bool mustChangePassword = false;
   @override void initState() { super.initState(); restore(); }
-  Future<void> restore() async { final p = await SharedPreferences.getInstance(); final t = p.getString('accessToken'); if (mounted) setState(() { role = t?.isNotEmpty == true ? p.getString('role') : null; loading = false; }); }
-  @override Widget build(BuildContext context) { if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator())); if (role == null) return LoginScreen(onLogin: (r) => setState(() => role = r)); return HomeScreen(role: role!, onLogout: () async { await ApiService.instance.logout(); if (mounted) setState(() => role = null); }); }
+  Future<void> restore() async { final p = await SharedPreferences.getInstance(); final t = p.getString('accessToken'); if (mounted) setState(() { role = t?.isNotEmpty == true ? p.getString('role') : null; mustChangePassword = p.getBool('mustChangePassword') ?? false; loading = false; }); }
+  void loggedIn(String r) async { final p = await SharedPreferences.getInstance(); if (mounted) setState(() { role = r; mustChangePassword = p.getBool('mustChangePassword') ?? false; }); }
+  @override Widget build(BuildContext context) {
+    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (role == null) return LoginScreen(onLogin: loggedIn);
+    if (mustChangePassword) return ChangePasswordScreen(onComplete: () => setState(() => mustChangePassword = false));
+    return HomeScreen(role: role!, onLogout: () async { await ApiService.instance.logout(); if (mounted) setState(() { role = null; mustChangePassword = false; }); });
+  }
 }
 
 class LoginScreen extends StatefulWidget { final void Function(String) onLogin; const LoginScreen({super.key, required this.onLogin}); @override State<LoginScreen> createState() => _LoginState(); }
