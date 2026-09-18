@@ -69,20 +69,20 @@ class ApiService {
     } catch (_) { await logout(); return false; }
   }
 
-  Future<Map<String, dynamic>> login(String college, String username, String password) async {
-    final raw = await request('/auth/login', method: 'POST', retry: false, body: {'collegeCode': college, 'username': username, 'password': password});
+  Future<Map<String, dynamic>> login(String college, String email, String password) async {
+    final raw = await request('/auth/login', method: 'POST', retry: false, body: {'collegeCode': college, 'email': email, 'password': password});
     final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('accessToken', '${data['accessToken'] ?? ''}');
     await prefs.setString('refreshToken', '${data['refreshToken'] ?? ''}');
-    await prefs.setString('username', '${data['username'] ?? username}');
+    await prefs.setString('email', '${data['email'] ?? email}');
     await prefs.setString('role', '${data['role'] ?? ''}');
     return data;
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken'); await prefs.remove('refreshToken'); await prefs.remove('role'); await prefs.remove('username');
+    await prefs.remove('accessToken'); await prefs.remove('refreshToken'); await prefs.remove('role'); await prefs.remove('email');
   }
 
   Future<Map<String, dynamic>> map(String path) async { final v = await request(path); return v is Map ? Map<String, dynamic>.from(v) : {}; }
@@ -128,9 +128,9 @@ class _RootState extends State<RootScreen> {
 
 class LoginScreen extends StatefulWidget { final void Function(String) onLogin; const LoginScreen({super.key, required this.onLogin}); @override State<LoginScreen> createState() => _LoginState(); }
 class _LoginState extends State<LoginScreen> {
-  final college = TextEditingController(), user = TextEditingController(), password = TextEditingController(); bool busy = false, obscure = true;
-  Future<void> submit() async { if ([college, user, password].any((c) => c.text.trim().isEmpty)) { snack(context, 'Enter all login details.'); return; } setState(() => busy = true); try { final r = await ApiService.instance.login(college.text.trim(), user.text.trim(), password.text); widget.onLogin('${r['role'] ?? ''}'); } catch (e) { snack(context, cleanError(e)); } finally { if (mounted) setState(() => busy = false); } }
-  @override Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('EduSphere', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: green)), const Text('College ERP mobile', style: TextStyle(color: Colors.black54)), const SizedBox(height: 34), Card(child: Padding(padding: const EdgeInsets.all(22), child: Column(children: [field('College code', college), field('Username', user), TextField(controller: password, obscureText: obscure, decoration: InputDecoration(labelText: 'Password', suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility : Icons.visibility_off)))), const SizedBox(height: 22), SizedBox(width: double.infinity, height: 52, child: FilledButton(onPressed: busy ? null : submit, child: busy ? const CircularProgressIndicator(color: Colors.white) : const Text('Sign in'))),
+  final college = TextEditingController(), email = TextEditingController(), password = TextEditingController(); bool busy = false, obscure = true;
+  Future<void> submit() async { if ([college, email, password].any((c) => c.text.trim().isEmpty)) { snack(context, 'Enter all login details.'); return; } setState(() => busy = true); try { final r = await ApiService.instance.login(college.text.trim(), email.text.trim(), password.text); widget.onLogin('${r['role'] ?? ''}'); } catch (e) { snack(context, cleanError(e)); } finally { if (mounted) setState(() => busy = false); } }
+  @override Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('EduSphere', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: green)), const Text('College ERP mobile', style: TextStyle(color: Colors.black54)), const SizedBox(height: 34), Card(child: Padding(padding: const EdgeInsets.all(22), child: Column(children: [field('College code', college), field('Email', email), TextField(controller: password, obscureText: obscure, decoration: InputDecoration(labelText: 'Password', suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility : Icons.visibility_off)))), const SizedBox(height: 22), SizedBox(width: double.infinity, height: 52, child: FilledButton(onPressed: busy ? null : submit, child: busy ? const CircularProgressIndicator(color: Colors.white) : const Text('Sign in'))),
 const SizedBox(height: 8),
 TextButton(onPressed: busy ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())), child: const Text('Forgot password?'))])))])))));
   Widget field(String label, TextEditingController c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: c, decoration: InputDecoration(labelText: label)));
