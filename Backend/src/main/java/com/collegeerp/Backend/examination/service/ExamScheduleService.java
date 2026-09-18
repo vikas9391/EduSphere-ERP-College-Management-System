@@ -64,6 +64,10 @@ public class ExamScheduleService {
                 .map(this::map)
                 .toList();
     }
+    public List<ExamScheduleResponse> getScheduleByTeacher(Long teacherId) {
+        return examScheduleRepository.findForTeacher(teacherId).stream().map(this::map).toList();
+    }
+
 
     public ExamScheduleResponse getSchedule(Long id, UserPrincipal principal) {
         ExamSchedule schedule = examScheduleRepository.findByIdWithDetails(id)
