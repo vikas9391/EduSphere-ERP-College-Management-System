@@ -2,16 +2,15 @@ part of 'main.dart';
 
 class TeacherExamsScreen extends StatelessWidget {
   const TeacherExamsScreen({super.key});
-  @override
-  Widget build(BuildContext context) => DataListScreen(
-    title: 'My Exams',
+  @override Widget build(BuildContext context) => FutureBuilder<List<Map<String,dynamic>>>(
     future: ApiService.instance.list('/exam-schedules/mine'),
-    empty: 'No exam schedules assigned.',
-    item: (x) => 'EXAM' + (x['examName'] ?? 'Exam').toString() + ' · ' + (x['subjectName'] ?? 'Subject').toString(),
-    sub: (x) => (x['className'] ?? 'Class').toString() + ' · ' + (x['examDate'] ?? '').toString() + ' · ' + (x['startTime'] ?? '') .toString() + '-' + (x['endTime'] ?? '').toString(),
-  );
+    builder: (context, snapshot) {
+      if(snapshot.connectionState==ConnectionState.waiting)return const Scaffold(body:Center(child:CircularProgressIndicator()));
+      if(snapshot.hasError)return Scaffold(appBar:AppBar(title:const Text('My Exams')),body:ErrorView(cleanError(snapshot.error!)));
+      final rows=snapshot.data??[];
+      return Scaffold(appBar:AppBar(title:const Text('My Exams')),body:rows.isEmpty?const Center(child:Text('No exam schedules assigned.')):RefreshIndicator(onRefresh:()async{await ApiService.instance.list('/exam-schedules/mine');},child:ListView.builder(padding:const EdgeInsets.all(16),itemCount:rows.length,itemBuilder:(c,i){final x=rows[i];return Card(child:ListTile(leading:const CircleAvatar(child:Icon(Icons.event_note_outlined)),title:Text((x['examName']??'Exam').toString()+' · '+(x['subjectName']??'Subject').toString(),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((x['className']??'Class').toString()+' · '+(x['examDate']??'').toString()+' · '+(x['startTime']??'').toString()+'-'+(x['endTime']??'').toString()+'\\nRoom '+(x['room']??'—').toString()+' · Max '+(x['maxMarks']??'—').toString()),isThreeLine:true,trailing:const Icon(Icons.chevron_right),onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>TeacherMarksScreen(schedule:x)))));})));}
+    );
 }
-
 class TeacherMarksScreen extends StatefulWidget {
   final Map<String,dynamic> schedule;
   const TeacherMarksScreen({super.key,required this.schedule});
