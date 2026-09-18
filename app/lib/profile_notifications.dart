@@ -20,6 +20,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _section(String title,List<TextEditingController> cs,List<String> labels)=>Padding(padding:const EdgeInsets.only(top:12),child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(fontSize:18,fontWeight:FontWeight.w900)),const SizedBox(height:12),for(var i=0;i<cs.length;i++)Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:cs[i],decoration:InputDecoration(labelText:labels[i])))]))));
 }
 
+class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({super.key});
+  @override State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+}
+
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final current = TextEditingController();
+  final next = TextEditingController();
+  final confirm = TextEditingController();
+  bool saving = false, obscureCurrent = true, obscureNext = true, obscureConfirm = true;
+  @override void dispose() { current.dispose(); next.dispose(); confirm.dispose(); super.dispose(); }
+  Future<void> _save() async {
+    if (current.text.isEmpty || next.text.isEmpty || confirm.text.isEmpty) { snack(context, 'Enter all password fields.'); return; }
+    if (next.text.length < 8) { snack(context, 'New password must be at least 8 characters.'); return; }
+    if (next.text != confirm.text) { snack(context, 'New passwords do not match.'); return; }
+    setState(() => saving = true);
+    try {
+      await ApiService.instance.mapPut('/users/me/password', {'currentPassword': current.text, 'newPassword': next.text});
+      current.clear(); next.clear(); confirm.clear();
+      if (mounted) snack(context, 'Password updated successfully.');
+    } catch (e) { if (mounted) snack(context, cleanError(e)); }
+    finally { if (mounted) setState(() => saving = false); }
+  }
+  Widget _field(String label, TextEditingController controller, bool obscure, VoidCallback toggle) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(controller: controller, obscureText: obscure, decoration: InputDecoration(labelText: label, suffixIcon: IconButton(onPressed: toggle, icon: Icon(obscure ? Icons.visibility : Icons.visibility_off)))),
+  );
+  @override Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Change Password')),
+    body: ListView(padding: const EdgeInsets.all(20), children: [
+      Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Keep your account secure', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6), const Text('Use at least 8 characters for your new password.', style: TextStyle(color: Colors.black54)),
+        const SizedBox(height: 20),
+        _field('Current password', current, obscureCurrent, () => setState(() => obscureCurrent = !obscureCurrent)),
+        _field('New password', next, obscureNext, () => setState(() => obscureNext = !obscureNext)),
+        _field('Confirm new password', confirm, obscureConfirm, () => setState(() => obscureConfirm = !obscureConfirm)),
+        const SizedBox(height: 12), SizedBox(width: double.infinity, height: 52, child: FilledButton.icon(onPressed: saving ? null : _save, icon: const Icon(Icons.lock_reset), label: Text(saving ? 'Updating…' : 'Update password'))),
+      ]))),
+    ],
+  );
+}
+
 class NotificationsScreen extends StatefulWidget { const NotificationsScreen({super.key}); @override State<NotificationsScreen> createState()=>_NotificationsScreenState(); }
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<Map<String,dynamic>> items=[]; bool loading=true;
