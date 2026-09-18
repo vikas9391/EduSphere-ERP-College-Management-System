@@ -55,6 +55,10 @@ Implemented:
 - Student and teacher dashboard data integration.
 - Logout flow.
 - Backend REST integration through `http`.
+- Student assignment submission/update workflow.
+- Teacher assignment creation and submission review/evaluation workflow.
+- Forgot-password request flow using the existing backend reset endpoint.
+- First-login forced password-change flow for staff/admin accounts.
 - Flutter static analysis in CI.
 
 Removed:
@@ -94,10 +98,9 @@ The mobile job no longer installs Node/Expo dependencies or runs a TypeScript ty
 - Test PDF/image imports with real timetable samples.
 
 ### Flutter mobile release hardening
-- Build all Student modules: classes, attendance, assignments, timetable, exams, marks and results.
-- Build all Teacher modules: classes/rosters, attendance, assignments, timetable, exams and marks.
-- Add appropriate Admin/Super-admin operational screens.
-- Add profile, password change and forgot-password flows.
+- Finish production polish and end-to-end testing for Student, Teacher and Admin workflows.
+- Add appropriate remaining Admin/Super-admin operational screens where the backend exposes additional operations.
+- Add staff/teacher profile editing if required by the product UX.
 - Improve offline handling and user-facing session-expiry navigation.
 - Add push notifications if required.
 - Configure final Android/iOS icons, splash assets and release metadata.
