@@ -13,6 +13,7 @@ part 'admin_classes.dart';
 part 'admin_timetable.dart';
 part 'admin_exams.dart';
 part 'admin_exam_schedule.dart';
+part 'admin_marks.dart';
 part 'admin_class_subjects.dart';
 part 'admin_users.dart';
 
