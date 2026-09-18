@@ -27,6 +27,12 @@ public class ExamScheduleController {
         return examScheduleService.createSchedule(request);
     }
 
+    @GetMapping("/mine")
+    public List<ExamScheduleResponse> getMySchedules(Authentication authentication) {
+        UserPrincipal principal = principal(authentication);
+        return examScheduleService.getScheduleByTeacher(principal.getId());
+    }
+
     @GetMapping("/exam/{examId}")
     public List<ExamScheduleResponse> getScheduleByExam(
             Authentication authentication,
