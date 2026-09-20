@@ -80,8 +80,8 @@ class _TeacherAssignmentsState extends State<TeacherAssignmentsScreen> {
     setState(() => loading = true);
     try {
       final r = await Future.wait([ApiService.instance.teacherAssignments(), loadSubjects()]);
-      rows = r[0] as List<Map<String,dynamic>>;
-      classSubjects = r[1] as List<Map<String,dynamic>>;
+      rows = r[0];
+      classSubjects = r[1];
     } catch (e) { if (mounted) snack(context, cleanError(e)); }
     finally { if (mounted) setState(() => loading = false); }
   }
@@ -97,7 +97,7 @@ class _TeacherAssignmentsState extends State<TeacherAssignmentsScreen> {
         title: const Text('Create assignment'),
         content: SingleChildScrollView(child: Column(children: [
           DropdownButtonFormField<int>(
-            value: subjectId,
+            initialValue: subjectId,
             items: classSubjects.map((s) => DropdownMenuItem<int>(
               value: int.tryParse(s['id'].toString()),
               child: Text((s['className'] ?? 'Class').toString() + ' · ' + (s['subjectName'] ?? s['subjectCode'] ?? 'Subject').toString()),
