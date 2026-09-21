@@ -34,18 +34,23 @@ class _StudentAssignmentsState extends State<StudentAssignmentsScreen> {
     c.dispose();
   }
   @override Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('My Assignments'), actions: [IconButton(onPressed: load, icon: const Icon(Icons.refresh))]),
-    body: loading ? const Center(child: CircularProgressIndicator()) : RefreshIndicator(
+    appBar: AppBar(title: const Text('My Assignments'), actions: [IconButton(onPressed: load, style: IconButton.styleFrom(backgroundColor: Colors.white, side: const BorderSide(color: border)), icon: const Icon(Icons.refresh_rounded, color: textColor))]),
+    body: loading ? const Center(child: CircularProgressIndicator(color: navy)) : RefreshIndicator(color: navy,
       onRefresh: load,
       child: rows.isEmpty ? ListView(children: const [SizedBox(height: 180), Center(child: Text('No assignments found.'))]) :
       ListView.builder(padding: const EdgeInsets.all(16), itemCount: rows.length, itemBuilder: (c, i) {
         final x = rows[i];
         final status = (x['submissionStatus'] ?? 'NOT_SUBMITTED').toString().toUpperCase();
-        return Card(child: ListTile(
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+          child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+          leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.assignment_outlined, color: navy)),
           title: Text((x['title'] ?? 'Assignment').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text((x['subjectName'] ?? 'Subject').toString() + ' · Due ' + (x['dueDate'] ?? '—').toString() + '\nStatus: ' + status + (x['marksObtained'] != null ? ' · Marks: ' + x['marksObtained'].toString() : '') + (x['feedback'] != null && x['feedback'].toString().isNotEmpty ? '\nFeedback: ' + x['feedback'].toString() : '')),
           isThreeLine: true,
-          trailing: status == 'NOT_SUBMITTED' ? FilledButton(onPressed: () => submit(x), child: const Text('Submit')) : const Icon(Icons.check_circle_outline),
+          trailing: status == 'NOT_SUBMITTED' ? FilledButton.icon(onPressed: () => submit(x), icon: const Icon(Icons.upload_rounded, size: 17), label: const Text('Submit')) : const Icon(Icons.check_circle_rounded, color: navy),
         ));
       }),
     ),
@@ -135,16 +140,20 @@ class _TeacherAssignmentsState extends State<TeacherAssignmentsScreen> {
   }
   @override Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('My Assignments'), actions: [IconButton(onPressed: load, icon: const Icon(Icons.refresh))]),
-    floatingActionButton: FloatingActionButton.extended(onPressed: createAssignment, icon: const Icon(Icons.add), label: const Text('Create')),
-    body: loading ? const Center(child: CircularProgressIndicator()) : RefreshIndicator(onRefresh: load,
+    floatingActionButton: FloatingActionButton.extended(backgroundColor: navy, foregroundColor: Colors.white, onPressed: createAssignment, icon: const Icon(Icons.add_rounded), label: const Text('Create')),
+    body: loading ? const Center(child: CircularProgressIndicator(color: navy)) : RefreshIndicator(color: navy, onRefresh: load,
       child: rows.isEmpty ? ListView(children: const [SizedBox(height: 180), Center(child: Text('No assignments found.'))]) :
       ListView.builder(padding: const EdgeInsets.fromLTRB(16,16,16,100), itemCount: rows.length, itemBuilder: (c,i) {
         final x = rows[i];
-        return Card(child: ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.assignment_outlined)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+          child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+          leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.assignment_outlined, color: navy)),
           title: Text((x['title'] ?? 'Assignment').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text((x['subjectName'] ?? 'Subject').toString() + ' · Due ' + (x['dueDate'] ?? '—').toString() + '\n' + (x['pendingReviewCount'] ?? 0).toString() + ' pending reviews'),
-          isThreeLine: true, trailing: const Icon(Icons.chevron_right), onTap: () => submissions(x),
+          isThreeLine: true, trailing: const Icon(Icons.chevron_right_rounded, color: muted), onTap: () => submissions(x),
         ));
       }),
     ),
@@ -188,11 +197,16 @@ class _AssignmentSubmissionsState extends State<AssignmentSubmissionsScreen> {
     body: rows.isEmpty ? const Center(child: Text('No submissions yet.')) : ListView.builder(
       padding: const EdgeInsets.all(16), itemCount: rows.length, itemBuilder: (c,i) {
         final x = rows[i];
-        return Card(child: ListTile(
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+          child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+          leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.person_outline_rounded, color: navy)),
           title: Text((x['studentName'] ?? 'Student').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text((x['status'] ?? 'SUBMITTED').toString() + ' · ' + (x['submittedAt'] ?? '').toString() + '\n' + (x['submissionUrl'] ?? '').toString() + '\nMarks: ' + (x['marks'] ?? '—').toString()),
           isThreeLine: true,
-          trailing: IconButton(onPressed: () => evaluate(x), icon: const Icon(Icons.rate_review_outlined)),
+          trailing: IconButton(onPressed: () => evaluate(x), style: IconButton.styleFrom(backgroundColor: lightGreen), icon: const Icon(Icons.rate_review_outlined, color: navy)),
         ));
       },
     ),
