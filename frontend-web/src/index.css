@@ -316,3 +316,21 @@
     transform: none;
   }
 }
+
+/* EduSphere book-opening/page-turning loader */
+.book-loader{position:relative;width:116px;height:82px;perspective:900px;filter:drop-shadow(0 12px 12px rgba(46,125,50,.16))}
+.book-loader__cover,.book-loader__pages{position:absolute;bottom:7px;width:55px;height:66px;transform-origin:bottom center}
+.book-loader__cover{z-index:3;background:linear-gradient(145deg,#2e7d32,#256428);border:2px solid #205b26;border-radius:5px 8px 4px 3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.book-loader__cover--left{left:4px;transform-origin:right center;animation:book-open-left 1.8s ease-in-out infinite}
+.book-loader__cover--right{right:4px;transform-origin:left center;animation:book-open-right 1.8s ease-in-out infinite}
+.book-loader__pages{left:30px;width:56px;z-index:2;background:#fffdf4;border:1px solid #ddd8c8;border-radius:3px 7px 3px 3px;transform-origin:left bottom;animation:book-pages 1.8s ease-in-out infinite}
+.book-loader__pages span{position:absolute;inset:5px 5px 5px 4px;border-top:1px solid rgba(46,125,50,.12);border-bottom:1px solid rgba(46,125,50,.08)}
+.book-loader__pages span:nth-child(1){transform:translateY(7px)}.book-loader__pages span:nth-child(2){transform:translateY(14px)}.book-loader__pages span:nth-child(3){transform:translateY(21px)}.book-loader__pages span:nth-child(4){transform:translateY(28px)}
+.book-loader__spine{position:absolute;z-index:4;left:56px;bottom:6px;width:4px;height:68px;border-radius:4px;background:#1f6126;animation:spine-pulse 1.8s ease-in-out infinite}
+.book-loader__dot{width:7px;height:7px;border-radius:50%;background:#2e7d32;opacity:.35;animation:loader-dot 1.2s ease-in-out infinite}.book-loader__dot--2{animation-delay:.18s}.book-loader__dot--3{animation-delay:.36s}
+@keyframes book-open-left{0%,12%{transform:rotateY(0)}45%,72%{transform:rotateY(-155deg)}100%{transform:rotateY(0)}}
+@keyframes book-open-right{0%,12%{transform:rotateY(0)}45%,72%{transform:rotateY(155deg)}100%{transform:rotateY(0)}}
+@keyframes book-pages{0%,18%{transform:rotateY(0) translateX(0)}38%,62%{transform:rotateY(-26deg) translateX(4px)}82%,100%{transform:rotateY(0) translateX(0)}}
+@keyframes spine-pulse{0%,20%,80%,100%{opacity:1;transform:scaleY(1)}48%,65%{opacity:.7;transform:scaleY(.92)}}
+@keyframes loader-dot{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-4px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.book-loader__cover--left,.book-loader__cover--right,.book-loader__pages,.book-loader__spine,.book-loader__dot{animation:none}}
