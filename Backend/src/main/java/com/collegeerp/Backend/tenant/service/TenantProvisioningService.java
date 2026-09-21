@@ -3,6 +3,8 @@ package com.collegeerp.Backend.tenant.service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -56,21 +58,18 @@ public class TenantProvisioningService {
 
     private final TenantRepository tenantRepository;
     private final TenantSchemaMigrator schemaMigrator;
-    private final RoleRepository roleRepository;
-    private final UserRepository userRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
 
     public TenantProvisioningService(
             TenantRepository tenantRepository,
             TenantSchemaMigrator schemaMigrator,
-            RoleRepository roleRepository,
-            UserRepository userRepository,
+            JdbcTemplate jdbcTemplate,
             PasswordEncoder passwordEncoder) {
 
         this.tenantRepository = tenantRepository;
         this.schemaMigrator = schemaMigrator;
-        this.roleRepository = roleRepository;
-        this.userRepository = userRepository;
+        this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -185,58 +184,104 @@ public class TenantProvisioningService {
         return tenantRepository.save(builder.build());
     }
 
+    /**
+     * Seeds the first tenant accounts directly with JDBC rather than JPA.
+     *
+     * Provisioning happens before a normal tenant request/session exists, so using the
+     * multi-tenant JPA repositories here can bind a persistence context/connection at
+     * the wrong point in the ThreadLocal tenant lifecycle. The schema is already known
+     * and validated, so schema-qualified JDBC is deterministic and also makes retries
+     * against an orphaned schema idempotent.
+     */
     private void seedAdminUser(String schemaName, String collegeName, String adminEmail, String password) {
-        TenantContext.setCurrentTenant(schemaName);
+        String schema = quoteIdentifier(schemaName);
+        String encodedPassword = passwordEncoder.encode(password);
+
         try {
-            Role adminRole = new Role();
-            adminRole.setName(ADMIN_ROLE);
-            adminRole.setDescription("College Administrator");
-            adminRole.setSystemRole(true);
-            // Every permission that exists today - V19's data backfill only covers
-            // ADMIN roles that already existed at migration time, so a brand-new
-            // tenant's ADMIN role needs the same "all permissions" grant applied here
-            // instead, otherwise a college registering after that migration would get
-            // an ADMIN who can't actually do anything through the new hasAuthority(...)
-            // checks.
-            adminRole.setPermissions(
-                    java.util.Arrays.stream(Permission.values())
-                            .map(Enum::name)
-                            .collect(java.util.stream.Collectors.toSet()));
-            adminRole = roleRepository.save(adminRole);
+            Long adminRoleId = upsertRole(
+                    schema,
+                    ADMIN_ROLE,
+                    "College Administrator",
+                    true
+            );
 
-            User admin = User.builder()
-                    .email(adminEmail)
-                    .passwordHash(passwordEncoder.encode(password))
-                    .firstName("Admin")
-                    .lastName(collegeName)
-                    .role(adminRole)
-                    .isActive(true)
-                    .isEmailVerified(true)
-                    // The college's own admin chose this password during registration -
-                    // unlike users an admin later creates on someone else's behalf, there's
-                    // no one else who knows it, so there's nothing to force a change away from.
-                    .mustChangePassword(false)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
+            for (Permission permission : Permission.values()) {
+                jdbcTemplate.update(
+                        "INSERT INTO " + schema + ".role_permissions (role_id, permission) VALUES (?, ?) "
+                                + "ON CONFLICT (role_id, permission) DO NOTHING",
+                        adminRoleId,
+                        permission.name()
+                );
+            }
 
-            userRepository.save(admin);
+            jdbcTemplate.update(
+                    "INSERT INTO " + schema + ".users "
+                            + "(email, password_hash, first_name, last_name, role_id, is_active, "
+                            + "is_email_verified, must_change_password, created_at, updated_at) "
+                            + "VALUES (?, ?, ?, ?, ?, true, true, false, now(), now()) "
+                            + "ON CONFLICT (email) DO UPDATE SET "
+                            + "password_hash = EXCLUDED.password_hash, "
+                            + "first_name = EXCLUDED.first_name, "
+                            + "last_name = EXCLUDED.last_name, "
+                            + "role_id = EXCLUDED.role_id, "
+                            + "is_active = true, "
+                            + "is_email_verified = true, "
+                            + "must_change_password = false, "
+                            + "updated_at = now()",
+                    adminEmail,
+                    encodedPassword,
+                    "Admin",
+                    collegeName,
+                    adminRoleId
+            );
 
-            Role teacherRole = new Role();
-            teacherRole.setName(TEACHER_ROLE);
-            teacherRole.setDescription("Teaching staff");
-            teacherRole.setSystemRole(true);
-            teacherRole.setPermissions(
-                    TEACHER_PERMISSIONS.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()));
-            roleRepository.save(teacherRole);
+            Long teacherRoleId = upsertRole(
+                    schema,
+                    TEACHER_ROLE,
+                    "Teaching staff",
+                    true
+            );
+
+            for (Permission permission : TEACHER_PERMISSIONS) {
+                jdbcTemplate.update(
+                        "INSERT INTO " + schema + ".role_permissions (role_id, permission) VALUES (?, ?) "
+                                + "ON CONFLICT (role_id, permission) DO NOTHING",
+                        teacherRoleId,
+                        permission.name()
+                );
+            }
 
         } catch (Exception e) {
+            log.error("Failed seeding admin/teacher roles for tenant schema '{}'", schemaName, e);
             throw new TenantProvisioningException(
                     "Schema '" + schemaName + "' was created and migrated, but seeding the admin user failed. "
-                            + "The schema exists but no tenant record was saved - manual cleanup or retry may be required.",
+                            + "The schema exists but no tenant record was saved. The provisioning operation is retryable.",
                     e);
-        } finally {
-            TenantContext.clear();
         }
     }
+
+    private Long upsertRole(String schema, String roleName, String description, boolean systemRole) {
+        return jdbcTemplate.queryForObject(
+                "INSERT INTO " + schema + ".roles (name, description, is_system_role) "
+                        + "VALUES (?, ?, ?) "
+                        + "ON CONFLICT (name) DO UPDATE SET "
+                        + "description = EXCLUDED.description, "
+                        + "is_system_role = EXCLUDED.is_system_role "
+                        + "RETURNING id",
+                Long.class,
+                roleName,
+                description,
+                systemRole
+        );
+    }
+
+    private String quoteIdentifier(String schemaName) {
+        // schemaName is generated from the validated subdomain and contains only
+        // lowercase letters, digits and underscores at this point.
+        if (!schemaName.matches("[a-z0-9_]{1,63}")) {
+            throw new IllegalArgumentException("Invalid tenant schema identifier");
+        }
+        return """ + schemaName + """;
+    }
+
 }
