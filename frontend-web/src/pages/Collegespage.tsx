@@ -122,6 +122,15 @@ export function CollegesPage() {
       return
     }
 
+    // Keep this in sync with TenantRegistrationRequest on the backend.
+    // Dots are not valid here: the value is used as the tenant's Postgres
+    // schema identifier, so use a simple label such as "vikas" or "vikas-college".
+    const subdomain = form.subdomain.trim().toLowerCase()
+    if (!/^[a-z0-9-]{3,50}$/.test(subdomain)) {
+      setError('Subdomain must be 3-50 characters and contain only letters, numbers, and hyphens (no dots).')
+      return
+    }
+
     setSaving(true)
     try {
       const result = await registerTenant({
