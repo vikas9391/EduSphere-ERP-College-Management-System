@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/store/authStore'
 import type { ApiResponse } from './types'
 
@@ -6,11 +6,98 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api',
 })
 
+/**
+ * Small browser-side response cache for the data-heavy ERP screens.
+ *
+ * Redis already protects the backend from repeated database work, but a browser
+ * still has to wait for the network on every navigation. This cache makes repeat
+ * GET requests instant for a short period and is automatically invalidated when
+ * a POST/PUT/PATCH/DELETE succeeds. The key is scoped to the signed-in tenant
+ * and user so cached data cannot cross account boundaries.
+ */
+const CLIENT_CACHE_PREFIX = 'edusphere:api-cache:v1:'
+const CLIENT_CACHE_TTL_MS = 60_000
+
+function clientCacheKey(config: { baseURL?: string; url?: string; params?: unknown }) {
+  const user = useAuthStore.getState().user
+  const scope = user ? `${user.tenantSchema}:${user.id}:${user.email}` : 'anonymous'
+  const params = config.params ? JSON.stringify(config.params) : ''
+  return CLIENT_CACHE_PREFIX + btoa(unescape(encodeURIComponent(
+    `${scope}|${config.baseURL ?? ''}|${config.url ?? ''}|${params}`
+  )))
+}
+
+function canCacheGet(config: { method?: string; url?: string }) {
+  const method = (config.method ?? 'get').toLowerCase()
+  const url = config.url ?? ''
+  return method === 'get' && !url.startsWith('/auth/')
+}
+
+function isMutation(config: { method?: string }) {
+  return ['post', 'put', 'patch', 'delete'].includes((config.method ?? '').toLowerCase())
+}
+
+function clearClientCache() {
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i)
+    if (key?.startsWith(CLIENT_CACHE_PREFIX)) localStorage.removeItem(key)
+  }
+}
+
+function readClientCache(key: string): unknown | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry = JSON.parse(raw) as { savedAt: number; data: unknown }
+    if (!entry || Date.now() - entry.savedAt > CLIENT_CACHE_TTL_MS) {
+      localStorage.removeItem(key)
+      return null
+    }
+    return entry.data
+  } catch {
+    localStorage.removeItem(key)
+    return null
+  }
+}
+
+function writeClientCache(key: string, data: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }))
+  } catch {
+    // Storage quota/private-mode failures should never break the ERP.
+  }
+}
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Serve recently loaded GET data directly from browser memory/storage.
+  // Axios adapters let us short-circuit the network while keeping all existing
+  // api.get(...) call sites unchanged.
+  if (token && canCacheGet(config)) {
+    const key = clientCacheKey(config)
+    const cached = readClientCache(key)
+    if (cached !== null) {
+      config.adapter = async () => ({
+        data: cached,
+        status: 200,
+        statusText: 'OK (client cache)',
+        headers: {},
+        config,
+        request: undefined,
+      } as AxiosResponse)
+    } else {
+      config.headers['X-EduSphere-Client-Cache'] = key
+    }
+  }
+
+  // Any successful write will invalidate all browser GET snapshots. This keeps
+  // list/detail screens from showing data changed by the current session.
+  if (isMutation(config)) clearClientCache()
+
   return config
 })
 
@@ -28,6 +115,7 @@ api.interceptors.request.use((config) => {
  */
 api.interceptors.response.use(
   (response) => {
+    const originalConfig = response.config
     const body = response.data as ApiResponse<unknown> | unknown
     if (
       body &&
@@ -37,6 +125,11 @@ api.interceptors.response.use(
     ) {
       response.data = (body as ApiResponse<unknown>).data
     }
+
+    if (canCacheGet(originalConfig) && useAuthStore.getState().token) {
+      writeClientCache(clientCacheKey(originalConfig), response.data)
+    }
+
     return response
   },
   (error: AxiosError<ApiResponse<unknown> | { message?: string }>) => onResponseError(error)
