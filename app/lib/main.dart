@@ -9,11 +9,14 @@ part 'assignments.dart';
 part 'erp_ui.dart';
 
 const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api');
-const navy = Color(0xFF303F9F);
-const indigo = Color(0xFF3346A8);
-const pageBg = Color(0xFFF6F3ED);
-const muted = Color(0xFF77736D);
-const green = Color(0xFF19866A);
+const navy = Color(0xFF2E7D32);
+const indigo = Color(0xFF256428);
+const pageBg = Color(0xFFF8F8F2);
+const muted = Color(0xFF6B7280);
+const green = Color(0xFF4CAF50);
+const lightGreen = Color(0xFFE8F5E9);
+const border = Color(0xFFEEF2E7);
+const textColor = Color(0xFF1F2937);
 
 String cleanError(Object error) => error.toString().replaceFirst('Exception: ', '');
 void snack(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -149,22 +152,24 @@ class EduSphereApp extends StatelessWidget {
     theme: ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: pageBg,
-      colorScheme: ColorScheme.fromSeed(seedColor: navy),
+      colorScheme: ColorScheme.fromSeed(seedColor: navy, brightness: Brightness.light),
       fontFamily: 'Roboto',
+      appBarTheme: const AppBarTheme(backgroundColor: pageBg, foregroundColor: textColor, elevation: 0),
+      snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating, backgroundColor: textColor),
       cardTheme: CardThemeData(
         elevation: 0,
         color: Colors.white,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFFE8E4DC)),
+          side: const BorderSide(color: border),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF7F4EF),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFE4E0D8))),
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: border)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: navy, width: 1.5)),
       ),
     ),
@@ -277,13 +282,13 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Container(
                   width: 76, height: 76,
-                  decoration: BoxDecoration(color: const Color(0xFFE7E8F2), borderRadius: BorderRadius.circular(24)),
-                  child: const Center(child: Icon(Icons.school_rounded, color: navy, size: 40)),
+                  decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(24)),
+                  child: const Center(child: Icon(Icons.spa_rounded, color: navy, size: 40)),
                 ),
                 const SizedBox(height: 18),
                 const Text('EduSphere', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 4),
-                const Text('Your campus, beautifully connected.', style: TextStyle(color: muted, fontSize: 16)),
+                const Text('Smart Campus, Smarter Future', style: TextStyle(color: muted, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 34),
                 Card(
                   child: Padding(
@@ -319,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text('EduSphere ERP · Secure campus access', style: TextStyle(color: muted, fontSize: 12)),
+                const Text('EduSphere ERP · Smart Campus, Smarter Future', style: TextStyle(color: muted, fontSize: 12)),
               ],
             ),
           ),
