@@ -378,6 +378,38 @@ class _ErpAnalyticsState extends State<ErpAnalytics> {
     ))).toList());
   }
 
+  Widget _statCard(String label, String value, IconData icon) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: lightGreen,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(icon, color: navy, size: 19),
+        ),
+        const SizedBox(height: 10),
+        Text(value, style: const TextStyle(
+          fontSize: 21,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        )),
+        const SizedBox(height: 2),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11, color: muted)),
+      ],
+    ),
+  );
+
   Widget _progressCard() => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: border)),
