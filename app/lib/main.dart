@@ -230,7 +230,7 @@ class _RootScreenState extends State<RootScreen> {
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => const BookLoadingScreen(label: 'Preparing your campus…');
 }
 
 class LoginScreen extends StatefulWidget {
