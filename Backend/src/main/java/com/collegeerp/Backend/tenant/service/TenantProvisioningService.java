@@ -281,7 +281,7 @@ public class TenantProvisioningService {
         if (!schemaName.matches("[a-z0-9_]{1,63}")) {
             throw new IllegalArgumentException("Invalid tenant schema identifier");
         }
-        return """ + schemaName + """;
+        return "\"" + schemaName + "\"";
     }
 
 }
