@@ -1,7 +1,6 @@
 package com.collegeerp.Backend.student.entity;
 
 import com.collegeerp.Backend.course.entity.Course;
-import com.collegeerp.Backend.marks.entity.Marks;
 import com.collegeerp.Backend.schoolclass.entity.ClassEnrollment;
 import com.collegeerp.Backend.schoolclass.entity.ClassStudent;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -66,12 +65,6 @@ public class Student {
     @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ClassEnrollment> classEnrollments = new HashSet<>();
-
-    /** Exam results are represented by marks -> exam schedule -> exam. */
-    @JsonIgnore
-    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<Marks> marks = new HashSet<>();
 
     @Column(columnDefinition = "TEXT")
     private String address;
