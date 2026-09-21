@@ -4,7 +4,7 @@ import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Loader2 } from "lucide-react";
+import { BookLoader, NavigationLoader } from "@/components/BookLoader";
 
 import { LoginPage } from "@/pages/LoginPage";
 import { SuperAdminLoginPage } from "@/pages/SuperAdminLoginPage";
@@ -45,12 +45,13 @@ const StudentClassesPage = lazy(() => import("@/pages/student/StudentClassesPage
 const StudentTimetablePage = lazy(() => import("@/pages/student/StudentTimetablePage").then((m) => ({ default: m.StudentTimetablePage })));
 
 function RouteFallback() {
-  return <div className="flex min-h-screen w-full items-center justify-center bg-bg"><Loader2 className="animate-spin text-primary" size={28} /></div>;
+  return <BookLoader label="Loading your page…" />;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
+      <NavigationLoader />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
