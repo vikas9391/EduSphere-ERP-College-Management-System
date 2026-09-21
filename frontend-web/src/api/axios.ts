@@ -120,9 +120,36 @@ async function onResponseError(error: AxiosError<ApiResponse<unknown> | { messag
 }
 
 function attachMessage(error: AxiosError<ApiResponse<unknown> | { message?: string }>) {
-  const backendMessage = error.response?.data?.message
+  const responseData = error.response?.data
+  const backendMessage = responseData?.message
+
   if (backendMessage) {
-    error.message = backendMessage
+    // Validation errors are returned by GlobalExceptionHandler as:
+    // { message: "Validation failed", data: { fieldName: "reason" } }.
+    // Surface the field reason in the UI instead of leaving the user with only
+    // the generic "Validation failed" message.
+    const validationData =
+      responseData &&
+      typeof responseData === 'object' &&
+      'data' in responseData &&
+      responseData.data &&
+      typeof responseData.data === 'object'
+        ? responseData.data as Record<string, unknown>
+        : null
+
+    const fieldMessages = validationData
+      ? Object.entries(validationData)
+          .filter(([, value]) => typeof value === 'string' && value.trim())
+          .map(([field, value]) => {
+            const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())
+            return `${label}: ${String(value)}`
+          })
+      : []
+
+    error.message = fieldMessages.length
+      ? `${backendMessage}: ${fieldMessages.join('; ')}`
+      : backendMessage
   }
+
   return error
 }
