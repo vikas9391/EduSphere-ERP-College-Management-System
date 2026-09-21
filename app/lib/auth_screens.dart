@@ -34,7 +34,7 @@ class _ForgotPasswordState extends State<ForgotPasswordScreen> {
     appBar: AppBar(title: const Text('Forgot password')),
     body: ListView(padding: const EdgeInsets.all(24), children: [
       const SizedBox(height: 30),
-      const Icon(Icons.lock_reset, size: 64, color: green),
+      const Icon(Icons.spa_rounded, size: 64, color: navy),
       const SizedBox(height: 18),
       Text(sent ? 'Check your email' : 'Reset your password', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
@@ -107,7 +107,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     appBar: AppBar(title: const Text('Change password')),
     body: ListView(padding: const EdgeInsets.all(24), children: [
       const SizedBox(height: 25),
-      const Icon(Icons.lock_outline_rounded, size: 58, color: navy),
+      const Icon(Icons.spa_outlined, size: 58, color: navy),
       const SizedBox(height: 16),
       const Text('Secure your account', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
       const SizedBox(height: 7),
