@@ -24,11 +24,80 @@ void snack(BuildContext context, String message) => ScaffoldMessenger.of(context
 class ApiService {
   ApiService._();
   static final instance = ApiService._();
+
+  static const _cachePrefix = 'edusphere_api_cache_v1_';
+  static const _cacheTtl = Duration(seconds: 60);
+
   String get base => apiUrl.replaceFirst(RegExp(r'/$'), '');
+
+  Future<String> _cacheKey(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    final scope = [
+      prefs.getString('collegeCode') ?? '',
+      prefs.getString('email') ?? '',
+      prefs.getString('role') ?? '',
+    ].join(':');
+    return _cachePrefix + scope + ':' + path;
+  }
+
+  Future<dynamic> _readCache(String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = await _cacheKey(path);
+      final raw = prefs.getString(key);
+      if (raw == null) return null;
+      final entry = jsonDecode(raw);
+      if (entry is! Map || entry['savedAt'] is! int || !entry.containsKey('data')) {
+        await prefs.remove(key);
+        return null;
+      }
+      final savedAt = DateTime.fromMillisecondsSinceEpoch(entry['savedAt'] as int);
+      if (DateTime.now().difference(savedAt) > _cacheTtl) {
+        await prefs.remove(key);
+        return null;
+      }
+      return entry['data'];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writeCache(String path, dynamic data) async {
+    if (data == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = await _cacheKey(path);
+      await prefs.setString(key, jsonEncode({
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'data': data,
+      }));
+    } catch (_) {
+      // Cache/storage failures must never prevent the ERP from working.
+    }
+  }
+
+  Future<void> clearCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) => key.startsWith(_cachePrefix)).toList();
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
 
   Future<dynamic> request(String path, {String method = 'GET', Map<String, dynamic>? body, bool retry = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('accessToken');
+    final normalizedMethod = method.toUpperCase();
+    final isGet = normalizedMethod == 'GET';
+    final isAuthEndpoint = path.startsWith('/auth/');
+
+    // Recently opened pages return immediately from device storage. The 60-second
+    // TTL is intentionally short, while any write below clears all cached GET data.
+    if (isGet && token != null && token.isNotEmpty && !isAuthEndpoint) {
+      final cached = await _readCache(path);
+      if (cached != null) return cached;
+    }
+
     final headers = <String, String>{
       'Accept': 'application/json',
       if (body != null) 'Content-Type': 'application/json',
@@ -36,29 +105,42 @@ class ApiService {
     };
     final uri = Uri.parse(base + path);
     http.Response response;
-    if (method == 'POST') {
+    if (normalizedMethod == 'POST') {
       response = await http.post(uri, headers: headers, body: body == null ? null : jsonEncode(body));
-    } else if (method == 'PUT') {
+    } else if (normalizedMethod == 'PUT') {
       response = await http.put(uri, headers: headers, body: body == null ? null : jsonEncode(body));
-    } else if (method == 'DELETE') {
+    } else if (normalizedMethod == 'DELETE') {
       response = await http.delete(uri, headers: headers);
     } else {
       response = await http.get(uri, headers: headers);
     }
-    if (response.statusCode == 401 && retry && !path.startsWith('/auth/')) {
+
+    if (response.statusCode == 401 && retry && !isAuthEndpoint) {
       if (await refresh()) return request(path, method: method, body: body, retry: false);
     }
+
     dynamic data;
     try {
       data = response.body.isEmpty ? null : jsonDecode(response.body);
     } catch (_) {
       data = null;
     }
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(data is Map ? (data['message'] ?? data['error'] ?? 'Request failed (' + response.statusCode.toString() + ')') : 'Request failed (' + response.statusCode.toString() + ')');
     }
-    if (data is Map && data['data'] != null) return data['data'];
-    return data;
+
+    final result = data is Map && data['data'] != null ? data['data'] : data;
+
+    if (isGet && !isAuthEndpoint) {
+      await _writeCache(path, result);
+    } else if (!isGet) {
+      // Writes can change any page's lists/details, so invalidate the short-lived
+      // device cache immediately after a successful mutation.
+      await clearCache();
+    }
+
+    return result;
   }
 
   Future<bool> refresh() async {
@@ -93,8 +175,10 @@ class ApiService {
     });
     final value = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
     final prefs = await SharedPreferences.getInstance();
+    await clearCache();
     await prefs.setString('accessToken', (value['accessToken'] ?? '').toString());
     await prefs.setString('email', (value['email'] ?? email).toString());
+    await prefs.setString('collegeCode', collegeCode);
     await prefs.setString('role', (value['role'] ?? '').toString());
     await prefs.setBool('mustChangePassword', value['mustChangePassword'] == true);
     if (value['refreshToken'] != null) await prefs.setString('refreshToken', value['refreshToken'].toString());
@@ -103,10 +187,12 @@ class ApiService {
 
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
+    await clearCache();
     await p.remove('accessToken');
     await p.remove('refreshToken');
     await p.remove('role');
     await p.remove('email');
+    await p.remove('collegeCode');
     await p.remove('mustChangePassword');
   }
 
