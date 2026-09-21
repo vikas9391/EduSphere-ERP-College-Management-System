@@ -240,14 +240,30 @@ class _ErpHomeState extends State<ErpHome> {
     );
   }
 
-  void _open(String item) {
+  Future<void> _open(String item) async {
     if (item == 'Assignments') {
+      await _showBookLoader(context, 'Opening assignments…');
+      if (!mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherAssignmentsScreen() : const StudentAssignmentsScreen()));
     } else if (item == 'Profile') {
       widget.onNavigate(4);
     } else {
       widget.onNavigate(1);
     }
+  }
+
+  Future<void> _showBookLoader(BuildContext context, String label) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: pageBg,
+      builder: (dialogContext) {
+        Future.delayed(const Duration(milliseconds: 520), () {
+          if (dialogContext.mounted && Navigator.of(dialogContext).canPop()) Navigator.of(dialogContext).pop();
+        });
+        return BookLoadingScreen(label: label);
+      },
+    );
   }
 
   Widget _noticeCard() => Container(
