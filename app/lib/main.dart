@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -224,6 +225,44 @@ class ApiService {
 
   Future<List<Map<String, dynamic>>> studentAssignments() => list('/student/assignments');
   Future<List<Map<String, dynamic>>> teacherAssignments() => list('/teacher/assignments');
+
+  /// Warm the next screens after login without creating a request burst.
+  /// The Flutter binary already contains the page widgets, so unlike the web
+  /// build there is no useful per-page Dart download to split. We therefore
+  /// warm the data those screens need in pairs and store it in the 60-second
+  /// device cache. The user sees the dashboard immediately while this runs.
+  Future<void> warmUpForRole(String role) async {
+    final normalized = role.toUpperCase();
+    final jobs = normalized.contains('TEACHER')
+        ? <Future<dynamic> Function()>[
+            teacherDashboard,
+            teacherAssignments,
+            () => request('/users/me'),
+          ]
+        : normalized.contains('STUDENT')
+            ? <Future<dynamic> Function()>[
+                studentDashboard,
+                studentAssignments,
+                () => request('/users/me'),
+              ]
+            : <Future<dynamic> Function()>[
+                () => request('/users/me'),
+              ];
+
+    for (var i = 0; i < jobs.length; i += 2) {
+      final batch = jobs.skip(i).take(2).map((job) async {
+        try {
+          await job();
+        } catch (_) {
+          // Warm-up is best-effort. The real page request remains authoritative.
+        }
+      });
+      await Future.wait(batch);
+      if (i + 2 < jobs.length) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+      }
+    }
+  }
 }
 
 void main() => runApp(const EduSphereApp());
@@ -283,11 +322,15 @@ class _RootScreenState extends State<RootScreen> {
     final p = await SharedPreferences.getInstance();
     final token = p.getString('accessToken');
     if (!mounted) return;
+    final restoredRole = token == null || token.isEmpty ? null : p.getString('role');
     setState(() {
-      role = token == null || token.isEmpty ? null : p.getString('role');
+      role = restoredRole;
       mustChangePassword = p.getBool('mustChangePassword') ?? false;
       loading = false;
     });
+    if (restoredRole != null && !mustChangePassword) {
+      unawaited(ApiService.instance.warmUpForRole(restoredRole));
+    }
   }
 
   Future<void> signedIn(String value) async {
@@ -297,6 +340,7 @@ class _RootScreenState extends State<RootScreen> {
       role = value;
       mustChangePassword = p.getBool('mustChangePassword') ?? false;
     });
+    unawaited(ApiService.instance.warmUpForRole(value));
   }
 
   Future<void> signOut() async {
