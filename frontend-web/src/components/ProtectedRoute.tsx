@@ -21,7 +21,7 @@ export function ProtectedRoute({
   const userRole = useAuthStore((s) => s.user?.role)
 
   if (!token) {
-    return <Navigate to={isRole(role, ROLES.SUPER_ADMIN) ? '/super-admin/login' : '/login'} replace />
+    return <Navigate to="/login" replace />
   }
 
   if (role && !isRole(userRole, role)) {
