@@ -1,21 +1,52 @@
 # EduSphere ERP — College Management System
 
-A multi-tenant College ERP/SaaS platform for managing colleges, users, academics, classes, students, teachers, attendance, assignments, examinations, marks, results, timetables, holidays and announcements.
+> **Smart Campus, Smarter Future**
 
-> **Status:** Core ERP architecture is implemented. The web application uses React + TypeScript, and the mobile application in `app/` is now a Flutter/Dart application. The former Expo/React Native mobile implementation has been removed.
+EduSphere ERP is a multi-tenant college management platform connecting **students, teachers, administrators, academics, attendance, assignments, examinations, marks, timetables and campus communication** in one system.
 
-## Project Structure
+It includes a **React web application**, a **Flutter mobile application**, and a **Spring Boot REST backend** backed by PostgreSQL.
+
+## ✨ Highlights
+
+- 🏫 Multi-tenant college ERP architecture
+- 🔐 JWT authentication and role-based authorization
+- 👨‍🎓 Student, teacher, staff and admin workflows
+- 📚 Classes, subjects, enrollments and academic management
+- 📊 Attendance, marks, exams, results and assignments
+- 🗓️ Timetable management with conflict validation
+- 🤖 AI-assisted timetable image/PDF inspection
+- 📱 Flutter mobile app using the same backend API
+- 🌿 Botanical green/white design across web and mobile
+- 🔄 Access/refresh-token based sessions
+- 🧩 Flyway-managed PostgreSQL migrations
+- 🚀 CI validation for backend, web and Flutter
+
+## 📁 Project Structure
 
 ```text
 EduSphere-ERP-College-Management-System/
-├── Backend/        # Spring Boot REST API
-├── frontend-web/   # React + TypeScript web application
-├── app/            # Flutter + Dart mobile application
-├── docs/            # Project documentation, status and deployment guide
-└── .github/         # CI configuration
+├── Backend/              # Spring Boot REST API
+├── frontend-web/         # React + TypeScript web application
+├── app/                  # Flutter + Dart mobile application
+├── docs/                 # Project documentation
+└── .github/              # CI workflows
 ```
 
-## Technology Stack
+## 🛠️ Technology Stack
+
+### Backend
+- Java 21
+- Spring Boot 3.5.3
+- Spring Security
+- Spring Data JPA / Hibernate
+- PostgreSQL
+- Flyway
+- Redis / Spring Cache
+- JJWT
+- MapStruct
+- Lombok
+- SpringDoc OpenAPI
+- Maven
 
 ### Web
 - React 19
@@ -24,38 +55,48 @@ EduSphere-ERP-College-Management-System/
 - React Router
 - Axios
 - Zustand
-- Tailwind CSS v4
+- Tailwind CSS
 - Framer Motion
 - Lucide React
 - Recharts
 
 ### Mobile
-- Flutter stable
-- Dart 3.5+
+- Flutter
+- Dart
 - Material 3
 - `http`
 - `shared_preferences`
-- Same Spring Boot API as the web application
+- Same Spring Boot REST API as the web application
 
-### Backend
-- Java 21
-- Spring Boot 3.5.3
-- Spring Security
-- Spring Data JPA / Hibernate
-- Spring Validation
-- Spring Cache / Redis
-- Spring Mail
-- Flyway
-- PostgreSQL
-- JJWT
-- MapStruct
-- Lombok
-- SpringDoc OpenAPI
-- Maven
+## 🧭 Architecture
 
-## Core Academic Relationship Model
+```text
+                    ┌─────────────────────┐
+                    │   React Web App     │
+                    └──────────┬──────────┘
+                               │
+                               │ REST / JWT
+                               ▼
+                    ┌─────────────────────┐
+                    │ Spring Boot API     │
+                    │ Security + Services │
+                    └──────────┬──────────┘
+                               │
+                 ┌─────────────┴─────────────┐
+                 ▼                           ▼
+        ┌─────────────────┐        ┌─────────────────┐
+        │ PostgreSQL      │        │ Redis / Cache   │
+        │ Multi-Tenant DB │        │                 │
+        └─────────────────┘        └─────────────────┘
+                 ▲
+                 │ REST / JWT
+        ┌────────┴────────┐
+        │ Flutter Mobile  │
+        │ Android / iOS   │
+        └─────────────────┘
+```
 
-EduSphere uses one authoritative class-scoped operational model:
+### Academic relationship model
 
 ```text
 Department → Course → Subject
@@ -72,176 +113,90 @@ ClassSubject → ExamSchedule
 ClassEnrollment → Marks
 ```
 
-The old standalone operational `Enrollment` model has been removed. Attendance, assignments, exams, marks and timetable data use the class-scoped relationships.
+Attendance, assignments, examinations, marks and timetable data use the **class-scoped academic model**.
 
-## Implemented Features
+## 🔐 Authentication & Authorization
 
-### Authentication and authorization
+- Super-admin, tenant/staff, teacher and student authentication
+- JWT access and refresh tokens
+- Password change and forgot-password/reset flows
+- Role and permission based staff access
+- Frontend route protection
+- Backend authorization as the final security boundary
 
-- Super-admin, tenant/staff, teacher and student authentication.
-- JWT access and refresh tokens.
-- Password change and forgot-password/reset flows.
-- Role/permission-based staff access.
-- Frontend role guards for ADMIN, TEACHER and STUDENT routes.
-- Backend authorization remains the actual security boundary.
+## 🏢 Multi-Tenancy
 
-### Multi-tenancy
+EduSphere uses **schema-based PostgreSQL multi-tenancy**.
 
-- Schema-based PostgreSQL multi-tenancy.
-- Public tenant metadata separated from tenant-specific academic data.
-- Flyway-managed public and tenant migrations.
-- Hibernate schema generation disabled; Flyway owns schema creation.
+- Public tenant metadata is separated from tenant academic data.
+- Each tenant operates inside its own PostgreSQL schema.
+- Flyway manages public and tenant migrations.
+- Hibernate schema generation is disabled.
+- Tenant resolution is handled by the backend tenant/security layer.
 
-### Classes and academics
+## 📚 Core Modules
 
-- Create/delete school classes.
-- Add/remove students through ClassStudent.
-- Create ClassSubjects, including bulk creation.
-- Assign teachers to ClassSubjects.
-- Optional formal Subject/curriculum link.
-- Class rosters and class-enrollment views.
+### Students
+- Dashboard and profile
+- Classes and enrollments
+- Attendance and holidays
+- Assignments
+- Timetable
+- Examinations
+- Marks and results
 
-### Attendance and holidays
+### Teachers
+- Assigned classes
+- Class rosters
+- Attendance
+- Assignments and submissions
+- Timetable
+- Examinations
+- Marks
 
-- Attendance is tied to ClassEnrollment.
-- Teacher authorization follows the assigned ClassSubject teacher.
-- Student self-only attendance access.
-- Admin/super-admin management.
-- Unique attendance per ClassEnrollment + date.
-- Attendance summaries and subject-wise calculations.
-- Statuses: `PRESENT`, `ABSENT`, `LATE`, `EXCUSED`, `HOLIDAY`.
-- `PRESENT`/`LATE` count as attended; `ABSENT` counts as missed; `EXCUSED`/`HOLIDAY` are excluded from the percentage denominator.
-- Class holiday calendar API and student holiday display.
+### Administration
+- College/tenant management
+- Users and roles
+- Departments, courses and subjects
+- Classes
+- Class subjects
+- Student/teacher relationships
+- Academic operations
 
-### Timetable
+## 📱 Flutter Mobile App
 
-- ClassSubject-based timetable entries.
-- Student and teacher timetable views.
-- Class and teacher conflict detection.
-- Create/edit/delete timetable entries.
-- Flexible teacher timetable grid with selectable days and custom rows.
-- Validation when a ClassSubject has no assigned teacher.
-- AI-assisted image/PDF timetable inspection and review.
+The `app/` directory is the current mobile client. The previous Expo/React Native implementation has been removed.
 
-### Assignments, examinations, marks and results
+### Current foundation
 
-- Assignments and submissions are class-scoped.
-- Exams use ClassSubject.
-- Marks use ClassEnrollment.
-- Student eligibility and result calculations use the class-scoped academic model.
-- Teacher access is constrained by ClassSubject ownership.
+- Material 3
+- EduSphere botanical green/white branding
+- College code + username + password login
+- JWT access/refresh token handling
+- Persistent sessions with `shared_preferences`
+- Role-aware ERP shell
+- Student, teacher and admin dashboard foundation
+- Assignment workflows
+- Profile and password actions
+- Shared backend REST integration
+- Flutter static analysis in CI
 
-### Web UI
+### Mobile design system
 
-- Role-specific dashboards and route protection.
-- Student profile, classes, enrollments, attendance, holidays, assignments and timetable pages.
-- Teacher academic management pages.
-- Class roster/ClassSubject management.
-- Flexible timetable editor and AI import review UI.
-- Central Axios API client with `VITE_API_URL`.
-- Access-token injection and refresh-token handling.
-- Responsive botanical design system.
+The Flutter app follows the web application's visual language:
 
-## Flutter Mobile App
+| Token | Value |
+|---|---|
+| Primary green | `#2E7D32` |
+| Secondary green | `#4CAF50` |
+| Light green | `#E8F5E9` |
+| Page background | `#F8F8F2` |
+| Main text | `#1F2937` |
+| Muted text | `#6B7280` |
 
-The `app/` directory is the single mobile client for EduSphere. It is implemented in **Flutter/Dart** and connects directly to the same Spring Boot API used by the web application.
+The UI uses rounded cards, soft borders, light-green surfaces and botanical/sprout branding.
 
-The previous Expo/React Native project has been removed from the mobile app directory. There are no React Native/Expo mobile dependencies, TypeScript mobile entry points, or Expo configuration files in the current mobile project.
-
-### Current Flutter mobile foundation
-
-- Flutter/Dart project structure.
-- Material 3 green/white EduSphere branding.
-- College code + username + password login.
-- JWT access/refresh token handling.
-- Persistent session storage with `shared_preferences`.
-- Student, teacher and admin role-aware home/dashboard foundation.
-- Logout flow.
-- Backend REST integration through the shared API.
-- Flutter static analysis in CI.
-
-### Run the mobile app
-
-```bash
-cd app
-flutter pub get
-flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
-```
-
-For a physical device, use a backend URL reachable from that device.
-
-### Build Android APK
-
-```bash
-cd app
-flutter build apk --release --dart-define=API_URL=https://your-backend.example.com/api
-```
-
-## API Areas
-
-```text
-/api/courses
-/api/departments
-/api/subjects
-/api/teachers
-/api/students
-/api/classes
-/api/marks
-/api/exams
-/api/timetable
-/api/assignments
-/api/roles
-/api/student
-/api/teacher
-```
-
-Student class enrollments are exposed through:
-
-```text
-/api/student/enrollments
-```
-
-Swagger/OpenAPI:
-
-```text
-/api-docs
-/swagger-ui.html
-```
-
-## Environment Variables
-
-### Web
-
-```env
-VITE_API_URL=http://localhost:8080/api
-```
-
-### Flutter Mobile
-
-The mobile API URL is supplied at build/run time with Dart's `--dart-define`:
-
-```bash
-flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
-```
-
-### Backend
-
-```env
-DB_URL=jdbc:postgresql://localhost:5432/college_erp
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-JWT_SECRET=replace_with_a_long_random_secret
-FRONTEND_URL=http://localhost:5173
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-OPENAI_API_KEY=
-OPENAI_TIMETABLE_MODEL=gpt-5-mini
-```
-
-Optional mail configuration is documented in `docs/DEPLOYMENT.md`.
-
-Never commit real secrets to Git.
-
-## Local Development
+## 🚀 Run Locally
 
 ### Backend
 
@@ -269,7 +224,7 @@ npm run dev
 
 Web: `http://localhost:5173`
 
-### Flutter Mobile
+### Flutter
 
 ```bash
 cd app
@@ -277,77 +232,157 @@ flutter pub get
 flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
 ```
 
-## CI / Verification
+For a physical device, use a backend URL reachable from that device.
 
-CI validates all three application layers:
+### Android APK
 
-- Backend compilation and relationship isolation tests.
-- Frontend production build.
-- Flutter mobile dependency resolution and `flutter analyze`.
+```bash
+cd app
+flutter build apk --release --dart-define=API_URL=https://your-backend.example.com/api
+```
 
-The mobile CI no longer installs Node/Expo dependencies or runs a TypeScript type check.
+## ⚙️ Environment Variables
 
-## Fresh Database Setup
+### Web
 
-The project is maintained around a fresh database baseline. When resetting the ERP database, reset Flyway history together with tenant schemas and recreate the schema from the current migration set.
+```env
+VITE_API_URL=http://localhost:8080/api
+```
 
-Do not reintroduce historical backfill, compatibility or reconciliation logic for the removed standalone enrollment model.
+### Backend
 
-## Production Status
+```env
+DB_URL=jdbc:postgresql://localhost:5432/college_erp
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+JWT_SECRET=replace_with_a_long_random_secret
+FRONTEND_URL=http://localhost:5173
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+OPENAI_API_KEY=
+OPENAI_TIMETABLE_MODEL=gpt-5-mini
+```
 
-The application has environment-driven database, JWT, CORS, frontend URL, mail and AI configuration. Provider-specific hosting configuration is intentionally not hard-coded until a production host is selected.
+### Flutter
 
-See `docs/DEPLOYMENT.md` for the provider-neutral deployment checklist.
+```bash
+flutter run --dart-define=API_URL=http://10.0.2.2:8080/api
+```
 
-## What Is Done vs What Is Left
+> **Security:** Never commit real API keys, database passwords, JWT secrets or other credentials.
 
-### Done
+## 🔌 API Areas
 
-- [x] Core Spring Boot + React ERP.
-- [x] Multi-tenant architecture.
-- [x] JWT authentication/refresh flow.
-- [x] Role and permission enforcement.
-- [x] Frontend role guards.
-- [x] Class/student/teacher relationships.
-- [x] ClassSubject and ClassEnrollment model.
-- [x] Class-scoped attendance.
-- [x] Attendance summaries and holidays.
-- [x] Class-scoped assignments/submissions.
-- [x] Class-scoped exams, marks and results.
-- [x] Class-scoped timetable and conflict validation.
-- [x] Flexible timetable grid.
-- [x] AI timetable image/PDF inspection and review UI.
-- [x] Legacy standalone enrollment path removed.
-- [x] Environment-driven API configuration.
-- [x] Web CI/build and relationship tests.
-- [x] Flutter mobile project replacing the former React Native app.
-- [x] Flutter mobile login and backend connection foundation.
-- [x] Flutter mobile session persistence and refresh-token foundation.
-- [x] Flutter mobile static analysis in CI.
+```text
+/api/courses
+/api/departments
+/api/subjects
+/api/teachers
+/api/students
+/api/classes
+/api/marks
+/api/exams
+/api/timetable
+/api/assignments
+/api/roles
+/api/student
+/api/teacher
+```
 
-### Remaining
+Student enrollments:
 
-- [ ] Complete all Student Flutter modules: classes, attendance, assignments, timetable, exams, marks and results.
-- [ ] Complete all Teacher Flutter modules: classes/rosters, attendance, assignments, timetable, exams and marks.
-- [ ] Add appropriate Admin/Super-admin Flutter views.
-- [ ] Add Flutter profile/password/reset flows.
-- [ ] Add robust network/offline states.
-- [ ] Add mobile push notifications if required.
-- [ ] Add Android/iOS production icons, splash assets and release metadata.
-- [ ] Test Android/iOS builds on physical devices.
-- [ ] Make AI timetable multi-slot confirmation transactional to prevent partial saves.
-- [ ] Choose production hosting and add provider-specific SPA configuration.
-- [ ] Run clean production database/Flyway deployment testing.
-- [ ] Test tenant isolation with multiple tenants.
-- [ ] Review npm audit findings safely.
-- [ ] Add production monitoring, logging and database backups.
-- [ ] Perform final production security review.
+```text
+/api/student/enrollments
+```
 
-## Documentation
+Swagger/OpenAPI:
 
-- `docs/PROJECT_STATUS.md` — complete implementation status and mobile roadmap.
-- `docs/DEPLOYMENT.md` — web/mobile deployment and production checklist.
+```text
+/api-docs
+/swagger-ui.html
+```
 
-## Repository
+## 🤖 AI Timetable Assistance
+
+EduSphere includes an AI-assisted workflow for inspecting timetable images/PDFs and reviewing proposed timetable data before saving it.
+
+The AI workflow is intended as **decision support**: imported timetable information can be reviewed and validated before becoming operational academic data.
+
+## 🧪 CI & Verification
+
+CI validates the main application layers:
+
+- Backend compilation
+- Backend relationship/isolation tests
+- Frontend production build
+- Flutter dependency resolution
+- Flutter static analysis
+
+The Flutter mobile project no longer depends on Node/Expo or a TypeScript mobile build.
+
+## 🗄️ Database & Migrations
+
+EduSphere uses PostgreSQL with Flyway.
+
+For a fresh database:
+
+1. Configure PostgreSQL.
+2. Set the backend environment variables.
+3. Start the Spring Boot backend.
+4. Allow Flyway to create the required schemas and tables.
+5. Provision tenants through the application flow.
+
+When resetting the ERP database, reset Flyway history together with tenant schemas and recreate the database from the current migration set.
+
+## 📈 Project Status
+
+### Completed
+
+- [x] Spring Boot + React ERP foundation
+- [x] Multi-tenant architecture
+- [x] JWT authentication and refresh flow
+- [x] Role and permission enforcement
+- [x] Frontend route protection
+- [x] Class/student/teacher relationships
+- [x] ClassSubject and ClassEnrollment model
+- [x] Class-scoped attendance
+- [x] Attendance summaries and holidays
+- [x] Class-scoped assignments/submissions
+- [x] Class-scoped examinations, marks and results
+- [x] Class-scoped timetable and conflict validation
+- [x] AI timetable inspection/review UI
+- [x] Flutter mobile migration
+- [x] Flutter authentication and session persistence
+- [x] Flutter role-aware ERP foundation
+- [x] Flutter assignment workflows
+- [x] Flutter botanical UI aligned with the web application
+- [x] CI validation for backend, web and Flutter
+
+### Roadmap
+
+- [ ] Complete remaining Student Flutter modules
+- [ ] Complete remaining Teacher Flutter modules
+- [ ] Expand Admin/Super-admin mobile views
+- [ ] Add robust mobile network/offline states
+- [ ] Add mobile push notifications if required
+- [ ] Add Android/iOS production icons and release metadata
+- [ ] Complete physical-device Android/iOS testing
+- [ ] Make AI timetable multi-slot confirmation transactional
+- [ ] Finalize production hosting
+- [ ] Complete production database/Flyway deployment testing
+- [ ] Perform multi-tenant isolation testing with multiple tenants
+- [ ] Add production monitoring, logging and database backups
+- [ ] Perform final production security review
+
+## 📖 Documentation
+
+- `docs/PROJECT_STATUS.md` — implementation status and mobile roadmap
+- `docs/DEPLOYMENT.md` — deployment and production checklist
+
+## 🌐 Repository
 
 https://github.com/vikas9391/EduSphere-ERP-College-Management-System
+
+---
+
+**EduSphere ERP**  
+*Smart Campus, Smarter Future*
