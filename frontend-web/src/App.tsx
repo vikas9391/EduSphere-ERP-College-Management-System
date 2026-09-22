@@ -1,9 +1,11 @@
 // src/App.tsx
 
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuthStore } from "@/store/authStore";
+import { isRole, ROLES } from "@/constants/roles";
 import { BookLoader, NavigationLoader } from "@/components/BookLoader";
 
 import { LoginPage } from "@/pages/LoginPage";
@@ -43,6 +45,54 @@ const StudentAttendancePage = lazy(() => import("@/pages/StudentAttendancePage.t
 const StudentClassesPage = lazy(() => import("@/pages/student/StudentClassesPage").then((m) => ({ default: m.StudentClassesPage })));
 const StudentTimetablePage = lazy(() => import("@/pages/student/StudentTimetablePage").then((m) => ({ default: m.StudentTimetablePage })));
 
+type PageLoader = () => Promise<unknown>;
+
+function AppWarmup() {
+  const token = useAuthStore((s) => s.token);
+  const role = useAuthStore((s) => s.user?.role);
+
+  useEffect(() => {
+    if (!token || !role) return;
+
+    const isSuperAdmin = isRole(role, ROLES.SUPER_ADMIN);
+    const isTeacher = isRole(role, ROLES.TEACHER);
+    const isStudent = isRole(role, ROLES.STUDENT);
+
+    // Warm only pages reachable by this account. Chunks are downloaded in pairs,
+    // with a short pause between pairs, so login never triggers a huge burst.
+    const loaders: PageLoader[] = isSuperAdmin
+      ? [loadCollegesPage, loadCollegeDetailPage]
+      : isTeacher
+        ? [loadTeacherDashboard, loadClassesPage, loadClassDetailPage, loadTeacherTimetablePage, loadAssignmentsPage, loadSubmissionsPage]
+        : isStudent
+          ? [loadStudentDashboard, loadStudentClassesPage, loadStudentProfilePage, loadStudentEnrollmentsPage, loadStudentAttendancePage, loadStudentAssignmentsPage, loadStudentTimetablePage]
+          : [loadAdminDashboard, loadDepartmentsPage, loadCoursesPage, loadSubjectsPage, loadTeachersPage, loadStudentsPage, loadRolesPage, loadUsersPage, loadExamsPage, loadExamSchedulePage, loadMarksEntryPage, loadResultsPage, loadAttendancePage, loadClassHolidaysPage, loadAssignmentsPage, loadSubmissionsPage, loadAnnouncementsPage];
+
+    let cancelled = false;
+    let index = 0;
+
+    const runNextBatch = async () => {
+      if (cancelled || index >= loaders.length) return;
+
+      const batch = loaders.slice(index, index + 2);
+      index += batch.length;
+      await Promise.allSettled(batch.map((load) => load()));
+
+      if (!cancelled && index < loaders.length) {
+        window.setTimeout(runNextBatch, 350);
+      }
+    };
+
+    void runNextBatch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, role]);
+
+  return null;
+}
+
 function RouteFallback() {
   return <BookLoader label="Loading your page…" />;
 }
@@ -50,6 +100,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AppWarmup />
       <NavigationLoader />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
