@@ -97,6 +97,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
 
+    // Clear cached ERP GET responses when the session ends. This prevents a
+    // later login in the same browser from briefly seeing stale records from
+    // the previous session and keeps logout semantically complete.
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("edusphere:api-cache:v1:")) {
+        localStorage.removeItem(key);
+      }
+    }
+
     set({
       token: null,
       refreshToken: null,
