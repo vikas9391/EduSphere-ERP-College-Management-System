@@ -357,6 +357,54 @@ class _RootScreenState extends State<RootScreen> {
   }
 }
 
+class BookLoadingScreen extends StatelessWidget {
+  final String label;
+  const BookLoadingScreen({super.key, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: pageBg,
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: lightGreen,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: border),
+            ),
+            child: const Icon(Icons.menu_book_rounded, color: navy, size: 38),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'EduSphere',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: muted, fontSize: 13),
+          ),
+          const SizedBox(height: 18),
+          const SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: navy),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
   @override
