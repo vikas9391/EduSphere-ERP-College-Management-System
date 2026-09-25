@@ -78,7 +78,7 @@ public class SchoolClassService {
     @Transactional(readOnly = true)
     public List<SchoolClassResponse> getMyClasses(Long teacherId, String role) {
         requireTeacher(role);
-        return schoolClassRepository.findAllWithTeacher().stream()
+        return schoolClassRepository.findAllByTeacherId(teacherId).stream()
                 .map(c -> map(c,
                         classStudentRepository.findAllByClassId(c.getId()).size(),
                         classSubjectRepository.countBySchoolClassId(c.getId())))
@@ -101,7 +101,7 @@ public class SchoolClassService {
     @Transactional(readOnly = true)
     public SchoolClassResponse getClass(Long classId, Long principalId, String role) {
         SchoolClass schoolClass = findClassOrThrow(classId);
-        requireTeacherOrAdmin(role);
+        requireOwnerOrAdmin(schoolClass, principalId, role);
         return map(schoolClass,
                 classStudentRepository.findAllByClassId(classId).size(),
                 classSubjectRepository.countBySchoolClassId(classId));
@@ -116,7 +116,7 @@ public class SchoolClassService {
 
     public List<ClassStudentResponse> addStudents(Long classId, Long principalId, String role, AddStudentsRequest request) {
         SchoolClass schoolClass = findClassOrThrow(classId);
-        requireTeacherOrAdmin(role);
+        requireOwnerOrAdmin(schoolClass, principalId, role);
         List<ClassSubject> mandatorySubjects = classSubjectRepository.findAllByClassId(classId).stream()
                 .filter(s -> s.getEnrollmentMode() == ClassSubject.EnrollmentMode.MANDATORY)
                 .toList();
@@ -156,8 +156,8 @@ public class SchoolClassService {
 
     @Transactional(readOnly = true)
     public List<ClassStudentResponse> getRoster(Long classId, Long principalId, String role) {
-        findClassOrThrow(classId);
-        requireTeacherOrAdmin(role);
+        SchoolClass schoolClass = findClassOrThrow(classId);
+        requireOwnerOrAdmin(schoolClass, principalId, role);
         return classStudentRepository.findAllByClassId(classId).stream()
                 .map(cs -> ClassStudentResponse.builder()
                         .studentId(cs.getStudent().getId())
