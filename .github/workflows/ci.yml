@@ -28,7 +28,7 @@ jobs:
         run: bash ./mvnw clean -DskipTests package
 
       - name: Run relationship isolation tests
-        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest,MarksServiceClassScopeTest,ResultServiceTest,TimetableServiceTest,SchoolClassServiceStudentScopeTest test
+        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest,StudentAssignmentServiceTest,MarksServiceClassScopeTest,ResultServiceTest,TimetableServiceTest,SchoolClassServiceStudentScopeTest test
 
   frontend:
     name: Frontend build
