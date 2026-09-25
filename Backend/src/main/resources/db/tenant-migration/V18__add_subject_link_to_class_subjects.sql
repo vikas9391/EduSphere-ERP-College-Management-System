@@ -3,12 +3,10 @@
 -- informal grouping (e.g. an ELECTIVE study group with no official backing) and this
 -- column is simply left null - nothing about existing class_subjects behavior changes.
 --
--- When a teacher DOES link a class-subject to a real Subject, that class's roster
--- (class_enrollments) becomes an additional source of truth for who's eligible to have
--- marks entered against that Subject's exam schedules - see
--- MarksService.getEligibleStudents / MarksService.validateEligibility. This does not
--- replace the existing Enrollment-based flow; it only tightens eligibility where a link
--- exists.
+-- Marks and exam schedules are class-scoped. The exam schedule points to a ClassSubject,
+-- and MarksService resolves eligibility through that ClassSubject's ClassEnrollment
+-- records. This link only identifies the corresponding formal curriculum Subject for
+-- reporting and display; it is not an alternate enrollment source.
 ALTER TABLE class_subjects ADD COLUMN subject_id BIGINT NULL;
 
 ALTER TABLE class_subjects ADD CONSTRAINT fk_clssub_subject

@@ -47,11 +47,8 @@ export interface MarksPayload{
 }
 
 /**
- * One student eligible to be graded for an exam schedule, and where that eligibility
- * came from. Mirrors com.collegeerp.Backend.marks.dto.EligibleStudentResponse.
- * `source` is 'CLASS_ROSTER' when a ClassSubject is linked to this exam's Subject (so
- * eligibility is scoped to that class's real roster), or 'FORMAL_ENROLLMENT' when it
- * fell back to the plain Enrollment table because no class link exists.
+ * One student eligible to be graded for an exam schedule. Eligibility is always
+ * derived from the exam schedule's class-scoped ClassSubject roster.
  */
 export interface EligibleStudent {
 
@@ -59,7 +56,7 @@ export interface EligibleStudent {
 
   studentName:string
 
-  source:'CLASS_ROSTER'|'FORMAL_ENROLLMENT'
+  source:'CLASS_ROSTER'
 
   alreadyGraded:boolean
 

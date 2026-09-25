@@ -78,10 +78,11 @@ export function MarksEntryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Who's still gradable: eligible (class roster if linked, else formal enrollment)
-  // and not already graded. Replaces the old "every student in the system" list.
+  // Eligible students are always resolved from the schedule's class-scoped roster.
+  // The backend rejects schedules without a ClassSubject, so there is no legacy
+  // formal-enrollment fallback here.
   const availableStudents = eligibleStudents.filter((s) => !s.alreadyGraded)
-  const rosterScoped = eligibleStudents.some((s) => s.source === 'CLASS_ROSTER')
+  const rosterScoped = true
 
   const publishedCount = marksList.filter((m) => m.status === 'PUBLISHED').length
   const draftCount = marksList.filter((m) => m.status === 'DRAFT').length

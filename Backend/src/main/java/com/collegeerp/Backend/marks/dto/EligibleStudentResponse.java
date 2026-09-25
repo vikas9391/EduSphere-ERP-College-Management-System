@@ -17,9 +17,8 @@ public class EligibleStudentResponse {
     private String studentName;
 
     /**
-     * "CLASS_ROSTER" when eligibility came from a linked ClassSubject's roster
-     * (class_enrollments), or "FORMAL_ENROLLMENT" when it fell back to the plain
-     * Enrollment table because no class-subject is linked to this Subject.
+     * Eligibility is always derived from the class-scoped ClassSubject/ClassEnrollment
+     * attached to the exam schedule. Legacy formal-enrollment fallback is no longer used.
      */
     private String source;
 
