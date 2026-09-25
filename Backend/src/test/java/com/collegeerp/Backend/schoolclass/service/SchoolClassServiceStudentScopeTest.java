@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,6 +66,51 @@ class SchoolClassServiceStudentScopeTest {
 
         assertEquals(List.of(101L), classesForA.stream().map(r -> r.getId()).toList());
         assertEquals(List.of(202L), classesForB.stream().map(r -> r.getId()).toList());
+    }
+
+    @Test
+    void teacherClassListIsLimitedToOwnedClasses() {
+        SchoolClassService service = new SchoolClassService(
+                schoolClassRepository,
+                classStudentRepository,
+                classSubjectRepository,
+                classEnrollmentRepository,
+                userRepository,
+                studentRepository
+        );
+
+        when(schoolClassRepository.findAllByTeacherId(10L)).thenReturn(List.of(schoolClass(101L, "CSE-A")));
+        when(classStudentRepository.findAllByClassId(101L)).thenReturn(List.of());
+        when(classSubjectRepository.countBySchoolClassId(101L)).thenReturn(4);
+
+        var classes = service.getMyClasses(10L, "TEACHER");
+
+        assertEquals(List.of(101L), classes.stream().map(r -> r.getId()).toList());
+        org.mockito.Mockito.verify(schoolClassRepository).findAllByTeacherId(10L);
+        org.mockito.Mockito.verify(schoolClassRepository, org.mockito.Mockito.never()).findAllWithTeacher();
+    }
+
+    @Test
+    void teacherCannotOpenAnotherTeachersClass() {
+        SchoolClassService service = new SchoolClassService(
+                schoolClassRepository,
+                classStudentRepository,
+                classSubjectRepository,
+                classEnrollmentRepository,
+                userRepository,
+                studentRepository
+        );
+        when(schoolClassRepository.findByIdWithTeacher(202L)).thenReturn(
+                java.util.Optional.of(schoolClass(202L, "CSE-B")));
+
+        assertThrows(
+                com.collegeerp.Backend.common.exception.ForbiddenException.class,
+                () -> service.getClass(202L, 99L, "TEACHER")
+        );
+        assertThrows(
+                com.collegeerp.Backend.common.exception.ForbiddenException.class,
+                () -> service.getRoster(202L, 99L, "TEACHER")
+        );
     }
 
     @Test
