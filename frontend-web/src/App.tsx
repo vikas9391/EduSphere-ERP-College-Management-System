@@ -74,6 +74,8 @@ const StudentAttendancePage = lazy(loadStudentAttendancePage);
 const loadStudentClassesPage = () => import("@/pages/student/StudentClassesPage").then((m) => ({ default: m.StudentClassesPage }));
 const StudentClassesPage = lazy(loadStudentClassesPage);
 const loadStudentTimetablePage = () => import("@/pages/student/StudentTimetablePage").then((m) => ({ default: m.StudentTimetablePage }));
+const loadFeesPage = () => import("@/pages/FeesPage").then((m) => ({ default: m.FeesPage }));
+const FeesPage = lazy(loadFeesPage);
 const StudentTimetablePage = lazy(loadStudentTimetablePage);
 
 type PageLoader = () => Promise<unknown>;
@@ -97,7 +99,7 @@ function AppWarmup() {
         ? [loadTeacherDashboard, loadClassesPage, loadClassDetailPage, loadTeacherTimetablePage, loadAssignmentsPage, loadSubmissionsPage]
         : isStudent
           ? [loadStudentDashboard, loadStudentClassesPage, loadStudentProfilePage, loadStudentEnrollmentsPage, loadStudentAttendancePage, loadStudentAssignmentsPage, loadStudentTimetablePage]
-          : [loadAdminDashboard, loadDepartmentsPage, loadCoursesPage, loadSubjectsPage, loadTeachersPage, loadStudentsPage, loadRolesPage, loadUsersPage, loadExamsPage, loadExamSchedulePage, loadMarksEntryPage, loadResultsPage, loadAttendancePage, loadClassHolidaysPage, loadAssignmentsPage, loadSubmissionsPage, loadAnnouncementsPage];
+          : [loadAdminDashboard, loadFeesPage, loadDepartmentsPage, loadCoursesPage, loadSubjectsPage, loadTeachersPage, loadStudentsPage, loadRolesPage, loadUsersPage, loadExamsPage, loadExamSchedulePage, loadMarksEntryPage, loadResultsPage, loadAttendancePage, loadClassHolidaysPage, loadAssignmentsPage, loadSubmissionsPage, loadAnnouncementsPage];
 
     let cancelled = false;
     let index = 0;
@@ -161,6 +163,7 @@ export default function App() {
           <Route path="/assignments" element={<ProtectedRoute><AssignmentsPage /></ProtectedRoute>} />
           <Route path="/submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
           <Route path="/announcements" element={<ProtectedRoute><AnnouncementsPage /></ProtectedRoute>} />
+          <Route path="/fees" element={<ProtectedRoute><FeesPage /></ProtectedRoute>} />
 
           <Route path="/teacher/dashboard" element={<ProtectedRoute role="TEACHER"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/classes" element={<ProtectedRoute role="TEACHER"><ClassesPage /></ProtectedRoute>} />
@@ -174,6 +177,7 @@ export default function App() {
           <Route path="/student/attendance" element={<ProtectedRoute role="STUDENT"><StudentAttendancePage /></ProtectedRoute>} />
           <Route path="/student/assignments" element={<ProtectedRoute role="STUDENT"><StudentAssignmentsPage /></ProtectedRoute>} />
           <Route path="/student/timetable" element={<ProtectedRoute role="STUDENT"><StudentTimetablePage /></ProtectedRoute>} />
+          <Route path="/student/fees" element={<ProtectedRoute role="STUDENT"><FeesPage /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
