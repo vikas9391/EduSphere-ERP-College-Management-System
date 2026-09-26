@@ -42,6 +42,10 @@ public class FeeController {
     }
 
     @PreAuthorize("hasAuthority('VIEW_FEES')")
+    @GetMapping("/all")
+    public ApiResponse<List<FeeResponse>> allFees() { return ApiResponse.success(feeService.getAllFees()); }
+
+    @PreAuthorize("hasAuthority('VIEW_FEES')")
     @GetMapping("/student/{studentId}")
     public ApiResponse<List<FeeResponse>> studentFees(@PathVariable Long studentId) {
         return ApiResponse.success(feeService.getStudentFees(studentId));
