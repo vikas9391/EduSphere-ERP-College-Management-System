@@ -65,6 +65,8 @@ public class FeeService {
         return toResponse(fee);
     }
 
+    public List<FeeResponse> getAllFees() { return studentFeeRepository.findAllByOrderByAssignedAtDesc().stream().map(this::toResponse).toList(); }
+
     public List<FeeResponse> getStudentFees(Long studentId) {
         return studentFeeRepository.findByStudentIdOrderByAssignedAtDesc(studentId).stream().map(this::toResponse).toList();
     }
