@@ -2,6 +2,7 @@ package com.collegeerp.Backend.fee.entity;
 
 import com.collegeerp.Backend.course.entity.Course;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ public class FeeStructure {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
+    @JsonIgnore
     private Course course;
 
     @Column(name = "academic_year", nullable = false)
