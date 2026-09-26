@@ -54,7 +54,7 @@ public class TenantProvisioningService {
     private static final java.util.Set<Permission> TEACHER_PERMISSIONS = java.util.Set.of(
             Permission.VIEW_STUDENT, Permission.VIEW_SUBJECT, Permission.VIEW_COURSE, Permission.VIEW_DEPARTMENT,
             Permission.VIEW_ENROLLMENT, Permission.MANAGE_ATTENDANCE, Permission.VIEW_ATTENDANCE_REPORTS,
-            Permission.MANAGE_ASSIGNMENTS, Permission.VIEW_ASSIGNMENTS, Permission.MANAGE_MARKS, Permission.VIEW_RESULTS);
+            Permission.MANAGE_ASSIGNMENTS, Permission.VIEW_ASSIGNMENTS, Permission.MANAGE_MARKS, Permission.VIEW_RESULTS, Permission.VIEW_FEES);
 
     private final TenantRepository tenantRepository;
     private final TenantSchemaMigrator schemaMigrator;
