@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { PageIn } from '@/components/motion'
 import { LeafDivider } from '@/components/LeafDivider'
 import { navModulesForRole } from '@/config/staffModules'
-import { LayoutDashboard, Layers, Award, CalendarCheck, CalendarDays, ClipboardList, Upload, UserCircle, Building2, BookMarked, Users, Menu, X, Sprout, Megaphone } from 'lucide-react'
+import { LayoutDashboard, Layers, Award, CalendarCheck, CalendarDays, ClipboardList, Upload, UserCircle, Building2, BookMarked, Users, Menu, X, Sprout, Megaphone, IndianRupee } from 'lucide-react'
 
 const superAdminNavItems = [{ to: '/colleges', label: 'Colleges', icon: Building2 }]
 const teacherNavItems = [
@@ -26,6 +26,7 @@ const studentNavItems = [
   { to: '/student/timetable', label: 'My Timetable', icon: CalendarDays },
   { to: '/student/attendance', label: 'My Attendance', icon: CalendarCheck },
   { to: '/student/assignments', label: 'My Assignments', icon: ClipboardList },
+  { to: '/student/fees', label: 'My Fees', icon: IndianRupee },
   { to: '/announcements', label: 'Announcements', icon: Megaphone },
 ]
 
