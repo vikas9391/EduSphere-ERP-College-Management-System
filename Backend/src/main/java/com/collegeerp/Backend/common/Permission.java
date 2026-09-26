@@ -51,6 +51,9 @@ public enum Permission {
     MANAGE_MARKS("Assessments"),
     VIEW_RESULTS("Assessments"),
 
+    MANAGE_FEES("Finance"),
+    VIEW_FEES("Finance"),
+
     CREATE_ROLE("Administration"),
     EDIT_ROLE("Administration"),
     DELETE_ROLE("Administration"),
