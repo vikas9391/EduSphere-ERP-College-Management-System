@@ -25,7 +25,7 @@ jobs:
       - name: Compile backend
         run: bash ./mvnw clean -DskipTests package
       - name: Run relationship isolation tests
-        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest,StudentAssignmentServiceTest,StudentDashboardServiceTest,MarksServiceClassScopeTest,ResultServiceTest,TimetableServiceTest,SchoolClassServiceStudentScopeTest test
+        run: bash ./mvnw -Dtest=StudentAttendanceServiceTest,AssignmentSubmissionServiceTest,StudentAssignmentServiceTest,StudentDashboardServiceTest,MarksServiceClassScopeTest,ResultServiceTest,TimetableServiceTest,SchoolClassServiceStudentScopeTest,FeeServiceTest test
 
   frontend:
     name: Frontend build
