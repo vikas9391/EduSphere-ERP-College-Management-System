@@ -1,10 +1,11 @@
-import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, ShieldCheck, IdCard, Megaphone, CalendarOff, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Building2, BookOpen, Layers, GraduationCap, Users, ClipboardCheck, CalendarCheck, ClipboardList, Upload, Award, ShieldCheck, IdCard, Megaphone, CalendarOff, IndianRupee, type LucideIcon } from 'lucide-react'
 
 export interface StaffModule { to: string; label: string; icon: LucideIcon; desc: string; permissions: string[] | null; category: 'administration' | 'operational' }
 
 export const staffModules: StaffModule[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Your overview', permissions: null, category: 'administration' },
   { to: '/announcements', label: 'Announcements', icon: Megaphone, desc: 'Send and receive college announcements', permissions: null, category: 'administration' },
+  { to: '/fees', label: 'Fees & Payments', icon: IndianRupee, desc: 'Manage student fees and payments', permissions: ['VIEW_FEES', 'MANAGE_FEES'], category: 'administration' },
   { to: '/departments', label: 'Departments', icon: Building2, desc: 'Manage academic departments', permissions: ['VIEW_DEPARTMENT'], category: 'operational' },
   { to: '/courses', label: 'Courses', icon: BookOpen, desc: 'Manage college courses', permissions: ['VIEW_COURSE'], category: 'operational' },
   { to: '/subjects', label: 'Subjects', icon: Layers, desc: 'Subjects offered in each course', permissions: ['VIEW_SUBJECT'], category: 'operational' },
