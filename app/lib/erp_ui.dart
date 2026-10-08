@@ -245,6 +245,12 @@ class _ErpHomeState extends State<ErpHome> {
       await _showBookLoader(context, 'Opening assignments…');
       if (!mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherAssignmentsScreen() : const StudentAssignmentsScreen()));
+    } else if (item == 'Attendance') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentAttendanceScreen()));
+    } else if (item == 'Timetable') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentTimetableScreen()));
+    } else if (item == 'Results') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentResultsScreen()));
     } else if (item == 'Profile') {
       widget.onNavigate(4);
     } else {
@@ -292,9 +298,9 @@ class ErpAcademics extends StatelessWidget {
       _pageHeader('Academics', 'Teaching and learning workspace'),
       const SizedBox(height: 20),
       _feature(context, 'Assignments', 'Create, submit and evaluate assignments.', Icons.assignment_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherAssignmentsScreen() : const StudentAssignmentsScreen()))),
-      _feature(context, 'Attendance', 'View attendance and class participation.', Icons.fact_check_outlined, () => _info(context, 'Attendance', 'Attendance data is connected to the ERP backend.')),
-      _feature(context, 'Timetable', 'See your daily classes and schedules.', Icons.calendar_month_outlined, () => _info(context, 'Timetable', 'Your timetable workspace will appear here.')),
-      _feature(context, 'Exams & Results', 'Keep exam schedules and results together.', Icons.event_note_outlined, () => _info(context, 'Exams & Results', 'Exam and result views will use the ERP academic data.')),
+      _feature(context, 'Attendance', 'View attendance and class participation.', Icons.fact_check_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentAttendanceScreen()))),
+      _feature(context, 'Timetable', 'See your daily classes and schedules.', Icons.calendar_month_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentTimetableScreen()))),
+      _feature(context, 'Exams & Results', 'View semester results and grades.', Icons.event_note_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentResultsScreen()))),
     ]),
   );
 
