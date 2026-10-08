@@ -214,6 +214,7 @@ class _ErpHomeState extends State<ErpHome> {
     final items = [
       ['Classes', Icons.class_outlined],
       ['Assignments', Icons.assignment_outlined],
+      ['Teaching Timetable', Icons.calendar_month_outlined],
       ['Attendance', Icons.fact_check_outlined],
       ['Timetable', Icons.calendar_month_outlined],
       ['Results', Icons.emoji_events_outlined],
@@ -242,7 +243,9 @@ class _ErpHomeState extends State<ErpHome> {
   }
 
   Future<void> _open(String item) async {
-    if (item == 'Classes' && teacher) {
+    if (item == 'Teaching Timetable' && teacher) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherTimetableScreen()));
+    } else if (item == 'Classes' && teacher) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherClassesScreen()));
     } else if (item == 'Attendance' && teacher) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherAttendanceScreen()));
