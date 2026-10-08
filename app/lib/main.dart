@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'auth_screens.dart';
 part 'assignments.dart';
 part 'erp_ui.dart';
+part 'mobile_modules.dart';
 
 const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api');
 const navy = Color(0xFF2E7D32);
