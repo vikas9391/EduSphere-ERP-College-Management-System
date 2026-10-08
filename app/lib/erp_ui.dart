@@ -215,8 +215,8 @@ class _ErpHomeState extends State<ErpHome> {
       ['Assignments', Icons.assignment_outlined],
       ['Attendance', Icons.fact_check_outlined],
       ['Timetable', Icons.calendar_month_outlined],
-      ['Exams', Icons.event_note_outlined],
       ['Results', Icons.emoji_events_outlined],
+      ['Fees', Icons.payments_outlined],
       ['Profile', Icons.person_outline_rounded],
     ];
     return GridView.builder(
@@ -251,6 +251,8 @@ class _ErpHomeState extends State<ErpHome> {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentTimetableScreen()));
     } else if (item == 'Results') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentResultsScreen()));
+    } else if (item == 'Fees') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentFeesScreen()));
     } else if (item == 'Profile') {
       widget.onNavigate(4);
     } else {
