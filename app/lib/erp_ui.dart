@@ -212,6 +212,7 @@ class _ErpHomeState extends State<ErpHome> {
 
   Widget _quickGrid() {
     final items = [
+      ['Classes', Icons.class_outlined],
       ['Assignments', Icons.assignment_outlined],
       ['Attendance', Icons.fact_check_outlined],
       ['Timetable', Icons.calendar_month_outlined],
@@ -241,7 +242,9 @@ class _ErpHomeState extends State<ErpHome> {
   }
 
   Future<void> _open(String item) async {
-    if (item == 'Attendance' && teacher) {
+    if (item == 'Classes' && teacher) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherClassesScreen()));
+    } else if (item == 'Attendance' && teacher) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherAttendanceScreen()));
     } else if (item == 'Assignments') {
       await _showBookLoader(context, 'Opening assignments…');
