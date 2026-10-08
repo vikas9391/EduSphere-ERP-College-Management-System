@@ -241,7 +241,9 @@ class _ErpHomeState extends State<ErpHome> {
   }
 
   Future<void> _open(String item) async {
-    if (item == 'Assignments') {
+    if (item == 'Attendance' && teacher) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherAttendanceScreen()));
+    } else if (item == 'Assignments') {
       await _showBookLoader(context, 'Opening assignments…');
       if (!mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (_) => teacher ? const TeacherAssignmentsScreen() : const StudentAssignmentsScreen()));
