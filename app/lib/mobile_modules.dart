@@ -98,3 +98,37 @@ class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen>{
     const SizedBox(height:10),SizedBox(height:52,width:double.infinity,child:FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),label:Text(saving?'Saving...':'Save Attendance')))
   ]);
 }
+\npart of 'main.dart';
+
+class TeacherClassesScreen extends StatefulWidget {
+  const TeacherClassesScreen({super.key});
+  @override State<TeacherClassesScreen> createState()=>_TeacherClassesScreenState();
+}
+class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
+  bool loading=true; List<Map<String,dynamic>> classes=[]; Map<int,List<Map<String,dynamic>>> rosters={};
+  @override void initState(){super.initState();load();}
+  Future<void> load()async{setState(()=>loading=true);try{
+    final r=await ApiService.instance.list('/classes/mine');classes=r;
+  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
+  Future<void> openClass(Map<String,dynamic> cls)async{
+    final id=cls['id'];if(id==null)return;setState(()=>loading=true);
+    try{final r=await ApiService.instance.list('/classes/$id/students');rosters[id]=r;setState(()=>loading=false);if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>TeacherRosterScreen(classData:cls,students:r)));}catch(e){setState(()=>loading=false);if(mounted)snack(context,cleanError(e));}}
+  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('My Classes',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[
+    if(classes.isEmpty)const _EmptyModule(message:'No classes are assigned to you yet.'),
+    ...classes.map((x)=>Container(margin:const EdgeInsets.only(bottom:12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:ListTile(contentPadding:const EdgeInsets.all(16),leading:Container(width:48,height:48,decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.class_outlined,color:navy)),title:Text((x['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((x['academicYear']??'').toString()+' · Semester '+(x['semester']??'—').toString()+'\n'+(x['studentCount']??0).toString()+' students · '+(x['subjectCount']??0).toString()+' subjects'),isThreeLine:true,trailing:const Icon(Icons.chevron_right_rounded),onTap:()=>openClass(x))))
+  ]));
+}
+
+class TeacherRosterScreen extends StatelessWidget{
+  final Map<String,dynamic> classData; final List<Map<String,dynamic>> students;
+  const TeacherRosterScreen({super.key,required this.classData,required this.students});
+  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:Text((classData['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800))),body:ListView(padding:const EdgeInsets.all(20),children:[
+    Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Row(children:[const Icon(Icons.groups_outlined,color:navy,size:30),const SizedBox(width:12),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Class roster',style:TextStyle(fontWeight:FontWeight.w800)),Text(students.length.toString()+' enrolled students',style:const TextStyle(color:muted))])]),
+    const SizedBox(height:16),...students.asMap().entries.map((e){final s=e.value;return Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),child:Row(children:[CircleAvatar(radius:20,backgroundColor:lightGreen,child:Text(((s['studentName']??s['name']??'S').toString().substring(0,1)).toUpperCase(),style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((s['studentName']??s['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700)),Text((s['admissionNo']??'').toString(),style:const TextStyle(color:muted,fontSize:12))]))]));})
+  ]));
+}
+
+class TeacherAssignmentsHomeScreen extends StatelessWidget{
+  const TeacherAssignmentsHomeScreen({super.key});
+  @override Widget build(BuildContext c)=>const TeacherAssignmentsScreen();
+}
