@@ -82,9 +82,9 @@ class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen>{
     subjects=all;if(selected==null&&subjects.isNotEmpty)selected=subjects.first['id'].toString();if(selected!=null)await loadRoster();
   }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
   Future<void> loadRoster()async{if(selected==null)return;setState(()=>loading=true);try{
-    final enrolled=await ApiService.instance.list('/classes/'+(subjects.firstWhere((x)=>x['id'].toString()==selected)['classId']??'') .toString()+'/subjects/'+selected+'/enrollments');
+    final enrolled=await ApiService.instance.list('/classes/subjects/'+selected+'/enrollments');
     roster=enrolled.map((x){final m=Map<String,dynamic>.from(x);m['status']=m['status']??'PRESENT';return m;}).toList();
-  }catch(e){try{roster=await ApiService.instance.list('/classes/subjects/'+selected+'/enrollments');}catch(_){if(mounted)snack(context,cleanError(e));}}finally{if(mounted)setState(()=>loading=false);}}
+  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
   Future<void> save()async{if(roster.isEmpty||selected==null)return;setState(()=>saving=true);try{
     await Future.wait(roster.map((r)=>ApiService.instance.mapPost('/attendance',{'classEnrollmentId':r['id']??r['classEnrollmentId'],'attendanceDate':date,'status':r['status']??'PRESENT','remarks':''})));
     if(mounted)snack(context,'Attendance saved successfully.');
