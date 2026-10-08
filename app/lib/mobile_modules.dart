@@ -68,3 +68,33 @@ class _EmptyModule extends StatelessWidget{
   final String message;const _EmptyModule({required this.message});
   @override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.all(25),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Column(children:[const Icon(Icons.inbox_outlined,color:muted,size:34),const SizedBox(height:9),Text(message,textAlign:TextAlign.center,style:const TextStyle(color:muted))]));
 }
+
+class TeacherAttendanceScreen extends StatefulWidget {
+  const TeacherAttendanceScreen({super.key});
+  @override State<TeacherAttendanceScreen> createState()=>_TeacherAttendanceScreenState();
+}
+class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen>{
+  bool loading=true,saving=false; List<Map<String,dynamic>> subjects=[]; List<Map<String,dynamic>> roster=[]; String? selected; String date=DateTime.now().toIso8601String().substring(0,10);
+  @override void initState(){super.initState();load();}
+  Future<void> load()async{setState(()=>loading=true);try{
+    final classes=await ApiService.instance.list('/classes/mine'); final all=<Map<String,dynamic>>[];
+    for(final cls in classes){final id=cls['id'];if(id==null)continue;final ss=await ApiService.instance.list('/classes/'+id.toString()+'/subjects');for(final s in ss){final x=Map<String,dynamic>.from(s);x['className']=cls['name'];all.add(x);}}
+    subjects=all;if(selected==null&&subjects.isNotEmpty)selected=subjects.first['id'].toString();if(selected!=null)await loadRoster();
+  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
+  Future<void> loadRoster()async{if(selected==null)return;setState(()=>loading=true);try{
+    final enrolled=await ApiService.instance.list('/classes/'+(subjects.firstWhere((x)=>x['id'].toString()==selected)['classId']??'') .toString()+'/subjects/'+selected+'/enrollments');
+    roster=enrolled.map((x){final m=Map<String,dynamic>.from(x);m['status']=m['status']??'PRESENT';return m;}).toList();
+  }catch(e){try{roster=await ApiService.instance.list('/classes/subjects/'+selected+'/enrollments');}catch(_){if(mounted)snack(context,cleanError(e));}}finally{if(mounted)setState(()=>loading=false);}}
+  Future<void> save()async{if(roster.isEmpty||selected==null)return;setState(()=>saving=true);try{
+    await Future.wait(roster.map((r)=>ApiService.instance.mapPost('/attendance',{'classEnrollmentId':r['id']??r['classEnrollmentId'],'attendanceDate':date,'status':r['status']??'PRESENT','remarks':''})));
+    if(mounted)snack(context,'Attendance saved successfully.');
+  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>saving=false);}}
+  void all(String s)=>setState(()=>roster=roster.map((r)=>({...r,'status':s})).toList());
+  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('Mark Attendance',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(20),children:[
+    DropdownButtonFormField<String>(initialValue:selected,decoration:const InputDecoration(labelText:'Class / Subject'),items:subjects.map((s)=>DropdownMenuItem(value:s['id'].toString(),child:Text((s['className']??'Class').toString()+' · '+(s['subjectName']??'Subject').toString()))).toList(),onChanged:(v)async{selected=v;await loadRoster();}),
+    const SizedBox(height:12),TextFormField(initialValue:date,decoration:const InputDecoration(labelText:'Date'),onChanged:(v)=>date=v),
+    const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton(onPressed:()=>all('PRESENT'),child:const Text('All Present'))),const SizedBox(width:8),Expanded(child:OutlinedButton(onPressed:()=>all('ABSENT'),child:const Text('All Absent')))]),
+    const SizedBox(height:14),...roster.map((r)=>Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),child:Row(children:[Expanded(child:Text((r['studentName']??r['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700))),DropdownButton<String>(value:(r['status']??'PRESENT').toString(),items:const ['PRESENT','ABSENT','LATE','EXCUSED'].map((s)=>DropdownMenuItem(value:s,child:Text(s))).toList(),onChanged:(v)=>setState(()=>r['status']=v))]))),
+    const SizedBox(height:10),SizedBox(height:52,width:double.infinity,child:FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),label:Text(saving?'Saving...':'Save Attendance')))
+  ]);
+}
