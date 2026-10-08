@@ -132,3 +132,37 @@ class TeacherAssignmentsHomeScreen extends StatelessWidget{
   const TeacherAssignmentsHomeScreen({super.key});
   @override Widget build(BuildContext c)=>const TeacherAssignmentsScreen();
 }
+
+
+class TeacherTimetableScreen extends StatefulWidget {
+  const TeacherTimetableScreen({super.key});
+  @override State<TeacherTimetableScreen> createState() => _TeacherTimetableScreenState();
+}
+class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
+  bool loading=true, saving=false; List<Map<String,dynamic>> entries=[]; List<Map<String,dynamic>> subjects=[]; String day='MONDAY';
+  final days=['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {setState(()=>loading=true);try{final r=await Future.wait([ApiService.instance.list('/timetable/mine'),ApiService.instance.list('/classes/subjects/mine-teaching')]);entries=r[0];subjects=r[1];}catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
+  List<Map<String,dynamic>> get today=>entries.where((e)=>e['dayOfWeek']==day).toList()..sort((a,b)=>((a['startTime']??'').toString()).compareTo((b['startTime']??'').toString()));
+  Future<void> addSlot() async {
+    if(subjects.isEmpty){snack(context,'No teaching subjects are available.');return;}
+    final subject=ValueNotifier<String>(subjects.first['id'].toString()); final room=TextEditingController(); final start=TextEditingController(text:'09:00'); final end=TextEditingController(text:'10:00');
+    final ok=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('Add timetable slot'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+      ValueListenableBuilder<String>(valueListenable:subject,builder:(_,v,__)=>
+        DropdownButtonFormField<String>(initialValue:v,decoration:const InputDecoration(labelText:'Class / Subject'),items:subjects.map((s)=>DropdownMenuItem(value:s['id'].toString(),child:Text(((s['className']??'Class').toString())+' · '+(s['subjectName']??'Subject').toString()))).toList(),onChanged:(v)=>subject.value=v!)),
+      TextField(controller:start,decoration:const InputDecoration(labelText:'Start time',hintText:'09:00')),
+      TextField(controller:end,decoration:const InputDecoration(labelText:'End time',hintText:'10:00')),
+      TextField(controller:room,decoration:const InputDecoration(labelText:'Room')),
+    ])),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('Save'))])); 
+    if(ok!=true)return; setState(()=>saving=true);
+    try{await ApiService.instance.mapPost('/timetable',{'classSubjectId':int.parse(subject.value),'dayOfWeek':day,'startTime':start.text.trim(),'endTime':end.text.trim(),'room':room.text.trim()});await load();}catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>saving=false);}
+  }
+  Future<void> deleteSlot(Map<String,dynamic> e) async {final id=e['id'];if(id==null)return;try{await ApiService.instance.request('/timetable/$id',method:'DELETE');await load();}catch(x){if(mounted)snack(context,cleanError(x));}}
+  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('Teaching Timetable',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),floatingActionButton:FloatingActionButton(onPressed:saving?null:addSlot,backgroundColor:navy,child:const Icon(Icons.add,color:Colors.white)),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[
+    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:days.map((d)=>Padding(padding:const EdgeInsets.only(right:8),child:ChoiceChip(label:Text(d.substring(0,3)),selected:day==d,onSelected:(_)=>setState(()=>day=d)))).toList())),
+    const SizedBox(height:16), if(today.isEmpty)const _EmptyModule(message:'No teaching slots scheduled for this day.'),
+    ...today.map((e)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Row(children:[
+      Container(width:72,padding:const EdgeInsets.all(9),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(13)),child:Text((e['startTime']??'').toString().substring(0,5),textAlign:TextAlign.center,style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),
+      const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((e['subjectName']??'Subject').toString(),style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800)),Text((e['schoolClassName']??'Class').toString()+' · Room '+(e['room']??'—').toString(),style:const TextStyle(color:muted,fontSize:12)),Text((e['startTime']??'').toString().substring(0,5)+' - '+(e['endTime']??'').toString().substring(0,5),style:const TextStyle(color:muted,fontSize:12))])),IconButton(onPressed:()=>deleteSlot(e),icon:const Icon(Icons.delete_outline_rounded,color:Colors.redAccent))])));
+  ]));
+}
