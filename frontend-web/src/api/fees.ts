@@ -7,4 +7,5 @@ export async function getFeeStructures(){return (await api.get<FeeStructure[]>('
 export async function assignFee(data:{studentId:number;feeStructureId:number;discount:number}){return (await api.post<Fee>('/fees/assign',data)).data}
 export async function getStudentFees(studentId:number){return (await api.get<Fee[]>('/fees/student/'+studentId)).data}
 export async function getMyFees(){return (await api.get<Fee[]>('/fees/mine')).data}
+export async function getPayments(studentFeeId:number){return (await api.get<Payment>('/fees/'+studentFeeId+'/payments')).data}
 export async function recordPayment(id:number,data:{amount:number;paymentMethod:Payment['paymentMethod'];transactionReference?:string}){return (await api.post<Payment>('/fees/'+id+'/payments',data)).data}
