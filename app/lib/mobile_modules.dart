@@ -230,7 +230,7 @@ class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
         onTap: () => openClass(x),
       ),
     )),
-  ])));
+  ]));
 }
 
 class TeacherRosterScreen extends StatelessWidget{
@@ -285,5 +285,5 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
       ])),
       IconButton(onPressed: () => deleteSlot(e), icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent)),
     ]))),
-  ]));
+  ])));
 }
