@@ -218,7 +218,7 @@ class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('My Classes',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[
     if(classes.isEmpty)const _EmptyModule(message:'No classes are assigned to you yet.'),
     ...classes.map((x)=>Container(margin:const EdgeInsets.only(bottom:12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:ListTile(contentPadding:const EdgeInsets.all(16),leading:Container(width:48,height:48,decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.class_outlined,color:navy)),title:Text((x['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((x['academicYear']??'').toString()+' · Semester '+(x['semester']??'—').toString()+'\n'+(x['studentCount']??0).toString()+' students · '+(x['subjectCount']??0).toString()+' subjects'),isThreeLine:true,trailing:const Icon(Icons.chevron_right_rounded),onTap:()=>openClass(x)))
-  ]));
+  ])));
 }
 
 class TeacherRosterScreen extends StatelessWidget{
