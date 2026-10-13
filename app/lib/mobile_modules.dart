@@ -284,6 +284,6 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
         Text((e['startTime'] ?? '').toString().substring(0, 5) + ' - ' + (e['endTime'] ?? '').toString().substring(0, 5), style: const TextStyle(color: muted, fontSize: 12)),
       ])),
       IconButton(onPressed: () => deleteSlot(e), icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent)),
-    ])));
+    ]))),
   ]));
 }
