@@ -1,4 +1,4 @@
--- Fee-management permissions for tenants created before V30/V31.
+-- Fee-management permissions for tenants created before V30/V32.
 INSERT INTO role_permissions (role_id, permission)
 SELECT r.id, p.permission
 FROM roles r

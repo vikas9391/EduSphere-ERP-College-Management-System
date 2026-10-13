@@ -16,6 +16,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - name: Validate unique tenant migration versions
+        run: |
+          duplicates=$(find src/main/resources/db/tenant-migration -maxdepth 1 -type f -name 'V*__*.sql' -printf '%f\n' | sed -E 's/^(V[^_]+)__.*/\1/' | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "Duplicate tenant migration versions: $duplicates"
+            exit 1
+          fi
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:

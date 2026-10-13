@@ -342,11 +342,6 @@ class ErpAcademics extends StatelessWidget {
     ),
   );
 
-  void _info(BuildContext context, String title, String message) => showDialog(context: context, builder: (_) => AlertDialog(
-    title: Text(title),
-    content: Text(message),
-    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-  ));
 }
 
 class ErpAnalytics extends StatefulWidget {

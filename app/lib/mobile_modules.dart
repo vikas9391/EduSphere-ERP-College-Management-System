@@ -60,7 +60,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen>{
   @override void initState(){super.initState();load();}
   Future<void> load()async{setState(()=>loading=true);try{final v=await ApiService.instance.request('/fees/mine');fees=v is List?v.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():[];}catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
   @override Widget build(BuildContext c){final balance=fees.fold<double>(0,(a,f)=>a+(double.tryParse((f['balance']??0).toString())??0));return Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('My Fees',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(24),border:Border.all(color:border)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Outstanding balance',style:TextStyle(color:muted)),Text('₹'+balance.toStringAsFixed(2),style:const TextStyle(fontSize:30,fontWeight:FontWeight.w900,color:navy))]),),const SizedBox(height:18),if(fees.isEmpty)const _EmptyModule(message:'No fee records are available yet.'),...fees.map(_fee)])));}
-  Widget _fee(Map<String,dynamic> f)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(17),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[Expanded(child:Text((f['feeName']??'Fee').toString(),style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800))),Text((f['status']??'PENDING').toString(),style:const TextStyle(color:navy,fontWeight:FontWeight.w800,fontSize:11))]),const SizedBox(height:12),Row(children:[_money('Total',f['totalAmount']),_money('Paid',f['amountPaid']),_money('Balance',f['balance'])]),if(f['dueDate']!=null)Padding(padding:const EdgeInsets.only(top:9),child:Text('Due '+f['dueDate'].toString(),style:const TextStyle(color:muted,fontSize:12)))]);
+  Widget _fee(Map<String,dynamic> f)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(17),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[Expanded(child:Text((f['feeName']??'Fee').toString(),style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800))),Text((f['status']??'PENDING').toString(),style:const TextStyle(color:navy,fontWeight:FontWeight.w800,fontSize:11))]),const SizedBox(height:12),Row(children:[_money('Total',f['totalAmount']),_money('Paid',f['amountPaid']),_money('Balance',f['balance'])]),if(f['dueDate']!=null)Padding(padding:const EdgeInsets.only(top:9),child:Text('Due '+f['dueDate'].toString(),style:const TextStyle(color:muted,fontSize:12)))]));
   Widget _money(String l,dynamic v)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(l,style:const TextStyle(color:muted,fontSize:11)),Text('₹'+(double.tryParse(v.toString())??0).toStringAsFixed(0),style:const TextStyle(fontWeight:FontWeight.w800))]));
 }
 
@@ -74,31 +74,133 @@ class TeacherAttendanceScreen extends StatefulWidget {
   @override State<TeacherAttendanceScreen> createState()=>_TeacherAttendanceScreenState();
 }
 class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen>{
-  bool loading=true,saving=false; List<Map<String,dynamic>> subjects=[]; List<Map<String,dynamic>> roster=[]; String? selected; String date=DateTime.now().toIso8601String().substring(0,10);
+  bool loading=true,saving=false;
+  List<Map<String,dynamic>> subjects=[];
+  List<Map<String,dynamic>> roster=[];
+  String? selected;
+  String date=DateTime.now().toIso8601String().substring(0,10);
   @override void initState(){super.initState();load();}
-  Future<void> load()async{setState(()=>loading=true);try{
-    final classes=await ApiService.instance.list('/classes/mine'); final all=<Map<String,dynamic>>[];
-    for(final cls in classes){final id=cls['id'];if(id==null)continue;final ss=await ApiService.instance.list('/classes/'+id.toString()+'/subjects');for(final s in ss){final x=Map<String,dynamic>.from(s);x['className']=cls['name'];all.add(x);}}
-    subjects=all;if(selected==null&&subjects.isNotEmpty)selected=subjects.first['id'].toString();if(selected!=null)await loadRoster();
-  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
-  Future<void> loadRoster()async{if(selected==null)return;setState(()=>loading=true);try{
-    final enrolled=await ApiService.instance.list('/classes/subjects/'+selected+'/enrollments');
-    roster=enrolled.map((x){final m=Map<String,dynamic>.from(x);m['status']=m['status']??'PRESENT';return m;}).toList();
-  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>loading=false);}}
-  Future<void> save()async{if(roster.isEmpty||selected==null)return;setState(()=>saving=true);try{
-    await Future.wait(roster.map((r)=>ApiService.instance.mapPost('/attendance',{'classEnrollmentId':r['id']??r['classEnrollmentId'],'attendanceDate':date,'status':r['status']??'PRESENT','remarks':''})));
-    if(mounted)snack(context,'Attendance saved successfully.');
-  }catch(e){if(mounted)snack(context,cleanError(e));}finally{if(mounted)setState(()=>saving=false);}}
-  void all(String s)=>setState(()=>roster=roster.map((r)=>({...r,'status':s})).toList());
-  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('Mark Attendance',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(20),children:[
-    DropdownButtonFormField<String>(initialValue:selected,decoration:const InputDecoration(labelText:'Class / Subject'),items:subjects.map((s)=>DropdownMenuItem(value:s['id'].toString(),child:Text((s['className']??'Class').toString()+' · '+(s['subjectName']??'Subject').toString()))).toList(),onChanged:(v)async{selected=v;await loadRoster();}),
-    const SizedBox(height:12),TextFormField(initialValue:date,decoration:const InputDecoration(labelText:'Date'),onChanged:(v)=>date=v),
-    const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton(onPressed:()=>all('PRESENT'),child:const Text('All Present'))),const SizedBox(width:8),Expanded(child:OutlinedButton(onPressed:()=>all('ABSENT'),child:const Text('All Absent')))]),
-    const SizedBox(height:14),...roster.map((r)=>Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),child:Row(children:[Expanded(child:Text((r['studentName']??r['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700))),DropdownButton<String>(value:(r['status']??'PRESENT').toString(),items:const ['PRESENT','ABSENT','LATE','EXCUSED'].map((s)=>DropdownMenuItem(value:s,child:Text(s))).toList(),onChanged:(v)=>setState(()=>r['status']=v))]))),
-    const SizedBox(height:10),SizedBox(height:52,width:double.infinity,child:FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),label:Text(saving?'Saving...':'Save Attendance')))
-  ]);
+
+  Future<void> load() async {
+    setState(()=>loading=true);
+    try {
+      final classes=await ApiService.instance.list('/classes/mine');
+      final all=<Map<String,dynamic>>[];
+      for(final cls in classes) {
+        final id=cls['id'];
+        if(id==null) continue;
+        final list=await ApiService.instance.list('/classes/'+id.toString()+'/subjects');
+        for(final subject in list) {
+          final item=Map<String,dynamic>.from(subject);
+          item['className']=cls['name'];
+          all.add(item);
+        }
+      }
+      subjects=all;
+      if(selected==null && subjects.isNotEmpty) selected=subjects.first['id'].toString();
+      if(selected!=null) await loadRoster(showLoading:false);
+    } catch(e) {
+      if(mounted) snack(context,cleanError(e));
+    } finally {
+      if(mounted) setState(()=>loading=false);
+    }
+  }
+
+  Future<void> loadRoster({bool showLoading=true}) async {
+    final id=selected;
+    if(id==null)return;
+    if(showLoading && mounted)setState(()=>loading=true);
+    try {
+      final enrolled=await ApiService.instance.list('/classes/subjects/'+id+'/enrollments');
+      roster=enrolled.map((x){
+        final item=Map<String,dynamic>.from(x);
+        item['status']=item['status']??'PRESENT';
+        return item;
+      }).toList();
+    } catch(e) {
+      if(mounted)snack(context,cleanError(e));
+    } finally {
+      if(showLoading && mounted)setState(()=>loading=false);
+    }
+  }
+
+  Future<void> save() async {
+    if(roster.isEmpty || selected==null)return;
+    setState(()=>saving=true);
+    try {
+      await Future.wait(roster.map((r)=>ApiService.instance.mapPost('/attendance',{
+        'classEnrollmentId':r['id']??r['classEnrollmentId'],
+        'attendanceDate':date,
+        'status':r['status']??'PRESENT',
+        'remarks':''
+      })));
+      if(mounted)snack(context,'Attendance saved successfully.');
+    } catch(e) {
+      if(mounted)snack(context,cleanError(e));
+    } finally {
+      if(mounted)setState(()=>saving=false);
+    }
+  }
+
+  void all(String status) => setState(()=>roster=roster.map((r)=>({...r,'status':status})).toList());
+
+  @override Widget build(BuildContext c)=>Scaffold(
+    backgroundColor:pageBg,
+    appBar:AppBar(
+      title:const Text('Mark Attendance',style:TextStyle(fontWeight:FontWeight.w800)),
+      actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]
+    ),
+    body:loading
+      ? const Center(child:CircularProgressIndicator())
+      : ListView(padding:const EdgeInsets.all(20),children:[
+          DropdownButtonFormField<String>(
+            initialValue:selected,
+            decoration:const InputDecoration(labelText:'Class / Subject'),
+            items:subjects.map((s)=>DropdownMenuItem(
+              value:s['id'].toString(),
+              child:Text((s['className']??'Class').toString()+' · '+(s['subjectName']??'Subject').toString())
+            )).toList(),
+            onChanged:(v) async {
+              if(v==null)return;
+              setState(()=>selected=v);
+              await loadRoster();
+            }
+          ),
+          const SizedBox(height:12),
+          TextFormField(initialValue:date,decoration:const InputDecoration(labelText:'Date'),onChanged:(v)=>date=v),
+          const SizedBox(height:14),
+          Row(children:[
+            Expanded(child:OutlinedButton(onPressed:()=>all('PRESENT'),child:const Text('All Present'))),
+            const SizedBox(width:8),
+            Expanded(child:OutlinedButton(onPressed:()=>all('ABSENT'),child:const Text('All Absent')))
+          ]),
+          const SizedBox(height:14),
+          ...roster.map((r)=>Container(
+            margin:const EdgeInsets.only(bottom:8),
+            padding:const EdgeInsets.all(13),
+            decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),
+            child:Row(children:[
+              Expanded(child:Text((r['studentName']??r['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700))),
+              DropdownButton<String>(
+                value:(r['status']??'PRESENT').toString(),
+                items:const ['PRESENT','ABSENT','LATE','EXCUSED'].map((status)=>DropdownMenuItem(value:status,child:Text(status))).toList(),
+                onChanged:(value){if(value!=null)setState(()=>r['status']=value);}
+              )
+            ])
+          )),
+          const SizedBox(height:10),
+          SizedBox(
+            height:52,
+            width:double.infinity,
+            child:FilledButton.icon(
+              onPressed:saving?null:save,
+              icon:const Icon(Icons.save_outlined),
+              label:Text(saving?'Saving...':'Save Attendance')
+            )
+          )
+        ])
+  );
 }
-\npart of 'main.dart';
 
 class TeacherClassesScreen extends StatefulWidget {
   const TeacherClassesScreen({super.key});
@@ -115,15 +217,27 @@ class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
     try{final r=await ApiService.instance.list('/classes/$id/students');rosters[id]=r;setState(()=>loading=false);if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>TeacherRosterScreen(classData:cls,students:r)));}catch(e){setState(()=>loading=false);if(mounted)snack(context,cleanError(e));}}
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('My Classes',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[
     if(classes.isEmpty)const _EmptyModule(message:'No classes are assigned to you yet.'),
-    ...classes.map((x)=>Container(margin:const EdgeInsets.only(bottom:12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:ListTile(contentPadding:const EdgeInsets.all(16),leading:Container(width:48,height:48,decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.class_outlined,color:navy)),title:Text((x['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((x['academicYear']??'').toString()+' · Semester '+(x['semester']??'—').toString()+'\n'+(x['studentCount']??0).toString()+' students · '+(x['subjectCount']??0).toString()+' subjects'),isThreeLine:true,trailing:const Icon(Icons.chevron_right_rounded),onTap:()=>openClass(x))))
-  ]));
+    ...classes.map((x) => Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.class_outlined, color: navy)),
+        title: Text((x['name'] ?? 'Class').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text((x['academicYear'] ?? '').toString() + ' · Semester ' + (x['semester'] ?? '—').toString() + '\\n' + (x['studentCount'] ?? 0).toString() + ' students · ' + (x['subjectCount'] ?? 0).toString() + ' subjects'),
+        isThreeLine: true,
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => openClass(x),
+      ),
+    )),
+  ])));
 }
 
 class TeacherRosterScreen extends StatelessWidget{
   final Map<String,dynamic> classData; final List<Map<String,dynamic>> students;
   const TeacherRosterScreen({super.key,required this.classData,required this.students});
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:Text((classData['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800))),body:ListView(padding:const EdgeInsets.all(20),children:[
-    Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Row(children:[const Icon(Icons.groups_outlined,color:navy,size:30),const SizedBox(width:12),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Class roster',style:TextStyle(fontWeight:FontWeight.w800)),Text(students.length.toString()+' enrolled students',style:const TextStyle(color:muted))])]),
+    Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Row(children:[const Icon(Icons.groups_outlined,color:navy,size:30),const SizedBox(width:12),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Class roster',style:TextStyle(fontWeight:FontWeight.w800)),Text(students.length.toString()+' enrolled students',style:const TextStyle(color:muted))])])),
     const SizedBox(height:16),...students.asMap().entries.map((e){final s=e.value;return Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),child:Row(children:[CircleAvatar(radius:20,backgroundColor:lightGreen,child:Text(((s['studentName']??s['name']??'S').toString().substring(0,1)).toUpperCase(),style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((s['studentName']??s['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700)),Text((s['admissionNo']??'').toString(),style:const TextStyle(color:muted,fontSize:12))]))]));})
   ]));
 }
@@ -163,6 +277,13 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
     const SizedBox(height:16), if(today.isEmpty)const _EmptyModule(message:'No teaching slots scheduled for this day.'),
     ...today.map((e)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Row(children:[
       Container(width:72,padding:const EdgeInsets.all(9),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(13)),child:Text((e['startTime']??'').toString().substring(0,5),textAlign:TextAlign.center,style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),
-      const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((e['subjectName']??'Subject').toString(),style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800)),Text((e['schoolClassName']??'Class').toString()+' · Room '+(e['room']??'—').toString(),style:const TextStyle(color:muted,fontSize:12)),Text((e['startTime']??'').toString().substring(0,5)+' - '+(e['endTime']??'').toString().substring(0,5),style:const TextStyle(color:muted,fontSize:12))])),IconButton(onPressed:()=>deleteSlot(e),icon:const Icon(Icons.delete_outline_rounded,color:Colors.redAccent))])));
-  ]));
+      const SizedBox(width: 13),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text((e['subjectName'] ?? 'Subject').toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        Text((e['schoolClassName'] ?? 'Class').toString() + ' · Room ' + (e['room'] ?? '—').toString(), style: const TextStyle(color: muted, fontSize: 12)),
+        Text((e['startTime'] ?? '').toString().substring(0, 5) + ' - ' + (e['endTime'] ?? '').toString().substring(0, 5), style: const TextStyle(color: muted, fontSize: 12)),
+      ])),
+      IconButton(onPressed: () => deleteSlot(e), icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent)),
+    ]))),
+  ])));
 }
