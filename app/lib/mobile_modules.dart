@@ -217,7 +217,19 @@ class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
     try{final r=await ApiService.instance.list('/classes/$id/students');rosters[id]=r;setState(()=>loading=false);if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>TeacherRosterScreen(classData:cls,students:r)));}catch(e){setState(()=>loading=false);if(mounted)snack(context,cleanError(e));}}
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:const Text('My Classes',style:TextStyle(fontWeight:FontWeight.w800)),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh_rounded))]),body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(color:navy,onRefresh:load,child:ListView(padding:const EdgeInsets.all(20),children:[
     if(classes.isEmpty)const _EmptyModule(message:'No classes are assigned to you yet.'),
-    ...classes.map((x)=>Container(margin:const EdgeInsets.only(bottom:12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:ListTile(contentPadding:const EdgeInsets.all(16),leading:Container(width:48,height:48,decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.class_outlined,color:navy)),title:Text((x['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text((x['academicYear']??'').toString()+' · Semester '+(x['semester']??'—').toString()+'\n'+(x['studentCount']??0).toString()+' students · '+(x['subjectCount']??0).toString()+' subjects'),isThreeLine:true,trailing:const Icon(Icons.chevron_right_rounded),onTap:()=>openClass(x)))
+    ...classes.map((x) => Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: lightGreen, borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.class_outlined, color: navy)),
+        title: Text((x['name'] ?? 'Class').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text((x['academicYear'] ?? '').toString() + ' · Semester ' + (x['semester'] ?? '—').toString() + '\\n' + (x['studentCount'] ?? 0).toString() + ' students · ' + (x['subjectCount'] ?? 0).toString() + ' subjects'),
+        isThreeLine: true,
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => openClass(x),
+      ),
+    )),
   ])));
 }
 
@@ -265,6 +277,13 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
     const SizedBox(height:16), if(today.isEmpty)const _EmptyModule(message:'No teaching slots scheduled for this day.'),
     ...today.map((e)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:border)),child:Row(children:[
       Container(width:72,padding:const EdgeInsets.all(9),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(13)),child:Text((e['startTime']??'').toString().substring(0,5),textAlign:TextAlign.center,style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),
-      const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((e['subjectName']??'Subject').toString(),style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800)),Text((e['schoolClassName']??'Class').toString()+' · Room '+(e['room']??'—').toString(),style:const TextStyle(color:muted,fontSize:12)),Text((e['startTime']??'').toString().substring(0,5)+' - '+(e['endTime']??'').toString().substring(0,5),style:const TextStyle(color:muted,fontSize:12))])),IconButton(onPressed:()=>deleteSlot(e),icon:const Icon(Icons.delete_outline_rounded,color:Colors.redAccent))]))));
+      const SizedBox(width: 13),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text((e['subjectName'] ?? 'Subject').toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        Text((e['schoolClassName'] ?? 'Class').toString() + ' · Room ' + (e['room'] ?? '—').toString(), style: const TextStyle(color: muted, fontSize: 12)),
+        Text((e['startTime'] ?? '').toString().substring(0, 5) + ' - ' + (e['endTime'] ?? '').toString().substring(0, 5), style: const TextStyle(color: muted, fontSize: 12)),
+      ])),
+      IconButton(onPressed: () => deleteSlot(e), icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent)),
+    ])));
   ]));
 }
