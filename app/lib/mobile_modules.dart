@@ -239,7 +239,7 @@ class TeacherRosterScreen extends StatelessWidget{
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:pageBg,appBar:AppBar(title:Text((classData['name']??'Class').toString(),style:const TextStyle(fontWeight:FontWeight.w800))),body:ListView(padding:const EdgeInsets.all(20),children:[
     Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:lightGreen,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Row(children:[const Icon(Icons.groups_outlined,color:navy,size:30),const SizedBox(width:12),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Class roster',style:TextStyle(fontWeight:FontWeight.w800)),Text(students.length.toString()+' enrolled students',style:const TextStyle(color:muted))])])),
     const SizedBox(height:16),...students.asMap().entries.map((e){final s=e.value;return Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17),border:Border.all(color:border)),child:Row(children:[CircleAvatar(radius:20,backgroundColor:lightGreen,child:Text(((s['studentName']??s['name']??'S').toString().substring(0,1)).toUpperCase(),style:const TextStyle(color:navy,fontWeight:FontWeight.w800))),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((s['studentName']??s['name']??'Student').toString(),style:const TextStyle(fontWeight:FontWeight.w700)),Text((s['admissionNo']??'').toString(),style:const TextStyle(color:muted,fontSize:12))]))]));})
-  ])));
+  ]));
 }
 
 class TeacherAssignmentsHomeScreen extends StatelessWidget{
