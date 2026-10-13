@@ -230,7 +230,7 @@ class _TeacherClassesScreenState extends State<TeacherClassesScreen>{
         onTap: () => openClass(x),
       ),
     )),
-  ]));
+  ])));
 }
 
 class TeacherRosterScreen extends StatelessWidget{
